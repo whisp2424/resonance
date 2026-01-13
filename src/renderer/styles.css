@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@layer base {
+    * {
+        scrollbar-width: none;
+        user-select: none;
+    }
+
+    *::-webkit-scrollbar {
+        display: none;
+    }
+
+    body {
+        color: theme(--color-white);
+        background-color: theme(--color-black);
+    }
+
+    a {
+        cursor: default;
+    }
+
+    img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+}
+
+@utility drag {
+    -webkit-app-region: drag;
+}
+
+@utility no-drag {
+    -webkit-app-region: no-drag;
+}

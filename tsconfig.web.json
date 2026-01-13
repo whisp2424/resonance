@@ -1,0 +1,20 @@
+{
+    "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
+    "include": [
+        "src/renderer/env.d.ts",
+        "src/renderer/**/*",
+        "src/renderer/**/*.tsx",
+        "src/preload/*.d.ts"
+    ],
+    "compilerOptions": {
+        "allowJs": true,
+        "baseUrl": ".",
+        "checkJs": true,
+        "lib": ["ESNext", "DOM", "DOM.Iterable"],
+        "paths": { "@/*": ["src/renderer/*"] },
+        "strict": false,
+        "types": ["unplugin-icons/types/react"],
+        "useDefineForClassFields": true,
+        "verbatimModuleSyntax": true
+    }
+}
