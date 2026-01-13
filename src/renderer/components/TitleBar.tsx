@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 import type { IconElement } from "@/types/iconElement";
 
+import { clsx } from "clsx";
 import { useEffect, useState } from "react";
 
 import Logo from "@/assets/resonance-logo.svg?react";
@@ -20,7 +21,10 @@ function TitleBarButton({
 }: TitleBarButtonProps) {
     return (
         <button
-            className={`no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-neutral-900 hover:duration-0 ${className}`}
+            className={clsx(
+                "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-neutral-900 hover:duration-0",
+                className,
+            )}
             {...rest}>
             <Icon className="size-4 scale-105" />
         </button>
@@ -119,7 +123,10 @@ export default function TitleBar() {
                 <Logo className="w-34 opacity-20" />
             </div>
             <div
-                className={`flex h-full flex-row items-center justify-start transition duration-200 ${!isWindowFocused && "opacity-50"}`}>
+                className={clsx(
+                    "flex h-full flex-row items-center justify-start transition duration-200",
+                    !isWindowFocused && "opacity-50",
+                )}>
                 <TitleBarButtonMinimize />
                 <TitleBarButtonMaximize />
                 <TitleBarButtonClose />
