@@ -4,10 +4,10 @@ import type { IconElement } from "@/types/iconElement";
 import { useEffect, useState } from "react";
 
 import Logo from "@/assets/resonance-logo.svg?react";
-import IconX from "~icons/fluent/dismiss-24-regular";
-import IconMaximize from "~icons/fluent/maximize-24-regular";
-import IconMinimize from "~icons/fluent/minimize-24-regular";
-import IconRestore from "~icons/fluent/square-multiple-24-regular";
+import IconX from "~icons/fluent/dismiss-16-regular";
+import IconMaximize from "~icons/fluent/maximize-16-regular";
+import IconMinimize from "~icons/fluent/minimize-16-regular";
+import IconRestore from "~icons/fluent/square-multiple-16-regular";
 
 interface TitleBarButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     icon: IconElement;
@@ -20,9 +20,9 @@ function TitleBarButton({
 }: TitleBarButtonProps) {
     return (
         <button
-            className={`no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-neutral-950 hover:duration-0 ${className}`}
+            className={`no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-neutral-900 hover:duration-0 ${className}`}
             {...rest}>
-            <Icon className="size-3.5" />
+            <Icon className="size-4 scale-105" />
         </button>
     );
 }
@@ -85,6 +85,7 @@ function TitleBarButtonMinimize() {
 
 export default function TitleBar() {
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isWindowFocused, setIsWindowFocused] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -95,24 +96,30 @@ export default function TitleBar() {
             setIsFullscreen(await window.electron.isWindowFullscreen());
         };
 
+        const onFocus = () => setIsWindowFocused(true);
+        const onBlur = () => setIsWindowFocused(false);
+
         window.electron.onWindowFullscreen(updateFullscreen);
+        window.addEventListener("focus", onFocus);
+        window.addEventListener("blur", onBlur);
 
         return () => {
             window.electron.removeListeners("enter-full-screen");
             window.electron.removeListeners("leave-full-screen");
+            window.removeEventListener("focus", onFocus);
+            window.removeEventListener("blur", onBlur);
         };
     }, []);
 
-    if (isFullscreen) {
-        return null;
-    }
+    if (isFullscreen) return null;
 
     return (
         <div className="drag flex h-8 w-full flex-row items-center justify-between">
             <div className="flex h-full flex-row items-center justify-start px-4">
                 <Logo className="w-34 opacity-20" />
             </div>
-            <div className="flex h-full flex-row items-center justify-start">
+            <div
+                className={`flex h-full flex-row items-center justify-start transition duration-200 ${!isWindowFocused && "opacity-50"}`}>
                 <TitleBarButtonMinimize />
                 <TitleBarButtonMaximize />
                 <TitleBarButtonClose />
