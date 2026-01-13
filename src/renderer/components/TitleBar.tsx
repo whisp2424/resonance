@@ -89,7 +89,7 @@ function TitleBarButtonMinimize() {
 
 export default function TitleBar() {
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [isWindowFocused, setIsWindowFocused] = useState(false);
+    const [isWindowFocused, setIsWindowFocused] = useState(true);
 
     useEffect(() => {
         (async () => {
