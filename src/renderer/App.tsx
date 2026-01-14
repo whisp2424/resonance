@@ -1,17 +1,16 @@
 import { useEffect } from "react";
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 
-import MiniPlayer from "@/components/layout/MiniPlayer";
+import { ROUTES } from "./constants/routes";
+
 import TitleBar from "@/components/layout/TitleBar";
 import HomeView from "@/components/views/HomeView";
 import NotFound from "@/components/views/NotFound";
-import { ROUTES, routeConfig } from "@/constants/routes";
 import { useAccentColor } from "@/hooks/useAccentColor";
 
 export default function App() {
     const accentColor = useAccentColor();
     const navigate = useNavigate();
-    const location = useLocation();
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -31,13 +30,6 @@ export default function App() {
         };
     }, [navigate]);
 
-    useEffect(() => {
-        const currentRoute =
-            routeConfig.find((route) => route.path === location.pathname) ||
-            routeConfig.find((route) => route.path === "*");
-        if (currentRoute.title) electron.window.setTitle(currentRoute.title);
-    }, [location.pathname]);
-
     return (
         <div
             className="flex h-dvh w-full flex-col"
@@ -47,7 +39,6 @@ export default function App() {
                 <Route path={ROUTES.HOME} element={<HomeView />} />
                 <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
             </Routes>
-            <MiniPlayer />
         </div>
     );
 }
