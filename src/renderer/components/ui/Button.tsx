@@ -30,7 +30,7 @@ type ButtonAsLink = BaseProps & {
 type ButtonProps = ButtonAsButton | ButtonAsAnchor | ButtonAsLink;
 
 const baseStyles =
-    "flex items-center justify-center gap-2 rounded-sm bg-neutral-900 px-4 py-2 text-sm transition duration-300 ease-out hover:bg-neutral-900/80 active:scale-95";
+    "flex items-center justify-center gap-2 rounded-sm bg-neutral-900 px-4 py-2 text-sm transition duration-300 ease-out hover:bg-neutral-800 active:scale-95";
 
 export default function Button({ children, icon: Icon, ...rest }: ButtonProps) {
     const className = twMerge(clsx(baseStyles));
