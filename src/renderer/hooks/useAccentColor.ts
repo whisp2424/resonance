@@ -12,7 +12,6 @@ export const useAccentColor = (): string => {
     useEffect(() => {
         (async () => {
             const initialColor = await electron.system.getAccentColor();
-            console.log(initialColor);
             setAccentColor(`#${stripAlpha(initialColor)}`);
         })();
 

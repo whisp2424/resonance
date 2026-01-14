@@ -24,7 +24,7 @@ function TitleBarButton({
         <button
             tabIndex={-1}
             className={clsx(
-                "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-neutral-900 hover:duration-0",
+                "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-neutral-900 hover:text-white hover:duration-0",
                 className,
             )}
             {...rest}>
@@ -120,23 +120,25 @@ export default function TitleBar() {
     if (isFullscreen) return null;
 
     return (
-        <div className="drag flex h-8 w-full flex-row items-center justify-between bg-linear-to-t from-black to-neutral-900/80">
-            <div className="flex h-full flex-row items-center justify-start px-4">
-                <Logo className="w-34 opacity-30" />
+        <div className="drag flex h-8 w-full flex-row items-center justify-between gap-4 bg-linear-to-t transition duration-300 ease-out">
+            <div className="flex h-full flex-1 flex-row items-center justify-start">
+                <Logo className="ml-4 w-34 opacity-30" />
             </div>
             <span
                 className={twMerge(
                     clsx(
-                        "flex h-full w-fit items-center justify-center text-sm opacity-30 transition duration-500",
-                        !isWindowFocused && "opacity-20",
+                        "hidden h-full w-full flex-1 items-center justify-center truncate text-sm opacity-30 md:flex",
+                        !isWindowFocused && "text-white/50",
                     ),
                 )}>
                 {title}
             </span>
             <div
-                className={clsx(
-                    "flex h-full flex-row items-center justify-start transition duration-200",
-                    !isWindowFocused && "opacity-50",
+                className={twMerge(
+                    clsx(
+                        "flex h-full flex-1 flex-row items-center justify-end",
+                        !isWindowFocused && "text-white/50",
+                    ),
                 )}>
                 <TitleBarButtonMinimize />
                 <TitleBarButtonMaximize />

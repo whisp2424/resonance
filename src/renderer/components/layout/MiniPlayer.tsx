@@ -1,6 +1,6 @@
 import clsx from "clsx";
 
-import Slider from "@/components/Slider";
+import Slider from "@/components/common/Slider";
 import IconLyrics from "~icons/fluent/comment-text-32-regular";
 import IconNext from "~icons/fluent/next-32-filled";
 // import IconPause from "~icons/fluent/pause-32-filled";
@@ -24,7 +24,7 @@ function MiniPlayerButton({
                 className,
             )}
             {...rest}>
-            <Icon className="size-8 scale-95" />
+            <Icon className="size-8" />
         </button>
     );
 }
@@ -36,7 +36,7 @@ export default function MiniPlayer() {
                 className="w-full"
                 indicatorClassName="shadow-[0_-10px_48px_0_var(--accent-color)]"
             />
-            <div className="flex h-full w-full flex-row px-10 pt-4 pb-6">
+            <div className="flex h-full w-full flex-row px-10 pt-3 pb-5">
                 <div className="flex h-full min-w-0 flex-1 flex-row items-center justify-start gap-4">
                     <MiniPlayerButton icon={IconPrevious} />
                     <MiniPlayerButton icon={IconPlay} />

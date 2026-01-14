@@ -1,6 +1,6 @@
 import type { BrowserWindow } from "electron";
 
-import { IPC_CHANNELS } from "@/ipc/channels";
+import { IPC_CHANNELS } from "@/handlers/channels";
 
 export const registerWindowEvents = (mainWindow: BrowserWindow) => {
     const { WINDOW } = IPC_CHANNELS;

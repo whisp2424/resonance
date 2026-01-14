@@ -11,9 +11,9 @@ import {
     systemPreferences,
 } from "electron";
 
-import { registerWindowEvents } from "@/events/window";
-import { registerSystemHandlers } from "@/ipc/system";
-import { registerWindowHandlers } from "@/ipc/window";
+import { registerSystemHandlers } from "@/handlers/system/ipc";
+import { registerWindowEvents } from "@/handlers/window/events";
+import { registerWindowHandlers } from "@/handlers/window/ipc";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
