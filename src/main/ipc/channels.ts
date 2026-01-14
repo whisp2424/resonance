@@ -7,4 +7,9 @@ export const IPC_CHANNELS = {
         IS_MAXIMIZED: "window:isMaximized",
         IS_FULLSCREEN: "window:isFullscreen",
     },
+
+    SYSTEM: {
+        ACCENT_COLOR: "system:accentColor",
+        ACCENT_COLOR_CHANGED: "system:accentColorChanged",
+    },
 } as const;

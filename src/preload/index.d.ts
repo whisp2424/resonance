@@ -1,6 +1,6 @@
 declare global {
     interface Window {
-        electron: {
+        electronAPI: {
             closeWindow: () => Promise<void>;
             maximizeWindow: () => Promise<void>;
             unmaximizeWindow: () => Promise<void>;
@@ -9,6 +9,8 @@ declare global {
             isWindowFullscreen: () => Promise<boolean>;
             onWindowFullscreen: (callback: () => void) => void;
             onWindowMaximize: (callback: () => void) => void;
+            getAccentColor: () => Promise<string>;
+            onAccentColorChange: (callback: (color: string) => void) => void;
             removeListeners: (channel: string) => void;
         };
     }

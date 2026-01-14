@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 const listeners = new Map<string, Set<() => void>>();
+const accentColorListeners = new Set<(color: string) => void>();
+let accentColorListenerRegistered = false;
 
 const registerDualEvent = (
     channels: readonly [string, string],
@@ -21,11 +23,21 @@ const removeDualEvent = (channels: readonly [string, string], key: string) => {
                 ipcRenderer.removeListener(channel, callback),
             );
         });
+
         listeners.delete(key);
     }
 };
 
-contextBridge.exposeInMainWorld("electron", {
+const registerAccentColorListener = () => {
+    if (!accentColorListenerRegistered) {
+        accentColorListenerRegistered = true;
+        ipcRenderer.on("system:accentColorChanged", (_, color) => {
+            accentColorListeners.forEach((cb) => cb(color));
+        });
+    }
+};
+
+contextBridge.exposeInMainWorld("electronAPI", {
     closeWindow: () => ipcRenderer.invoke("window:close"),
     unmaximizeWindow: () => ipcRenderer.invoke("window:unmaximize"),
     minimizeWindow: () => ipcRenderer.invoke("window:minimize"),
@@ -45,6 +57,12 @@ contextBridge.exposeInMainWorld("electron", {
         );
     },
 
+    getAccentColor: () => ipcRenderer.invoke("system:accentColor"),
+    onAccentColorChange: (callback: (color: string) => void) => {
+        accentColorListeners.add(callback);
+        registerAccentColorListener();
+    },
+
     removeListeners: (channel: string) => {
         if (channel === "fullscreen") {
             removeDualEvent(
@@ -53,6 +71,10 @@ contextBridge.exposeInMainWorld("electron", {
             );
         } else if (channel === "maximize") {
             removeDualEvent(["maximize", "unmaximize"], "maximize");
+        } else if (channel === "accentColor") {
+            accentColorListeners.clear();
+            ipcRenderer.removeAllListeners("system:accentColorChanged");
+            accentColorListenerRegistered = false;
         }
     },
 });

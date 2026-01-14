@@ -1,10 +1,19 @@
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
-import { BrowserWindow, Menu, Tray, app, nativeImage, shell } from "electron";
+import {
+    BrowserWindow,
+    Menu,
+    Tray,
+    app,
+    nativeImage,
+    shell,
+    systemPreferences,
+} from "electron";
 
-import { registerWindowEvents } from "./events/window";
-import { registerWindowHandlers } from "./ipc/window";
+import { registerWindowEvents } from "@/events/window";
+import { registerSystemHandlers } from "@/ipc/system";
+import { registerWindowHandlers } from "@/ipc/window";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -76,7 +85,6 @@ const createTray = (): void => {
 };
 
 const gotTheLock = app.requestSingleInstanceLock();
-
 if (!gotTheLock) app.quit();
 
 app.on("second-instance", () => {
@@ -90,8 +98,10 @@ app.whenReady().then(() => {
     app.setAppUserModelId("moe.whisp.resonance");
     mainWindow = createWindow();
     createTray();
+
     registerWindowEvents(mainWindow);
     registerWindowHandlers(mainWindow);
+    registerSystemHandlers(mainWindow, systemPreferences);
 });
 
 app.on("window-all-closed", () => {

@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+:root {
+    --accent-color: #0078d4;
+}
+
+@theme {
+    --color-accent: var(--accent-color);
+}
+
 @layer base {
     * {
         scrollbar-width: none;
@@ -13,6 +21,7 @@
     body {
         color: theme(--color-white);
         background-color: theme(--color-black);
+        font-family: system-ui, sans-serif;
     }
 
     a {
