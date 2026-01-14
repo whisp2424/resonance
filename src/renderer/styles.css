@@ -4,10 +4,6 @@
     --accent-color: #0078d4;
 }
 
-@theme {
-    --color-accent: var(--accent-color);
-}
-
 @layer base {
     * {
         scrollbar-width: none;
