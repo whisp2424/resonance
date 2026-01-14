@@ -37,6 +37,7 @@ export const registerWindowHandlers = (mainWindow: BrowserWindow) => {
         WINDOW.SET_WINDOW_TITLE,
         (_, title: string) => {
             mainWindow.title = title;
+            mainWindow.webContents.send(WINDOW.ON_WINDOW_TITLE_CHANGED);
         },
     );
 };
