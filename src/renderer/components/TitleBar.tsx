@@ -21,6 +21,7 @@ function TitleBarButton({
 }: TitleBarButtonProps) {
     return (
         <button
+            tabIndex={-1}
             className={clsx(
                 "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-neutral-900 hover:duration-0",
                 className,
@@ -36,7 +37,7 @@ function TitleBarButtonClose() {
         <TitleBarButton
             icon={IconX}
             className="hover:bg-red-500"
-            onClick={() => window.electron.closeWindow()}
+            onClick={() => window.electronAPI.closeWindow()}
         />
     );
 }
@@ -46,27 +47,27 @@ function TitleBarButtonMaximize() {
 
     useEffect(() => {
         (async () => {
-            setIsMaximized(await window.electron.isWindowMaximized());
+            setIsMaximized(await window.electronAPI.isWindowMaximized());
         })();
 
         const updateMaximized = async () => {
-            setIsMaximized(await window.electron.isWindowMaximized());
+            setIsMaximized(await window.electronAPI.isWindowMaximized());
         };
 
-        window.electron.onWindowMaximize(updateMaximized);
+        window.electronAPI.onWindowMaximize(updateMaximized);
 
         return () => {
-            window.electron.removeListeners("maximize");
-            window.electron.removeListeners("unmaximize");
+            window.electronAPI.removeListeners("maximize");
+            window.electronAPI.removeListeners("unmaximize");
         };
     }, []);
 
     const toggleMaximize = async () => {
-        const maximized = await window.electron.isWindowMaximized();
+        const maximized = await window.electronAPI.isWindowMaximized();
 
         if (maximized) {
-            await window.electron.unmaximizeWindow();
-        } else await window.electron.maximizeWindow();
+            await window.electronAPI.unmaximizeWindow();
+        } else await window.electronAPI.maximizeWindow();
         setIsMaximized(!maximized);
     };
 
@@ -82,7 +83,7 @@ function TitleBarButtonMinimize() {
     return (
         <TitleBarButton
             icon={IconMinimize}
-            onClick={() => window.electron.minimizeWindow()}
+            onClick={() => window.electronAPI.minimizeWindow()}
         />
     );
 }
@@ -93,23 +94,23 @@ export default function TitleBar() {
 
     useEffect(() => {
         (async () => {
-            setIsFullscreen(await window.electron.isWindowFullscreen());
+            setIsFullscreen(await window.electronAPI.isWindowFullscreen());
         })();
 
         const updateFullscreen = async () => {
-            setIsFullscreen(await window.electron.isWindowFullscreen());
+            setIsFullscreen(await window.electronAPI.isWindowFullscreen());
         };
 
         const onFocus = () => setIsWindowFocused(true);
         const onBlur = () => setIsWindowFocused(false);
 
-        window.electron.onWindowFullscreen(updateFullscreen);
+        window.electronAPI.onWindowFullscreen(updateFullscreen);
         window.addEventListener("focus", onFocus);
         window.addEventListener("blur", onBlur);
 
         return () => {
-            window.electron.removeListeners("enter-full-screen");
-            window.electron.removeListeners("leave-full-screen");
+            window.electronAPI.removeListeners("enter-full-screen");
+            window.electronAPI.removeListeners("leave-full-screen");
             window.removeEventListener("focus", onFocus);
             window.removeEventListener("blur", onBlur);
         };
