@@ -1,4 +1,4 @@
-import type { BrowserWindow, SystemPreferences } from "electron";
+import type { BrowserWindow, Event, SystemPreferences } from "electron";
 
 import { IPC_CHANNELS } from "@/ipc/channels";
 
@@ -10,13 +10,13 @@ export const registerSystemHandlers = (
 ) => {
     const { SYSTEM } = IPC_CHANNELS;
 
-    const handleAccentColorChange = (
-        _event: Electron.Event,
-        newColor: string,
-    ) => {
+    const handleAccentColorChange = (_: Event, newColor: string) => {
         if (newColor !== lastAccentColor) {
             lastAccentColor = newColor;
-            mainWindow.webContents.send(SYSTEM.ACCENT_COLOR_CHANGED, newColor);
+            mainWindow.webContents.send(
+                SYSTEM.ON_ACCENT_COLOR_CHANGED,
+                newColor,
+            );
         }
     };
 
@@ -27,7 +27,7 @@ export const registerSystemHandlers = (
         );
     };
 
-    mainWindow.webContents.ipc.handle(SYSTEM.ACCENT_COLOR, () => {
+    mainWindow.webContents.ipc.handle(SYSTEM.GET_ACCENT_COLOR, () => {
         return preferences.getAccentColor();
     });
 

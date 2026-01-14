@@ -18,7 +18,14 @@ export default defineConfig({
             },
         },
     },
-    preload: { build: { outDir: "dist/preload" } },
+    preload: {
+        build: { outDir: "dist/preload" },
+        resolve: {
+            alias: {
+                "@": path.join(__dirname, "src/main"),
+            },
+        },
+    },
     renderer: {
         build: { outDir: "dist/renderer" },
         plugins: [

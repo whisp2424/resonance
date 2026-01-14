@@ -38,7 +38,7 @@ function TitleBarButtonClose() {
         <TitleBarButton
             icon={IconX}
             className="hover:bg-red-500"
-            onClick={() => window.electronAPI.closeWindow()}
+            onClick={() => electron.window.close()}
         />
     );
 }
@@ -48,28 +48,24 @@ function TitleBarButtonMaximize() {
 
     useEffect(() => {
         (async () => {
-            setIsMaximized(await window.electronAPI.isWindowMaximized());
+            setIsMaximized(await electron.window.isMaximized());
         })();
 
         const updateMaximized = async () => {
-            setIsMaximized(await window.electronAPI.isWindowMaximized());
+            setIsMaximized(await electron.window.isMaximized());
         };
 
-        window.electronAPI.onWindowMaximize(updateMaximized);
+        const cleanup = electron.window.onMaximized(updateMaximized);
 
-        return () => {
-            window.electronAPI.removeListeners("maximize");
-            window.electronAPI.removeListeners("unmaximize");
-        };
+        return cleanup;
     }, []);
 
     const toggleMaximize = async () => {
-        const maximized = await window.electronAPI.isWindowMaximized();
+        const maximized = await electron.window.isMaximized();
 
         if (maximized) {
-            await window.electronAPI.unmaximizeWindow();
-        } else await window.electronAPI.maximizeWindow();
-        setIsMaximized(!maximized);
+            await electron.window.unmaximize();
+        } else await electron.window.maximize();
     };
 
     return (
@@ -84,7 +80,7 @@ function TitleBarButtonMinimize() {
     return (
         <TitleBarButton
             icon={IconMinimize}
-            onClick={() => window.electronAPI.minimizeWindow()}
+            onClick={() => electron.window.minimize()}
         />
     );
 }
@@ -92,34 +88,30 @@ function TitleBarButtonMinimize() {
 export default function TitleBar() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isWindowFocused, setIsWindowFocused] = useState(true);
-    const [title, setTitle] = useState("Resonance");
+    const [title, setTitle] = useState("");
 
     useEffect(() => {
         (async () => {
-            setIsFullscreen(await window.electronAPI.isWindowFullscreen());
-            setTitle(await window.electronAPI.getWindowTitle());
+            setIsFullscreen(await electron.window.isFullscreen());
+            setTitle(await electron.window.getTitle());
         })();
 
-        const updateFullscreen = async () => {
-            setIsFullscreen(await window.electronAPI.isWindowFullscreen());
-        };
-
         const updateTitle = async () => {
-            setTitle(await window.electronAPI.getWindowTitle());
+            setTitle(await electron.window.getTitle());
         };
 
         const onFocus = () => setIsWindowFocused(true);
         const onBlur = () => setIsWindowFocused(false);
 
-        window.electronAPI.onWindowFullscreen(updateFullscreen);
-        window.electronAPI.onWindowTitleChanged(updateTitle);
+        const cleanupFullscreen =
+            electron.window.onFullscreenChange(setIsFullscreen);
+        const cleanupTitle = electron.window.onTitleChanged(updateTitle);
         window.addEventListener("focus", onFocus);
         window.addEventListener("blur", onBlur);
 
         return () => {
-            window.electronAPI.removeListeners("enter-full-screen");
-            window.electronAPI.removeListeners("leave-full-screen");
-            window.electronAPI.removeListeners("window-title-changed");
+            cleanupFullscreen();
+            cleanupTitle();
             window.removeEventListener("focus", onFocus);
             window.removeEventListener("blur", onBlur);
         };
@@ -128,15 +120,15 @@ export default function TitleBar() {
     if (isFullscreen) return null;
 
     return (
-        <div className="drag flex h-8 w-full flex-row items-center justify-between">
+        <div className="drag flex h-8 w-full flex-row items-center justify-between bg-linear-to-t from-black to-neutral-900/80">
             <div className="flex h-full flex-row items-center justify-start px-4">
-                <Logo className="w-34 opacity-20" />
+                <Logo className="w-34 opacity-30" />
             </div>
             <span
                 className={twMerge(
                     clsx(
-                        "flex h-full w-fit items-center justify-center text-sm opacity-60 transition duration-500",
-                        !isWindowFocused && "opacity-40",
+                        "flex h-full w-fit items-center justify-center text-sm opacity-30 transition duration-500",
+                        !isWindowFocused && "opacity-20",
                     ),
                 )}>
                 {title}

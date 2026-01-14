@@ -32,4 +32,11 @@ export const registerWindowHandlers = (mainWindow: BrowserWindow) => {
     mainWindow.webContents.ipc.handle(WINDOW.GET_WINDOW_TITLE, () => {
         return mainWindow.title;
     });
+
+    mainWindow.webContents.ipc.handle(
+        WINDOW.SET_WINDOW_TITLE,
+        (_, title: string) => {
+            mainWindow.title = title;
+        },
+    );
 };
