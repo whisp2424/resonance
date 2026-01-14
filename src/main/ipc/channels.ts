@@ -6,6 +6,8 @@ export const IPC_CHANNELS = {
         MINIMIZE: "window:minimize",
         IS_MAXIMIZED: "window:isMaximized",
         IS_FULLSCREEN: "window:isFullscreen",
+        GET_WINDOW_TITLE: "window:getWindowTitle",
+        ON_WINDOW_TITLE_CHANGED: "window:titleChanged",
     },
 
     SYSTEM: {

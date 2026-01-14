@@ -3,6 +3,7 @@ import type { IconElement } from "@/types/iconElement";
 
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
+import { twMerge } from "tailwind-merge";
 
 import Logo from "@/assets/resonance-logo.svg?react";
 import IconX from "~icons/fluent/dismiss-16-regular";
@@ -91,26 +92,34 @@ function TitleBarButtonMinimize() {
 export default function TitleBar() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isWindowFocused, setIsWindowFocused] = useState(true);
+    const [title, setTitle] = useState("Resonance");
 
     useEffect(() => {
         (async () => {
             setIsFullscreen(await window.electronAPI.isWindowFullscreen());
+            setTitle(await window.electronAPI.getWindowTitle());
         })();
 
         const updateFullscreen = async () => {
             setIsFullscreen(await window.electronAPI.isWindowFullscreen());
         };
 
+        const updateTitle = async () => {
+            setTitle(await window.electronAPI.getWindowTitle());
+        };
+
         const onFocus = () => setIsWindowFocused(true);
         const onBlur = () => setIsWindowFocused(false);
 
         window.electronAPI.onWindowFullscreen(updateFullscreen);
+        window.electronAPI.onWindowTitleChanged(updateTitle);
         window.addEventListener("focus", onFocus);
         window.addEventListener("blur", onBlur);
 
         return () => {
             window.electronAPI.removeListeners("enter-full-screen");
             window.electronAPI.removeListeners("leave-full-screen");
+            window.electronAPI.removeListeners("window-title-changed");
             window.removeEventListener("focus", onFocus);
             window.removeEventListener("blur", onBlur);
         };
@@ -123,6 +132,15 @@ export default function TitleBar() {
             <div className="flex h-full flex-row items-center justify-start px-4">
                 <Logo className="w-34 opacity-20" />
             </div>
+            <span
+                className={twMerge(
+                    clsx(
+                        "flex h-full w-fit items-center justify-center text-sm opacity-60 transition duration-500",
+                        !isWindowFocused && "opacity-40",
+                    ),
+                )}>
+                {title}
+            </span>
             <div
                 className={clsx(
                     "flex h-full flex-row items-center justify-start transition duration-200",

@@ -57,6 +57,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
         );
     },
 
+    getWindowTitle: () => ipcRenderer.invoke("window:getWindowTitle"),
+    onWindowTitleChanged: (callback: () => void) => {
+        ipcRenderer.on("window:titleChanged", callback);
+        const existing = listeners.get("window-title-changed") || new Set();
+        existing.add(callback);
+        listeners.set("window-title-changed", existing);
+    },
+
     getAccentColor: () => ipcRenderer.invoke("system:accentColor"),
     onAccentColorChange: (callback: (color: string) => void) => {
         accentColorListeners.add(callback);
