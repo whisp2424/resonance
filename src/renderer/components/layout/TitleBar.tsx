@@ -127,7 +127,7 @@ export default function TitleBar() {
             <span
                 className={twMerge(
                     clsx(
-                        "hidden h-full w-full flex-1 items-center justify-center truncate text-sm opacity-30 md:flex",
+                        "hidden h-full w-full flex-1 items-center justify-center truncate text-sm opacity-50 md:flex",
                         !isWindowFocused && "text-white/50",
                     ),
                 )}>

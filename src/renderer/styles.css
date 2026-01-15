@@ -8,10 +8,24 @@
     * {
         scrollbar-width: none;
         user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
     }
 
-    *::-webkit-scrollbar {
-        display: none;
+    a,
+    button,
+    select,
+    input,
+    textarea {
+        &:focus-visible {
+            outline: 2px solid var(--accent-color);
+            box-shadow: 0 4px 24px 0
+                color-mix(in srgb, var(--accent-color) 20%, transparent);
+        }
     }
 
     body {
