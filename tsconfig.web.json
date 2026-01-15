@@ -10,9 +10,10 @@
         "allowJs": true,
         "baseUrl": ".",
         "checkJs": true,
+        "composite": true,
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
         "paths": { "@/*": ["src/renderer/*"] },
-        "strict": false,
+        "strict": true,
         "types": ["unplugin-icons/types/react"],
         "useDefineForClassFields": true,
         "verbatimModuleSyntax": true
