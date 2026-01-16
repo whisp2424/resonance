@@ -1,6 +1,6 @@
+import { ViewContext } from "@renderer/contexts/ViewContextValue";
 import { useLocation } from "react-router-dom";
 
-import { ViewContext } from "@/contexts/ViewContextValue";
 
 export function ViewProvider({ children }: { children: React.ReactNode }) {
     const location = useLocation();

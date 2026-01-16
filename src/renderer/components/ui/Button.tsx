@@ -1,4 +1,4 @@
-import type { IconElement } from "@/types/iconElement";
+import type { IconElement } from "@renderer/types/iconElement";
 
 import { Button as BaseButton } from "@base-ui/react/button";
 import clsx from "clsx";

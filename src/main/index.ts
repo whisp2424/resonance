@@ -1,6 +1,9 @@
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
+import { registerSystemHandlers } from "@main/handlers/system/ipc";
+import { registerWindowEvents } from "@main/handlers/window/events";
+import { registerWindowHandlers } from "@main/handlers/window/ipc";
 import {
     BrowserWindow,
     Menu,
@@ -10,10 +13,6 @@ import {
     shell,
     systemPreferences,
 } from "electron";
-
-import { registerSystemHandlers } from "@/handlers/system/ipc";
-import { registerWindowEvents } from "@/handlers/window/events";
-import { registerWindowHandlers } from "@/handlers/window/ipc";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;

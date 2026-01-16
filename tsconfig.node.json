@@ -4,7 +4,7 @@
     "compilerOptions": {
         "baseUrl": ".",
         "composite": true,
-        "paths": { "@/*": ["src/main/*", "src/preload/*"] },
+        "paths": { "@main/*": ["src/main/*"], "@preload/*": ["src/preload/*"] },
         "types": ["electron-vite/node"]
     }
 }

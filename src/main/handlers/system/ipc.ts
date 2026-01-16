@@ -1,6 +1,6 @@
 import type { BrowserWindow, Event, SystemPreferences } from "electron";
 
-import { IPC_CHANNELS } from "@/handlers/channels";
+import { IPC_CHANNELS } from "@main/handlers/channels";
 
 let lastAccentColor: string | null = null;
 

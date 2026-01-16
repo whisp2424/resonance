@@ -1,6 +1,6 @@
+import Button from "@renderer/components/ui/Button";
 import { useLocation } from "react-router-dom";
 
-import Button from "@/components/ui/Button";
 import IconError from "~icons/fluent/error-circle-48-filled";
 
 export default function NotFound() {

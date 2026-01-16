@@ -1,6 +1,6 @@
+import { IPC_CHANNELS } from "@main/handlers/channels";
 import { contextBridge, ipcRenderer } from "electron";
 
-import { IPC_CHANNELS } from "@/handlers/channels";
 
 const { WINDOW, SYSTEM } = IPC_CHANNELS;
 

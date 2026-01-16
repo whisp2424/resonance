@@ -1,4 +1,5 @@
-import Button from "@/components/ui/Button";
+import Button from "@renderer/components/ui/Button";
+
 import IconFolder from "~icons/fluent/folder-48-filled";
 
 export default function HomeView() {

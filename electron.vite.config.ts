@@ -14,7 +14,7 @@ export default defineConfig({
         build: { outDir: "dist/main" },
         resolve: {
             alias: {
-                "@": path.join(__dirname, "src/main"),
+                "@main": path.join(__dirname, "src/main"),
             },
         },
     },
@@ -22,7 +22,8 @@ export default defineConfig({
         build: { outDir: "dist/preload" },
         resolve: {
             alias: {
-                "@": path.join(__dirname, "src/main"),
+                "@main": path.join(__dirname, "src/main"),
+                "@preload": path.join(__dirname, "src/preload"),
             },
         },
     },
@@ -36,7 +37,7 @@ export default defineConfig({
         ],
         resolve: {
             alias: {
-                "@": path.join(__dirname, "src/renderer"),
+                "@renderer": path.join(__dirname, "src/renderer"),
             },
         },
     },

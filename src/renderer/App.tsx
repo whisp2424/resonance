@@ -1,12 +1,12 @@
+
+
+import TitleBar from "@renderer/components/layout/TitleBar";
+import HomeView from "@renderer/components/views/HomeView";
+import NotFound from "@renderer/components/views/NotFound";
+import { ROUTES } from "@renderer/constants/routes";
+import { useAccentColor } from "@renderer/hooks/useAccentColor";
 import { useEffect } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
-
-import { ROUTES } from "./constants/routes";
-
-import TitleBar from "@/components/layout/TitleBar";
-import HomeView from "@/components/views/HomeView";
-import NotFound from "@/components/views/NotFound";
-import { useAccentColor } from "@/hooks/useAccentColor";
 
 export default function App() {
     const accentColor = useAccentColor();

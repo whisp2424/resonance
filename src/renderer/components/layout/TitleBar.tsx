@@ -1,11 +1,11 @@
+import type { IconElement } from "@renderer/types/iconElement";
 import type { ButtonHTMLAttributes } from "react";
-import type { IconElement } from "@/types/iconElement";
 
+import Logo from "@renderer/assets/resonance-logo.svg?react";
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 
-import Logo from "@/assets/resonance-logo.svg?react";
 import IconX from "~icons/fluent/dismiss-16-regular";
 import IconMaximize from "~icons/fluent/maximize-16-regular";
 import IconMinimize from "~icons/fluent/minimize-16-regular";
