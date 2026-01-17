@@ -1,4 +1,7 @@
-import type { MainIpcHandleEvents, MainIpcListenEvents } from "@main/types/ipc";
+import type {
+    MainIpcHandleEvents,
+    MainIpcListenEvents,
+} from "@shared/types/ipc";
 
 import { contextBridge, ipcRenderer } from "electron";
 

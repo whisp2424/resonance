@@ -2,9 +2,11 @@
     "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
     "include": [
         "src/renderer/env.d.ts",
+        "src/renderer/types/*.d.ts",
         "src/renderer/**/*",
         "src/renderer/**/*.tsx",
-        "src/preload/*.d.ts"
+        "src/preload/*.d.ts",
+        "src/shared/**/*"
     ],
     "compilerOptions": {
         "allowJs": true,
@@ -12,7 +14,10 @@
         "checkJs": true,
         "composite": true,
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
-        "paths": { "@renderer/*": ["src/renderer/*"] },
+        "paths": {
+            "@renderer/*": ["src/renderer/*"],
+            "@shared/*": ["src/shared/*"]
+        },
         "strict": true,
         "types": ["unplugin-icons/types/react"],
         "useDefineForClassFields": true,

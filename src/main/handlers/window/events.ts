@@ -1,4 +1,4 @@
-import type { MainIpcListenEvents } from "@main/types/ipc";
+import type { MainIpcListenEvents } from "@shared/types/ipc";
 import type { BrowserWindow } from "electron";
 
 import { IpcEmitter } from "@electron-toolkit/typed-ipc/main";

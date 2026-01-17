@@ -1,4 +1,7 @@
-import type { MainIpcHandleEvents, MainIpcListenEvents } from "@main/types/ipc";
+import type {
+    MainIpcHandleEvents,
+    MainIpcListenEvents,
+} from "@shared/types/ipc";
 
 type ElectronInvoke = <K extends keyof MainIpcHandleEvents>(
     channel: K,
@@ -10,17 +13,13 @@ type ElectronSend = <K extends keyof MainIpcListenEvents>(
     listener: (...args: MainIpcListenEvents[K]) => void,
 ) => () => void;
 
-interface ElectronAPI {
+export interface ElectronAPI {
     invoke: ElectronInvoke;
     send: ElectronSend;
 }
 
 declare global {
-    const electron: ElectronAPI;
-
     interface Window {
         electron: ElectronAPI;
     }
 }
-
-export {};
