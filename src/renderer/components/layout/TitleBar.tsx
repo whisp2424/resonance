@@ -88,17 +88,11 @@ function TitleBarButtonMinimize() {
 export default function TitleBar() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isWindowFocused, setIsWindowFocused] = useState(true);
-    const [title, setTitle] = useState("");
 
     useEffect(() => {
         (async () => {
             setIsFullscreen(await electron.invoke("window:isFullscreen"));
-            setTitle(await electron.invoke("window:getTitle"));
         })();
-
-        const updateTitle = async () => {
-            setTitle(await electron.invoke("window:getTitle"));
-        };
 
         window.addEventListener("focus", () => setIsWindowFocused(true));
         window.addEventListener("blur", () => setIsWindowFocused(false));
@@ -112,7 +106,6 @@ export default function TitleBar() {
                 setIsFullscreen(false),
             )();
 
-            electron.send("window:onWindowTitleChanged", updateTitle)();
             window.removeEventListener("focus", () => setIsWindowFocused(true));
             window.removeEventListener("blur", () => setIsWindowFocused(false));
         };
@@ -125,15 +118,6 @@ export default function TitleBar() {
             <div className="flex h-full flex-1 flex-row items-center justify-start">
                 <Logo className="ml-4 w-34 opacity-30" />
             </div>
-            <span
-                className={twMerge(
-                    clsx(
-                        "hidden h-full w-full flex-1 items-center justify-center truncate text-sm opacity-50 md:flex",
-                        !isWindowFocused && "text-white/50",
-                    ),
-                )}>
-                {title}
-            </span>
             <div
                 className={twMerge(
                     clsx(
