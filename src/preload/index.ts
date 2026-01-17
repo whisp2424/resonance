@@ -1,66 +1,31 @@
-import { IPC_CHANNELS } from "@main/handlers/channels";
+import type { MainIpcHandleEvents, MainIpcListenEvents } from "@main/types/ipc";
+
 import { contextBridge, ipcRenderer } from "electron";
 
+const invoke = <K extends keyof MainIpcHandleEvents>(
+    channel: K,
+    ...args: Parameters<MainIpcHandleEvents[K]>
+): Promise<ReturnType<MainIpcHandleEvents[K]>> => {
+    return ipcRenderer.invoke(channel, ...args) as Promise<
+        ReturnType<MainIpcHandleEvents[K]>
+    >;
+};
 
-const { WINDOW, SYSTEM } = IPC_CHANNELS;
+const send = <K extends keyof MainIpcListenEvents>(
+    channel: K,
+    listener: (...args: MainIpcListenEvents[K]) => void,
+): (() => void) => {
+    const wrappedListener = (
+        _: Electron.IpcRendererEvent,
+        ...args: MainIpcListenEvents[K]
+    ) => listener(...args);
+    ipcRenderer.on(channel, wrappedListener);
+    return () => {
+        ipcRenderer.removeListener(channel, wrappedListener);
+    };
+};
 
 contextBridge.exposeInMainWorld("electron", {
-    window: {
-        close: () => ipcRenderer.invoke(WINDOW.CLOSE),
-        maximize: () => ipcRenderer.invoke(WINDOW.MAXIMIZE),
-        isMaximized: () => ipcRenderer.invoke(WINDOW.IS_MAXIMIZED),
-        onMaximized: (callback: () => void) => {
-            const listener = () => callback();
-            ipcRenderer.on(WINDOW.ON_MAXIMIZE, listener);
-            ipcRenderer.on(WINDOW.ON_UNMAXIMIZE, listener);
-            return () => {
-                ipcRenderer.removeListener(WINDOW.ON_MAXIMIZE, listener);
-                ipcRenderer.removeListener(WINDOW.ON_UNMAXIMIZE, listener);
-            };
-        },
-
-        unmaximize: () => ipcRenderer.invoke(WINDOW.UNMAXIMIZE),
-        minimize: () => ipcRenderer.invoke(WINDOW.MINIMIZE),
-
-        isFullscreen: () => ipcRenderer.invoke(WINDOW.IS_FULLSCREEN),
-        onFullscreenChange: (callback: (isFullscreen: boolean) => void) => {
-            const enterListener = () => callback(true);
-            const leaveListener = () => callback(false);
-
-            ipcRenderer.on(WINDOW.ON_ENTER_FULLSCREEN, enterListener);
-            ipcRenderer.on(WINDOW.ON_LEAVE_FULLSCREEN, leaveListener);
-
-            return () => {
-                ipcRenderer.removeListener(
-                    WINDOW.ON_ENTER_FULLSCREEN,
-                    enterListener,
-                );
-                ipcRenderer.removeListener(
-                    WINDOW.ON_LEAVE_FULLSCREEN,
-                    leaveListener,
-                );
-            };
-        },
-
-        getTitle: () => ipcRenderer.invoke(WINDOW.GET_WINDOW_TITLE),
-        setTitle: (title: string) =>
-            ipcRenderer.invoke(WINDOW.SET_WINDOW_TITLE, title),
-        onTitleChanged: (callback: () => void) => {
-            const listener = () => callback();
-            const channel = WINDOW.ON_WINDOW_TITLE_CHANGED;
-            ipcRenderer.on(channel, listener);
-            return () => ipcRenderer.removeListener(channel, listener);
-        },
-    },
-
-    system: {
-        getAccentColor: () => ipcRenderer.invoke(SYSTEM.GET_ACCENT_COLOR),
-        onAccentColorChanged: (callback: (color: string) => void) => {
-            const listener = (_: Electron.IpcRendererEvent, color: string) =>
-                callback(color);
-            const channel = SYSTEM.ON_ACCENT_COLOR_CHANGED;
-            ipcRenderer.on(channel, listener);
-            return () => ipcRenderer.removeListener(channel, listener);
-        },
-    },
+    invoke,
+    send,
 });

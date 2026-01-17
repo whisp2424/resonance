@@ -38,7 +38,7 @@ function TitleBarButtonClose() {
         <TitleBarButton
             icon={IconX}
             className="hover:bg-red-500"
-            onClick={() => electron.window.close()}
+            onClick={() => electron.invoke("window:close")}
         />
     );
 }
@@ -48,24 +48,24 @@ function TitleBarButtonMaximize() {
 
     useEffect(() => {
         (async () => {
-            setIsMaximized(await electron.window.isMaximized());
+            setIsMaximized(await electron.invoke("window:isMaximized"));
         })();
 
-        const updateMaximized = async () => {
-            setIsMaximized(await electron.window.isMaximized());
-        };
+        const updateMaximized = async () =>
+            setIsMaximized(await electron.invoke("window:isMaximized"));
 
-        const cleanup = electron.window.onMaximized(updateMaximized);
+        const cleanup = electron.send("window:onMaximize", updateMaximized);
+        electron.send("window:onUnmaximize", updateMaximized);
 
         return cleanup;
     }, []);
 
     const toggleMaximize = async () => {
-        const maximized = await electron.window.isMaximized();
+        const maximized = await electron.invoke("window:isMaximized");
 
         if (maximized) {
-            await electron.window.unmaximize();
-        } else await electron.window.maximize();
+            await electron.invoke("window:unmaximize");
+        } else await electron.invoke("window:maximize");
     };
 
     return (
@@ -80,7 +80,7 @@ function TitleBarButtonMinimize() {
     return (
         <TitleBarButton
             icon={IconMinimize}
-            onClick={() => electron.window.minimize()}
+            onClick={() => electron.invoke("window:minimize")}
         />
     );
 }
@@ -92,28 +92,29 @@ export default function TitleBar() {
 
     useEffect(() => {
         (async () => {
-            setIsFullscreen(await electron.window.isFullscreen());
-            setTitle(await electron.window.getTitle());
+            setIsFullscreen(await electron.invoke("window:isFullscreen"));
+            setTitle(await electron.invoke("window:getTitle"));
         })();
 
         const updateTitle = async () => {
-            setTitle(await electron.window.getTitle());
+            setTitle(await electron.invoke("window:getTitle"));
         };
 
-        const onFocus = () => setIsWindowFocused(true);
-        const onBlur = () => setIsWindowFocused(false);
-
-        const cleanupFullscreen =
-            electron.window.onFullscreenChange(setIsFullscreen);
-        const cleanupTitle = electron.window.onTitleChanged(updateTitle);
-        window.addEventListener("focus", onFocus);
-        window.addEventListener("blur", onBlur);
+        window.addEventListener("focus", () => setIsWindowFocused(true));
+        window.addEventListener("blur", () => setIsWindowFocused(false));
 
         return () => {
-            cleanupFullscreen();
-            cleanupTitle();
-            window.removeEventListener("focus", onFocus);
-            window.removeEventListener("blur", onBlur);
+            electron.send("window:onEnterFullscreen", () =>
+                setIsFullscreen(true),
+            )();
+
+            electron.send("window:onLeaveFullscreen", () =>
+                setIsFullscreen(false),
+            )();
+
+            electron.send("window:onWindowTitleChanged", updateTitle)();
+            window.removeEventListener("focus", () => setIsWindowFocused(true));
+            window.removeEventListener("blur", () => setIsWindowFocused(false));
         };
     }, []);
 

@@ -1,23 +1,24 @@
+import type { MainIpcListenEvents } from "@main/types/ipc";
 import type { BrowserWindow } from "electron";
 
-import { IPC_CHANNELS } from "@main/handlers/channels";
+import { IpcEmitter } from "@electron-toolkit/typed-ipc/main";
 
 export const registerWindowEvents = (mainWindow: BrowserWindow) => {
-    const { WINDOW } = IPC_CHANNELS;
+    const emitter = new IpcEmitter<MainIpcListenEvents>();
 
     mainWindow.on("enter-full-screen", () => {
-        mainWindow.webContents.send(WINDOW.ON_ENTER_FULLSCREEN);
+        emitter.send(mainWindow.webContents, "window:onEnterFullscreen");
     });
 
     mainWindow.on("leave-full-screen", () => {
-        mainWindow.webContents.send(WINDOW.ON_LEAVE_FULLSCREEN);
+        emitter.send(mainWindow.webContents, "window:onLeaveFullscreen");
     });
 
     mainWindow.on("maximize", () => {
-        mainWindow.webContents.send(WINDOW.ON_MAXIMIZE);
+        emitter.send(mainWindow.webContents, "window:onMaximize");
     });
 
     mainWindow.on("unmaximize", () => {
-        mainWindow.webContents.send(WINDOW.ON_UNMAXIMIZE);
+        emitter.send(mainWindow.webContents, "window:onUnmaximize");
     });
 };

@@ -36,6 +36,7 @@
         "@electron-toolkit/eslint-config-prettier": "^3.0.0",
         "@electron-toolkit/eslint-config-ts": "^3.1.0",
         "@electron-toolkit/tsconfig": "^2.0.0",
+        "@electron-toolkit/typed-ipc": "^1.0.2",
         "@iconify-json/fluent": "^1.2.36",
         "@svgr/core": "^8.1.0",
         "@svgr/plugin-jsx": "^8.1.0",

@@ -1,43 +1,42 @@
+import type { MainIpcHandleEvents, MainIpcListenEvents } from "@main/types/ipc";
 import type { BrowserWindow } from "electron";
 
-import { IPC_CHANNELS } from "@main/handlers/channels";
+import { IpcEmitter, IpcListener } from "@electron-toolkit/typed-ipc/main";
 
 export const registerWindowHandlers = (mainWindow: BrowserWindow) => {
-    const { WINDOW } = IPC_CHANNELS;
+    const ipc = new IpcListener<MainIpcHandleEvents>();
+    const emitter = new IpcEmitter<MainIpcListenEvents>();
 
-    mainWindow.webContents.ipc.handle(WINDOW.CLOSE, () => {
+    ipc.handle("window:close", () => {
         mainWindow.close();
     });
 
-    mainWindow.webContents.ipc.handle(WINDOW.MAXIMIZE, () => {
+    ipc.handle("window:maximize", () => {
         mainWindow.maximize();
     });
 
-    mainWindow.webContents.ipc.handle(WINDOW.UNMAXIMIZE, () => {
+    ipc.handle("window:unmaximize", () => {
         mainWindow.unmaximize();
     });
 
-    mainWindow.webContents.ipc.handle(WINDOW.MINIMIZE, () => {
+    ipc.handle("window:minimize", () => {
         mainWindow.minimize();
     });
 
-    mainWindow.webContents.ipc.handle(WINDOW.IS_MAXIMIZED, () => {
+    ipc.handle("window:isMaximized", () => {
         return mainWindow.isMaximized();
     });
 
-    mainWindow.webContents.ipc.handle(WINDOW.IS_FULLSCREEN, () => {
+    ipc.handle("window:isFullscreen", () => {
         return mainWindow.isFullScreen();
     });
 
-    mainWindow.webContents.ipc.handle(WINDOW.GET_WINDOW_TITLE, () => {
+    ipc.handle("window:getTitle", () => {
         return mainWindow.title;
     });
 
-    mainWindow.webContents.ipc.handle(
-        WINDOW.SET_WINDOW_TITLE,
-        (_, title: string) => {
-            mainWindow.title = title;
-            mainWindow.webContents.send(WINDOW.ON_WINDOW_TITLE_CHANGED);
-        },
-    );
+    ipc.handle("window:setTitle", (_, title: string) => {
+        mainWindow.title = title;
+        emitter.send(mainWindow.webContents, "window:onWindowTitleChanged");
+    });
 };

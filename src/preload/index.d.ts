@@ -1,31 +1,18 @@
-interface ElectronAPIWindow {
-    close: () => Promise<void>;
+import type { MainIpcHandleEvents, MainIpcListenEvents } from "@main/types/ipc";
 
-    maximize: () => Promise<void>;
-    isMaximized: () => Promise<boolean>;
-    onMaximized: (callback: () => void) => () => void;
+type ElectronInvoke = <K extends keyof MainIpcHandleEvents>(
+    channel: K,
+    ...args: Parameters<MainIpcHandleEvents[K]>
+) => Promise<ReturnType<MainIpcHandleEvents[K]>>;
 
-    unmaximize: () => Promise<void>;
-    minimize: () => Promise<void>;
-
-    isFullscreen: () => Promise<boolean>;
-    onFullscreenChange: (
-        callback: (isFullscreen: boolean) => void,
-    ) => () => void;
-
-    getTitle: () => Promise<string>;
-    setTitle: (title: string) => Promise<void>;
-    onTitleChanged: (callback: () => void) => () => void;
-}
-
-interface ElectronAPISystem {
-    getAccentColor: () => Promise<string>;
-    onAccentColorChanged: (callback: (color: string) => void) => () => void;
-}
+type ElectronSend = <K extends keyof MainIpcListenEvents>(
+    channel: K,
+    listener: (...args: MainIpcListenEvents[K]) => void,
+) => () => void;
 
 interface ElectronAPI {
-    window: ElectronAPIWindow;
-    system: ElectronAPISystem;
+    invoke: ElectronInvoke;
+    send: ElectronSend;
 }
 
 declare global {
