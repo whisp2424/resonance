@@ -97,17 +97,17 @@ export default function TitleBar() {
         window.addEventListener("focus", () => setIsWindowFocused(true));
         window.addEventListener("blur", () => setIsWindowFocused(false));
 
+        const onEnterFullscreen = () => setIsFullscreen(true);
+        const onLeaveFullscreen = () => setIsFullscreen(false);
+
+        electron.send("window:onEnterFullscreen", onEnterFullscreen);
+        electron.send("window:onLeaveFullscreen", onLeaveFullscreen);
+
         return () => {
-            electron.send("window:onEnterFullscreen", () =>
-                setIsFullscreen(true),
-            )();
-
-            electron.send("window:onLeaveFullscreen", () =>
-                setIsFullscreen(false),
-            )();
-
             window.removeEventListener("focus", () => setIsWindowFocused(true));
             window.removeEventListener("blur", () => setIsWindowFocused(false));
+            electron.send("window:onEnterFullscreen", onEnterFullscreen)();
+            electron.send("window:onLeaveFullscreen", onLeaveFullscreen)();
         };
     }, []);
 
