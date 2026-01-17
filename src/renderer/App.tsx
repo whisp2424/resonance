@@ -1,10 +1,8 @@
-
-
 import TitleBar from "@renderer/components/layout/TitleBar";
 import HomeView from "@renderer/components/views/HomeView";
 import NotFound from "@renderer/components/views/NotFound";
-import { ROUTES } from "@renderer/constants/routes";
 import { useAccentColor } from "@renderer/hooks/useAccentColor";
+import { ROUTES } from "@shared/constants/routes";
 import { useEffect } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
 

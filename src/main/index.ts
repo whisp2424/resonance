@@ -4,6 +4,7 @@ import { is } from "@electron-toolkit/utils";
 import { registerSystemHandlers } from "@main/handlers/system/ipc";
 import { registerWindowEvents } from "@main/handlers/window/events";
 import { registerWindowHandlers } from "@main/handlers/window/ipc";
+import { BASE_WINDOW } from "@main/windowPolicies";
 import {
     BrowserWindow,
     Menu,
@@ -19,40 +20,29 @@ let tray: Tray | null = null;
 let isQuitting = false;
 
 const createWindow = (): BrowserWindow => {
-    const window = new BrowserWindow({
-        width: 800,
-        height: 600,
-        minWidth: 600,
-        minHeight: 500,
-        show: false,
-        titleBarStyle: "hidden",
-        titleBarOverlay: false,
-        backgroundColor: "black",
-        webPreferences: {
-            preload: join(__dirname, "../preload/index.js"),
-        },
+    const mainWindow = new BrowserWindow(BASE_WINDOW());
+
+    mainWindow.on("ready-to-show", () => {
+        mainWindow.show();
     });
 
-    window.on("ready-to-show", () => {
-        window.show();
-    });
-
-    window.on("close", (event) => {
+    mainWindow.on("close", (event) => {
         if (!isQuitting) {
             event.preventDefault();
-            window.hide();
+            mainWindow.hide();
         }
     });
 
-    window.webContents.setWindowOpenHandler((details) => {
+    mainWindow.webContents.on("will-navigate", (e) => e.preventDefault());
+    mainWindow.webContents.setWindowOpenHandler((details) => {
         shell.openExternal(details.url);
         return { action: "deny" };
     });
 
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-        window.loadURL(process.env["ELECTRON_RENDERER_URL"]);
-    } else window.loadFile(join(__dirname, "../renderer/index.html"));
-    return window;
+        mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+    } else mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+    return mainWindow;
 };
 
 const createTray = (): void => {

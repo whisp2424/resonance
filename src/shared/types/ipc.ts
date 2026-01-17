@@ -1,3 +1,5 @@
+import type { Route } from "@shared/constants/routes";
+
 export type MainIpcHandleEvents = {
     "window:close": () => void;
     "window:maximize": () => void;
@@ -7,6 +9,7 @@ export type MainIpcHandleEvents = {
     "window:isFullscreen": () => boolean;
     "window:getTitle": () => string;
     "window:setTitle": (title: string) => void;
+    "window:new": (route: Exclude<Route, "*" | "/">) => number;
     "system:accentColor": () => string;
 };
 
