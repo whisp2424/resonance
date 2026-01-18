@@ -31,9 +31,12 @@ const updateTrayIcon = (): void => {
 };
 
 const createTray = (): void => {
+    if (tray) return;
+
     tray = new Tray(
         nativeTheme.shouldUseDarkColors ? trayDarkIcon : trayLightIcon,
     );
+
     const contextMenu = Menu.buildFromTemplate([
         {
             label: `Quit ${product.name.short}`,
@@ -46,15 +49,22 @@ const createTray = (): void => {
 
     tray.setToolTip(product.name.short);
     tray.setContextMenu(contextMenu);
-    tray.on("click", () => windowManager.toggleWindows());
+    tray.on("click", () => {
+        if (mainWindow?.isVisible()) mainWindow?.focus();
+        else windowManager.toggleWindows();
+    });
 
     nativeTheme.on("updated", updateTrayIcon);
 };
 
-const createWindow = (): BrowserWindow => {
+const createMainWindow = (): BrowserWindow => {
     const mainWindow = new BrowserWindow(BASE_OPTIONS);
 
-    mainWindow.on("ready-to-show", () => mainWindow.show());
+    mainWindow.on("ready-to-show", () => {
+        mainWindow.show();
+        createTray();
+    });
+
     mainWindow.on("close", (event) => {
         if (!isQuitting) {
             event.preventDefault();
@@ -65,6 +75,7 @@ const createWindow = (): BrowserWindow => {
     mainWindow.webContents.on("will-navigate", (event) =>
         event.preventDefault(),
     );
+
     mainWindow.webContents.setWindowOpenHandler((details) => {
         shell.openExternal(details.url);
         return { action: "deny" };
@@ -74,7 +85,12 @@ const createWindow = (): BrowserWindow => {
         mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
     } else mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
 
-    windowManager.addWindow("main", mainWindow, "/", {});
+    windowManager.addWindow("main", mainWindow, "/", {
+        close: true,
+        maximize: true,
+        minimize: true,
+    });
+
     return mainWindow;
 };
 
@@ -90,8 +106,7 @@ app.on("second-instance", () => {
 
 app.whenReady().then(() => {
     app.setAppUserModelId(product.appId);
-    mainWindow = createWindow();
-    createTray();
+    mainWindow = createMainWindow();
 
     registerWindowHandlers();
     const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);

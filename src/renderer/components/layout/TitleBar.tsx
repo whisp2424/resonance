@@ -4,7 +4,7 @@ import type { ButtonHTMLAttributes } from "react";
 
 import Logo from "@renderer/assets/resonance-logo.svg?react";
 import { clsx } from "clsx";
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 
 import IconX from "~icons/fluent/dismiss-16-regular";
@@ -16,10 +16,10 @@ interface TitleBarButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     icon: IconElement;
 }
 
-function TitleBarButton({
+const TitleBarButton = memo(function TitleBarButton({
     icon: Icon,
     className,
-    ...rest
+    onClick,
 }: TitleBarButtonProps) {
     return (
         <button
@@ -28,50 +28,79 @@ function TitleBarButton({
                 "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-neutral-900 hover:text-white hover:duration-0",
                 className,
             )}
-            {...rest}>
+            onClick={onClick}>
             <Icon className="size-4 scale-105" />
         </button>
     );
-}
+});
 
-function TitleBarButtonClose({ windowId }: { windowId: string }) {
+const CloseButton = memo(function CloseButton({
+    windowId,
+}: {
+    windowId: string | null;
+}) {
+    const handleClick = useCallback(() => {
+        if (windowId) electron.invoke("window:close", windowId);
+    }, [windowId]);
+
     return (
         <TitleBarButton
             icon={IconX}
             className="hover:bg-red-500"
-            onClick={() => electron.invoke("window:close", windowId)}
+            onClick={handleClick}
         />
     );
-}
+});
 
-function TitleBarButtonMaximize({ windowId }: { windowId: string }) {
+const MaximizeButton = memo(function MaximizeButton({
+    windowId,
+}: {
+    windowId: string | null;
+}) {
     const [isMaximized, setIsMaximized] = useState(false);
 
     useEffect(() => {
+        if (!windowId) return;
+
+        let mounted = true;
+
         (async () => {
-            setIsMaximized(
-                await electron.invoke("window:isMaximized", windowId),
+            const maximized = await electron.invoke(
+                "window:isMaximized",
+                windowId,
             );
+            if (mounted) setIsMaximized(maximized);
         })();
 
-        const updateMaximized = async () =>
-            setIsMaximized(
-                await electron.invoke("window:isMaximized", windowId),
+        const updateMaximized = async () => {
+            const maximized = await electron.invoke(
+                "window:isMaximized",
+                windowId,
             );
+            if (mounted) setIsMaximized(maximized);
+        };
 
-        const cleanup = electron.send("window:onMaximize", updateMaximized);
-        electron.send("window:onUnmaximize", updateMaximized);
+        const cleanup1 = electron.send("window:onMaximize", updateMaximized);
+        const cleanup2 = electron.send("window:onUnmaximize", updateMaximized);
 
-        return cleanup;
+        return () => {
+            mounted = false;
+            cleanup1?.();
+            cleanup2?.();
+        };
     }, [windowId]);
 
-    const toggleMaximize = async () => {
+    const toggleMaximize = useCallback(async () => {
+        if (!windowId) return;
+
         const maximized = await electron.invoke("window:isMaximized", windowId);
 
         if (maximized) {
             await electron.invoke("window:unmaximize", windowId);
-        } else await electron.invoke("window:maximize", windowId);
-    };
+        } else {
+            await electron.invoke("window:maximize", windowId);
+        }
+    }, [windowId]);
 
     return (
         <TitleBarButton
@@ -79,16 +108,19 @@ function TitleBarButtonMaximize({ windowId }: { windowId: string }) {
             onClick={toggleMaximize}
         />
     );
-}
+});
 
-function TitleBarButtonMinimize({ windowId }: { windowId: string }) {
-    return (
-        <TitleBarButton
-            icon={IconMinimize}
-            onClick={() => electron.invoke("window:minimize", windowId)}
-        />
-    );
-}
+const MinimizeButton = memo(function MinimizeButton({
+    windowId,
+}: {
+    windowId: string | null;
+}) {
+    const handleClick = useCallback(() => {
+        if (windowId) electron.invoke("window:minimize", windowId);
+    }, [windowId]);
+
+    return <TitleBarButton icon={IconMinimize} onClick={handleClick} />;
+});
 
 export default function TitleBar() {
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -97,44 +129,63 @@ export default function TitleBar() {
     const [controls, setControls] = useState<TitleBarControls>({});
 
     useEffect(() => {
+        let mounted = true;
+
         (async () => {
             const id = await electron.getWindowId();
-            setWindowId(id);
+            if (mounted) setWindowId(id);
         })();
+
+        return () => {
+            mounted = false;
+        };
     }, []);
 
     useEffect(() => {
         if (!windowId) return;
 
+        let mounted = true;
+
         (async () => {
-            setIsFullscreen(
-                await electron.invoke("window:isFullscreen", windowId),
-            );
-            const controls = await electron.invoke(
-                "window:getControls",
-                windowId,
-            );
-            setControls(controls);
+            const [fullscreen, windowControls] = await Promise.all([
+                electron.invoke("window:isFullscreen", windowId),
+                electron.invoke("window:getControls", windowId),
+            ]);
+
+            if (mounted) {
+                setIsFullscreen(fullscreen);
+                setControls(windowControls);
+            }
         })();
 
-        window.addEventListener("focus", () => setIsWindowFocused(true));
-        window.addEventListener("blur", () => setIsWindowFocused(false));
+        const handleFocus = () => setIsWindowFocused(true);
+        const handleBlur = () => setIsWindowFocused(false);
 
-        const onEnterFullscreen = () => setIsFullscreen(true);
-        const onLeaveFullscreen = () => setIsFullscreen(false);
+        window.addEventListener("focus", handleFocus);
+        window.addEventListener("blur", handleBlur);
 
-        electron.send("window:onEnterFullscreen", onEnterFullscreen);
-        electron.send("window:onLeaveFullscreen", onLeaveFullscreen);
+        const onEnterFullscreen = () => mounted && setIsFullscreen(true);
+        const onLeaveFullscreen = () => mounted && setIsFullscreen(false);
+
+        const cleanup1 = electron.send(
+            "window:onEnterFullscreen",
+            onEnterFullscreen,
+        );
+        const cleanup2 = electron.send(
+            "window:onLeaveFullscreen",
+            onLeaveFullscreen,
+        );
 
         return () => {
-            window.removeEventListener("focus", () => setIsWindowFocused(true));
-            window.removeEventListener("blur", () => setIsWindowFocused(false));
-            electron.send("window:onEnterFullscreen", onEnterFullscreen)();
-            electron.send("window:onLeaveFullscreen", onLeaveFullscreen)();
+            mounted = false;
+            window.removeEventListener("focus", handleFocus);
+            window.removeEventListener("blur", handleBlur);
+            cleanup1?.();
+            cleanup2?.();
         };
     }, [windowId]);
 
-    if (isFullscreen || !windowId) return null;
+    if (isFullscreen) return null;
 
     return (
         <div className="drag flex h-8 w-full flex-row items-center justify-between gap-4 bg-linear-to-t transition duration-300 ease-out">
@@ -150,15 +201,13 @@ export default function TitleBar() {
                         !isWindowFocused && "text-white/50",
                     ),
                 )}>
-                {controls.minimize !== false && (
-                    <TitleBarButtonMinimize windowId={windowId} />
+                {controls.minimize === true && (
+                    <MinimizeButton windowId={windowId} />
                 )}
-                {controls.maximize !== false && (
-                    <TitleBarButtonMaximize windowId={windowId} />
+                {controls.maximize === true && (
+                    <MaximizeButton windowId={windowId} />
                 )}
-                {controls.close !== false && (
-                    <TitleBarButtonClose windowId={windowId} />
-                )}
+                {controls.close === true && <CloseButton windowId={windowId} />}
             </div>
         </div>
     );

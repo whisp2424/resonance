@@ -19,8 +19,8 @@ export const BASE_OPTIONS: BrowserWindowConstructorOptions = {
 };
 
 export const DEFAULT_CONTROLS: TitleBarControls = {
-    minimize: true,
-    maximize: true,
+    minimize: false,
+    maximize: false,
     close: true,
 };
 
@@ -34,10 +34,7 @@ export const SETTINGS_WINDOW: () => [
         width: 700,
         height: 600,
     },
-    {
-        minimize: false,
-        maximize: false,
-    },
+    { ...DEFAULT_CONTROLS },
 ];
 
 export const WINDOW_POLICIES: Record<
