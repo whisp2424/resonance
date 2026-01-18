@@ -20,5 +20,6 @@ declare global {
     var electron: {
         invoke: ElectronInvoke;
         send: ElectronSend;
+        getWindowId: () => Promise<string | null>;
     };
 }

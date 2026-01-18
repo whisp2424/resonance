@@ -12,7 +12,10 @@ export default function HomeView() {
                     Import your music library to get started
                 </p>
             </div>
-            <Button as="link" to="/settings">
+            <Button
+                onClick={async () =>
+                    electron.invoke("window:new", "/settings", "settings")
+                }>
                 Settings
             </Button>
         </div>

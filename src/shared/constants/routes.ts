@@ -5,3 +5,4 @@ export const ROUTES = {
 } as const;
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES];
+export type WindowRoute = Exclude<Route, "/" | "*">;

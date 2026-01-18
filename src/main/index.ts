@@ -2,9 +2,9 @@ import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
 import { registerSystemHandlers } from "@main/handlers/system/ipc";
-import { registerWindowEvents } from "@main/handlers/window/events";
 import { registerWindowHandlers } from "@main/handlers/window/ipc";
-import { BASE_WINDOW } from "@main/windowPolicies";
+import { windowManager } from "@main/windowManager";
+import { BASE_OPTIONS } from "@main/windowPolicies";
 import {
     BrowserWindow,
     Menu,
@@ -20,7 +20,7 @@ let tray: Tray | null = null;
 let isQuitting = false;
 
 const createWindow = (): BrowserWindow => {
-    const mainWindow = new BrowserWindow(BASE_WINDOW());
+    const mainWindow = new BrowserWindow(BASE_OPTIONS);
 
     mainWindow.on("ready-to-show", () => {
         mainWindow.show();
@@ -42,6 +42,9 @@ const createWindow = (): BrowserWindow => {
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
         mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
     } else mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+
+    windowManager.addWindow("main", mainWindow, "/", {});
+
     return mainWindow;
 };
 
@@ -88,11 +91,11 @@ app.whenReady().then(() => {
     mainWindow = createWindow();
     createTray();
 
-    registerWindowEvents(mainWindow);
-    registerWindowHandlers(mainWindow);
-    registerSystemHandlers(mainWindow, systemPreferences);
-});
+    registerWindowHandlers();
+    const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
 
-app.on("window-all-closed", () => {
-    app.quit();
+    app.on("window-all-closed", () => {
+        cleanupSystemHandlers();
+        app.quit();
+    });
 });

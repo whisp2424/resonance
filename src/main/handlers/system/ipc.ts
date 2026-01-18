@@ -1,28 +1,18 @@
-import type {
-    MainIpcHandleEvents,
-    MainIpcListenEvents,
-} from "@shared/types/ipc";
-import type { BrowserWindow, Event, SystemPreferences } from "electron";
+import type { MainIpcHandleEvents } from "@shared/types/ipc";
+import type { Event, SystemPreferences } from "electron";
 
-import { IpcEmitter, IpcListener } from "@electron-toolkit/typed-ipc/main";
+import { IpcListener } from "@electron-toolkit/typed-ipc/main";
+import { windowManager } from "@main/windowManager";
 
 let lastAccentColor: string | null = null;
 
-export const registerSystemHandlers = (
-    mainWindow: BrowserWindow,
-    preferences: SystemPreferences,
-) => {
+export const registerSystemHandlers = (preferences: SystemPreferences) => {
     const ipc = new IpcListener<MainIpcHandleEvents>();
-    const emitter = new IpcEmitter<MainIpcListenEvents>();
 
     const handleAccentColorChange = (_: Event, newColor: string) => {
         if (newColor !== lastAccentColor) {
             lastAccentColor = newColor;
-            emitter.send(
-                mainWindow.webContents,
-                "system:accentColorChanged",
-                newColor,
-            );
+            windowManager.emitEvent("system:accentColorChanged", newColor);
         }
     };
 
@@ -31,10 +21,11 @@ export const registerSystemHandlers = (
     });
 
     preferences.on("accent-color-changed", handleAccentColorChange);
-    mainWindow.on("closed", () => {
+
+    return () => {
         preferences.removeListener(
             "accent-color-changed",
             handleAccentColorChange,
         );
-    });
+    };
 };

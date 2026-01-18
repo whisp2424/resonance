@@ -28,7 +28,12 @@ const send = <K extends keyof MainIpcListenEvents>(
     };
 };
 
+const getWindowId = (): Promise<string | null> => {
+    return ipcRenderer.invoke("window:getId") as Promise<string | null>;
+};
+
 contextBridge.exposeInMainWorld("electron", {
     invoke,
     send,
+    getWindowId,
 });

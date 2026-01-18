@@ -1,60 +1,55 @@
-import type {
-    MainIpcHandleEvents,
-    MainIpcListenEvents,
-} from "@shared/types/ipc";
+import type { MainIpcHandleEvents } from "@shared/types/ipc";
+import type { WebContents } from "electron";
 
-import { IpcEmitter, IpcListener } from "@electron-toolkit/typed-ipc/main";
-import { WINDOW_POLICIES } from "@main/windowPolicies";
-import { BrowserWindow, shell } from "electron";
+import { IpcListener } from "@electron-toolkit/typed-ipc/main";
+import { windowManager } from "@main/windowManager";
 
-export const registerWindowHandlers = (mainWindow: BrowserWindow) => {
+export const registerWindowHandlers = () => {
     const ipc = new IpcListener<MainIpcHandleEvents>();
-    const emitter = new IpcEmitter<MainIpcListenEvents>();
 
-    ipc.handle("window:close", () => {
-        mainWindow.close();
+    ipc.handle("window:close", (_, id) => {
+        windowManager.closeWindow(id);
     });
 
-    ipc.handle("window:maximize", () => {
-        mainWindow.maximize();
+    ipc.handle("window:maximize", (_, id) => {
+        windowManager.maximizeWindow(id);
     });
 
-    ipc.handle("window:unmaximize", () => {
-        mainWindow.unmaximize();
+    ipc.handle("window:unmaximize", (_, id) => {
+        windowManager.unmaximizeWindow(id);
     });
 
-    ipc.handle("window:minimize", () => {
-        mainWindow.minimize();
+    ipc.handle("window:minimize", (_, id) => {
+        windowManager.minimizeWindow(id);
     });
 
-    ipc.handle("window:isMaximized", () => {
-        return mainWindow.isMaximized();
+    ipc.handle("window:isMaximized", (_, id) => {
+        return windowManager.isMaximized(id);
     });
 
-    ipc.handle("window:isFullscreen", () => {
-        return mainWindow.isFullScreen();
+    ipc.handle("window:isFullscreen", (_, id) => {
+        return windowManager.isFullscreen(id);
     });
 
-    ipc.handle("window:getTitle", () => {
-        return mainWindow.title;
+    ipc.handle("window:getTitle", (_, id) => {
+        return windowManager.getTitle(id);
     });
 
-    ipc.handle("window:setTitle", (_, title: string) => {
-        mainWindow.title = title;
-        emitter.send(mainWindow.webContents, "window:onWindowTitleChanged");
+    ipc.handle("window:setTitle", (_, title, id) => {
+        windowManager.setTitle(title, id);
     });
 
-    ipc.handle("window:new", (_, route) => {
-        const windowPolicy = WINDOW_POLICIES[route];
-        if (!windowPolicy) throw new Error(`Invalid route: ${route}`);
+    ipc.handle("window:new", (_, route, id) => {
+        return windowManager.createWindow(id, route);
+    });
 
-        const win = new BrowserWindow(windowPolicy());
-        win.webContents.on("will-navigate", (e) => e.preventDefault());
-        win.webContents.setWindowOpenHandler((details) => {
-            shell.openExternal(details.url);
-            return { action: "deny" };
-        });
+    ipc.handle("window:getId", (event) => {
+        return windowManager.getWindowId(
+            event.sender as unknown as WebContents,
+        );
+    });
 
-        return win.id;
+    ipc.handle("window:getControls", (_, id) => {
+        return windowManager.getControls(id);
     });
 };
