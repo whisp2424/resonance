@@ -21,6 +21,8 @@
         "strict": true,
         "types": ["unplugin-icons/types/react"],
         "useDefineForClassFields": true,
-        "verbatimModuleSyntax": true
+        "verbatimModuleSyntax": true,
+        "resolveJsonModule": true,
+        "allowSyntheticDefaultImports": true
     }
 }

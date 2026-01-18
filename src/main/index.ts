@@ -17,6 +17,8 @@ import {
     systemPreferences,
 } from "electron";
 
+import product from "@main/../../build/product.json" with { type: "json" };
+
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
@@ -34,7 +36,7 @@ const createTray = (): void => {
     );
     const contextMenu = Menu.buildFromTemplate([
         {
-            label: "Quit Resonance",
+            label: `Quit ${product.name.short}`,
             click: () => {
                 isQuitting = true;
                 app.quit();
@@ -42,7 +44,7 @@ const createTray = (): void => {
         },
     ]);
 
-    tray.setToolTip("Resonance");
+    tray.setToolTip(product.name.short);
     tray.setContextMenu(contextMenu);
 
     tray.on("click", () => {
@@ -98,7 +100,7 @@ app.on("second-instance", () => {
 });
 
 app.whenReady().then(() => {
-    app.setAppUserModelId("app.whisp.resonance");
+    app.setAppUserModelId(product.appId);
     mainWindow = createWindow();
     createTray();
 

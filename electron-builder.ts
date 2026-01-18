@@ -1,8 +1,10 @@
 import type { Configuration } from "electron-builder";
 
+import product from "./build/product.json" with { type: "json" };
+
 const config: Configuration = {
-    appId: "moe.whisp.resonance",
-    productName: "Resonance",
+    appId: product.appId,
+    productName: product.name.short,
     files: [
         "dist/**/*",
         "package.json",
@@ -15,7 +17,7 @@ const config: Configuration = {
         "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}",
     ],
     win: {
-        executableName: "resonance",
+        executableName: product.name.executable,
         target: [{ target: "nsis", arch: ["x64"] }],
     },
     nsis: {
