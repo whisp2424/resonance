@@ -112,6 +112,9 @@ class WindowManager {
     }
 
     createWindow(id: string, route: WindowRoute): string {
+        if (this.windows.has(id))
+            throw new Error(`Window "${id}" already exists`);
+
         const policy = WINDOW_POLICIES[route];
         if (!policy) throw new Error(`Invalid route: ${route}`);
 
@@ -120,7 +123,9 @@ class WindowManager {
 
         window.on("ready-to-show", () => window.show());
         window.on("closed", () => this.removeWindow(id));
-        window.webContents.on("will-navigate", (e) => e.preventDefault());
+        window.webContents.on("will-navigate", (event) =>
+            event.preventDefault(),
+        );
 
         window.webContents.on("did-fail-load", () => {
             this.removeWindow(id);
@@ -132,12 +137,13 @@ class WindowManager {
             return { action: "deny" };
         });
 
+        const hash = route.replace(/^\//, "");
         if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-            window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#${route}`);
+            window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#${hash}`);
         } else {
-            window.loadFile(
-                `${join(__dirname, "../renderer/index.html")}#${route}`,
-            );
+            window.loadFile(join(__dirname, "../renderer/index.html"), {
+                hash: hash,
+            });
         }
 
         this.addWindow(id, window, route, controls);

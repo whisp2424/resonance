@@ -1,6 +1,8 @@
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
+import trayDarkIcon from "@main/../../build/tray-dark.png?asset";
+import trayLightIcon from "@main/../../build/tray-light.png?asset";
 import { registerSystemHandlers } from "@main/handlers/system/ipc";
 import { registerWindowHandlers } from "@main/handlers/window/ipc";
 import { windowManager } from "@main/windowManager";
@@ -10,7 +12,7 @@ import {
     Menu,
     Tray,
     app,
-    nativeImage,
+    nativeTheme,
     shell,
     systemPreferences,
 } from "electron";
@@ -19,41 +21,17 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 
-const createWindow = (): BrowserWindow => {
-    const mainWindow = new BrowserWindow(BASE_OPTIONS);
-
-    mainWindow.on("ready-to-show", () => {
-        mainWindow.show();
-    });
-
-    mainWindow.on("close", (event) => {
-        if (!isQuitting) {
-            event.preventDefault();
-            mainWindow.hide();
-        }
-    });
-
-    mainWindow.webContents.on("will-navigate", (e) => e.preventDefault());
-    mainWindow.webContents.setWindowOpenHandler((details) => {
-        shell.openExternal(details.url);
-        return { action: "deny" };
-    });
-
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-        mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
-    } else mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
-
-    windowManager.addWindow("main", mainWindow, "/", {});
-
-    return mainWindow;
+const updateTrayIcon = (): void => {
+    if (tray) {
+        const isDarkMode = nativeTheme.shouldUseDarkColors;
+        tray.setImage(isDarkMode ? trayDarkIcon : trayLightIcon);
+    }
 };
 
 const createTray = (): void => {
-    const icon = nativeImage.createFromDataURL(
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAABxpRE9UAAAAAgAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAq8gWIQAAADFJREFUOBFjZKAQMFKon2GgDGD8//8/w38GKgImujhQAxuGNgQwDMNmI8h2MJiUYDmVh2GQJRBQ08Y8L2/7/H0a3QAAAABJRU5ErkJggg==",
+    tray = new Tray(
+        nativeTheme.shouldUseDarkColors ? trayDarkIcon : trayLightIcon,
     );
-
-    tray = new Tray(icon);
     const contextMenu = Menu.buildFromTemplate([
         {
             label: "Quit Resonance",
@@ -74,6 +52,39 @@ const createTray = (): void => {
             } else mainWindow.show();
         }
     });
+
+    nativeTheme.on("updated", updateTrayIcon);
+};
+
+const createWindow = (): BrowserWindow => {
+    const mainWindow = new BrowserWindow(BASE_OPTIONS);
+
+    mainWindow.on("ready-to-show", () => {
+        mainWindow.show();
+    });
+
+    mainWindow.on("close", (event) => {
+        if (!isQuitting) {
+            event.preventDefault();
+            mainWindow.hide();
+        }
+    });
+
+    mainWindow.webContents.on("will-navigate", (event) =>
+        event.preventDefault(),
+    );
+    mainWindow.webContents.setWindowOpenHandler((details) => {
+        shell.openExternal(details.url);
+        return { action: "deny" };
+    });
+
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+        mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+    } else mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+
+    windowManager.addWindow("main", mainWindow, "/", {});
+
+    return mainWindow;
 };
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -87,7 +98,7 @@ app.on("second-instance", () => {
 });
 
 app.whenReady().then(() => {
-    app.setAppUserModelId("moe.whisp.resonance");
+    app.setAppUserModelId("app.whisp.resonance");
     mainWindow = createWindow();
     createTray();
 

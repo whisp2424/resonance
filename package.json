@@ -12,20 +12,21 @@
         ]
     },
     "scripts": {
-        "build:linux": "npm run build && electron-builder --linux",
-        "build:unpack": "npm run build && electron-builder --dir",
-        "build:win": "npm run build && electron-builder --win",
-        "build": "npm run check:node && electron-vite build",
+        "prepare": "husky",
+        "postinstall": "electron-builder install-app-deps",
+        "dev": "electron-vite dev",
+        "start": "electron-vite preview",
+        "build": "pnpm run check:node && electron-vite build",
+        "build:win": "pnpm run build && electron-builder --win",
+        "build:linux": "pnpm run build && electron-builder --linux",
+        "build:unpack": "pnpm run build && electron-builder --dir",
         "check:node": "tsc --noEmit -p tsconfig.node.json --composite false",
         "check:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-        "check": "npm run check:node && npm run check:web",
-        "dev": "electron-vite dev",
-        "format": "prettier --write .",
-        "lint:fix": "eslint --cache --fix .",
+        "check": "pnpm run check:node && pnpm run check:web",
         "lint": "eslint --cache .",
-        "postinstall": "electron-builder install-app-deps",
-        "prepare": "husky",
-        "start": "electron-vite preview"
+        "lint:fix": "eslint --cache --fix .",
+        "format": "prettier --write .",
+        "fix": "pnpm run lint:fix && pnpm run format"
     },
     "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",
