@@ -1,4 +1,4 @@
-import type { WindowRoute } from "@shared/constants/routes";
+import type { Route, WindowRoute } from "@shared/constants/routes";
 import type { MainIpcListenEvents, TitleBarControls } from "@shared/types/ipc";
 
 import { join } from "node:path";
@@ -10,21 +10,21 @@ import { BrowserWindow, shell } from "electron";
 
 export type { WebContents } from "electron";
 
-interface WindowInfo {
+interface WindowProperties {
     window: BrowserWindow;
-    route: WindowRoute | "/";
+    route: Route;
     controls: TitleBarControls;
 }
 
 class WindowManager {
     emitter = new IpcEmitter<MainIpcListenEvents>();
-    private windows = new Map<string, WindowInfo>();
+    private windows = new Map<string, WindowProperties>();
     private hiddenWindows = new Set<string>();
 
     addWindow(
         id: string,
         window: BrowserWindow,
-        route: WindowRoute | "/",
+        route: Route,
         controls: TitleBarControls,
     ): void {
         this.windows.set(id, { window, route, controls });
@@ -87,28 +87,28 @@ class WindowManager {
         return info?.window.isFullScreen() ?? false;
     }
 
-    toggleAllWindows(): void {
+    toggleWindows(): void {
         const visibleWindows: BrowserWindow[] = [];
-        for (const info of this.windows.values()) {
-            if (info.window.isVisible()) {
-                visibleWindows.push(info.window);
-            }
+        for (const properties of this.windows.values()) {
+            if (properties.window.isVisible())
+                visibleWindows.push(properties.window);
         }
 
         if (visibleWindows.length > 0) {
             for (const window of visibleWindows) {
-                for (const [id, info] of this.windows) {
-                    if (info.window === window) {
+                for (const [id, properties] of this.windows) {
+                    if (properties.window === window)
                         this.hiddenWindows.add(id);
-                    }
                 }
+
                 window.hide();
             }
         } else {
             for (const id of this.hiddenWindows) {
-                const info = this.windows.get(id);
-                info?.window.show();
+                const properties = this.windows.get(id);
+                properties?.window.show();
             }
+
             this.hiddenWindows.clear();
         }
     }

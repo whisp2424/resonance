@@ -46,10 +46,7 @@ const createTray = (): void => {
 
     tray.setToolTip(product.name.short);
     tray.setContextMenu(contextMenu);
-
-    tray.on("click", () => {
-        windowManager.toggleAllWindows();
-    });
+    tray.on("click", () => windowManager.toggleWindows());
 
     nativeTheme.on("updated", updateTrayIcon);
 };
@@ -57,14 +54,11 @@ const createTray = (): void => {
 const createWindow = (): BrowserWindow => {
     const mainWindow = new BrowserWindow(BASE_OPTIONS);
 
-    mainWindow.on("ready-to-show", () => {
-        mainWindow.show();
-    });
-
+    mainWindow.on("ready-to-show", () => mainWindow.show());
     mainWindow.on("close", (event) => {
         if (!isQuitting) {
             event.preventDefault();
-            mainWindow.hide();
+            windowManager.toggleWindows();
         }
     });
 
@@ -81,7 +75,6 @@ const createWindow = (): BrowserWindow => {
     } else mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
 
     windowManager.addWindow("main", mainWindow, "/", {});
-
     return mainWindow;
 };
 
