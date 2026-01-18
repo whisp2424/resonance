@@ -48,11 +48,7 @@ const createTray = (): void => {
     tray.setContextMenu(contextMenu);
 
     tray.on("click", () => {
-        if (mainWindow) {
-            if (mainWindow.isVisible()) {
-                mainWindow.hide();
-            } else mainWindow.show();
-        }
+        windowManager.toggleAllWindows();
     });
 
     nativeTheme.on("updated", updateTrayIcon);

@@ -19,6 +19,7 @@ interface WindowInfo {
 class WindowManager {
     emitter = new IpcEmitter<MainIpcListenEvents>();
     private windows = new Map<string, WindowInfo>();
+    private hiddenWindows = new Set<string>();
 
     addWindow(
         id: string,
@@ -86,6 +87,32 @@ class WindowManager {
         return info?.window.isFullScreen() ?? false;
     }
 
+    toggleAllWindows(): void {
+        const visibleWindows: BrowserWindow[] = [];
+        for (const info of this.windows.values()) {
+            if (info.window.isVisible()) {
+                visibleWindows.push(info.window);
+            }
+        }
+
+        if (visibleWindows.length > 0) {
+            for (const window of visibleWindows) {
+                for (const [id, info] of this.windows) {
+                    if (info.window === window) {
+                        this.hiddenWindows.add(id);
+                    }
+                }
+                window.hide();
+            }
+        } else {
+            for (const id of this.hiddenWindows) {
+                const info = this.windows.get(id);
+                info?.window.show();
+            }
+            this.hiddenWindows.clear();
+        }
+    }
+
     getTitle(id: string): string {
         const info = this.windows.get(id);
         return info?.window.title ?? "";
@@ -112,8 +139,14 @@ class WindowManager {
     }
 
     createWindow(id: string, route: WindowRoute): string {
-        if (this.windows.has(id))
-            throw new Error(`Window "${id}" already exists`);
+        const existing = this.windows.get(id);
+        if (existing) {
+            const win = existing.window;
+            if (win.isMinimized()) win.restore();
+            if (!win.isVisible()) win.show();
+            win.focus();
+            return id;
+        }
 
         const policy = WINDOW_POLICIES[route];
         if (!policy) throw new Error(`Invalid route: ${route}`);
