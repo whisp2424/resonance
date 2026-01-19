@@ -13,22 +13,22 @@ export const registerSystemHandlers = (preferences: SystemPreferences) => {
     const handleAccentColorChange = (_: Event, newColor: string) => {
         if (newColor !== lastAccentColor) {
             lastAccentColor = newColor;
-            windowManager.emitEvent("system:accentColorChanged", newColor);
+            windowManager.emitEvent("system:onAccentColorChanged", newColor);
         }
     };
 
     const handleThemeChange = () => {
         windowManager.emitEvent(
-            "system:darkModeChanged",
+            "system:onDarkModeChanged",
             nativeTheme.shouldUseDarkColors,
         );
     };
 
-    ipc.handle("system:accentColor", () => {
+    ipc.handle("system:getAccentColor", () => {
         return preferences.getAccentColor();
     });
 
-    ipc.handle("system:darkMode", () => {
+    ipc.handle("system:isDarkMode", () => {
         return nativeTheme.shouldUseDarkColors;
     });
 

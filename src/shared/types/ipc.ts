@@ -18,8 +18,8 @@ export type MainIpcHandleEvents = {
     "window:new": (route: WindowRoute, id: string) => string;
     "window:getId": () => string | null;
     "window:getControls": (id: string) => TitleBarControls;
-    "system:accentColor": () => string;
-    "system:darkMode": () => boolean;
+    "system:getAccentColor": () => string;
+    "system:isDarkMode": () => boolean;
 };
 
 export type MainIpcListenEvents = {
@@ -28,8 +28,8 @@ export type MainIpcListenEvents = {
     "window:onMaximize": [];
     "window:onUnmaximize": [];
     "window:onWindowTitleChanged": [];
-    "system:accentColorChanged": [color: string];
-    "system:darkModeChanged": [isDark: boolean];
+    "system:onAccentColorChanged": [color: string];
+    "system:onDarkModeChanged": [isDark: boolean];
 };
 
 export type MainIpcEvents = MainIpcHandleEvents | MainIpcListenEvents;
