@@ -1,22 +1,27 @@
 import type { IconElement } from "@renderer/types/iconElement";
+import type {
+    AnchorHTMLAttributes,
+    ButtonHTMLAttributes,
+    ReactNode,
+} from "react";
 
-import { Button as BaseButton } from "@base-ui/react/button";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
 import { twMerge } from "tailwind-merge";
 
 type BaseProps = {
     icon?: IconElement;
-    children?: React.ReactNode;
+    children?: ReactNode;
+    className?: string;
 };
 
 type ButtonAsButton = BaseProps &
-    BaseButton.Props & {
+    ButtonHTMLAttributes<HTMLButtonElement> & {
         as?: "button";
     };
 
 type ButtonAsAnchor = BaseProps &
-    React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+    AnchorHTMLAttributes<HTMLAnchorElement> & {
         as: "a";
         href: string;
     };
@@ -29,12 +34,18 @@ type ButtonAsLink = BaseProps & {
 
 type ButtonProps = ButtonAsButton | ButtonAsAnchor | ButtonAsLink;
 
-const baseStyles =
-    "flex items-center justify-center gap-2 rounded-sm bg-neutral-900 px-4 py-2 text-sm transition-transform duration-300 ease-out hover:bg-neutral-800 active:scale-95";
-
-export default function Button({ children, icon: Icon, ...rest }: ButtonProps) {
-    const className = twMerge(clsx(baseStyles));
-
+export default function Button({
+    children,
+    className,
+    icon: Icon,
+    ...rest
+}: ButtonProps) {
+    className = twMerge(
+        clsx(
+            className,
+            "rounded-md border-[1.2px] bg-linear-to-b from-transparent to-transparent px-3 py-1 text-sm transition duration-200 outline-none not-dark:border-neutral-400 not-dark:bg-neutral-100 not-dark:to-neutral-200 not-dark:hover:to-(--accent-color)/15 focus-visible:ring not-dark:active:from-black/2 not-dark:active:to-(--accent-color)/20 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:from-white/2 dark:active:from-white/6 dark:active:to-white/2",
+        ),
+    );
     if ("as" in rest) {
         if (rest.as === "a") {
             const { ...anchorProps } = rest;
@@ -63,9 +74,9 @@ export default function Button({ children, icon: Icon, ...rest }: ButtonProps) {
 
     const { ...buttonProps } = rest as ButtonAsButton;
     return (
-        <BaseButton className={className} {...buttonProps}>
+        <button className={className} {...buttonProps}>
             {Icon && <Icon className="translate-y-[0.05em]" />}
             {children}
-        </BaseButton>
+        </button>
     );
 }

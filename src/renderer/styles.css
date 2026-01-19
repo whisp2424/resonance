@@ -21,17 +21,29 @@
     select,
     input,
     textarea {
-        &:focus-visible {
-            outline: 2px solid var(--accent-color);
-            box-shadow: 0 4px 24px 0
-                color-mix(in srgb, var(--accent-color) 20%, transparent);
-        }
+        @apply ring-(--accent-color) outline-(--accent-color);
     }
 
     body {
-        color: theme(--color-white);
-        background-color: theme(--color-black);
         font-family: system-ui, sans-serif;
+
+        @media (prefers-color-scheme: light) {
+            color: theme(--color-black);
+            background: linear-gradient(
+                to bottom,
+                theme(--color-neutral-50),
+                theme(--color-neutral-100)
+            );
+        }
+
+        @media (prefers-color-scheme: dark) {
+            color: theme(--color-white);
+            background: linear-gradient(
+                to bottom,
+                theme(--color-neutral-900),
+                theme(--color-neutral-950)
+            );
+        }
     }
 
     a {

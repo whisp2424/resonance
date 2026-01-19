@@ -25,7 +25,7 @@ const TitleBarButton = memo(function TitleBarButton({
         <button
             tabIndex={-1}
             className={clsx(
-                "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-neutral-900 hover:text-white hover:duration-0",
+                "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-black/10 hover:duration-0 dark:hover:bg-white/10",
                 className,
             )}
             onClick={onClick}>
@@ -46,7 +46,7 @@ const CloseButton = memo(function CloseButton({
     return (
         <TitleBarButton
             icon={IconX}
-            className="hover:bg-red-500"
+            className="hover:bg-red-500! hover:text-white"
             onClick={handleClick}
         />
     );
@@ -198,7 +198,7 @@ export default function TitleBar() {
                 className={twMerge(
                     clsx(
                         "flex h-full flex-1 flex-row items-center justify-end",
-                        !isWindowFocused && "text-white/50",
+                        !isWindowFocused && "text-black/50 dark:text-white/50",
                     ),
                 )}>
                 {controls.minimize === true && (

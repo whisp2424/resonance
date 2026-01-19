@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import TitleBar from "@renderer/components/layout/TitleBar";
 import HomeView from "@renderer/components/views/HomeView";
 import NotFound from "@renderer/components/views/NotFound";
@@ -31,7 +33,7 @@ export default function App() {
     return (
         <div
             className="flex h-dvh w-full flex-col"
-            style={{ "--accent-color": accentColor } as React.CSSProperties}>
+            style={{ "--accent-color": accentColor } as CSSProperties}>
             <TitleBar />
             <Routes>
                 <Route path={ROUTES.HOME} element={<HomeView />} />
