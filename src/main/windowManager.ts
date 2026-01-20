@@ -158,17 +158,16 @@ class WindowManager {
         const savedState = getWindowState(id);
 
         if (savedState) {
-            if (savedState.x !== undefined && savedState.y !== undefined) {
-                options.x = savedState.x;
-                options.y = savedState.y;
+            const { x, y, width, height } = savedState;
+
+            if (x !== undefined && y !== undefined) {
+                options.x = x;
+                options.y = y;
             }
 
-            if (
-                savedState.width !== undefined &&
-                savedState.height !== undefined
-            ) {
-                options.width = savedState.width;
-                options.height = savedState.height;
+            if (width !== undefined && height !== undefined) {
+                options.width = width;
+                options.height = height;
             }
         }
 

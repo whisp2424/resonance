@@ -24,7 +24,11 @@ const schema = {
     },
 } as const;
 
-const store = new Store<Record<string, WindowState>>({ schema });
+const store = new Store<Record<string, WindowState>>({
+    name: "window-state",
+    clearInvalidConfig: true,
+    schema,
+});
 
 export const updateWindowState = (
     id: string,
