@@ -117,6 +117,7 @@ if (!gotTheLock) app.quit();
 
 app.on("second-instance", () => {
     if (mainWindow) {
+        mainWindow.show();
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
     }
