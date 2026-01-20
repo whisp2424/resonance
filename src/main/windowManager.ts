@@ -4,8 +4,10 @@ import type { MainIpcListenEvents, TitleBarControls } from "@shared/types/ipc";
 import { join } from "node:path";
 
 import { IpcEmitter } from "@electron-toolkit/typed-ipc/main";
-import { is } from "@electron-toolkit/utils";
+import { is, platform } from "@electron-toolkit/utils";
+import { debounce } from "@main/utils/debounce";
 import { DEFAULT_CONTROLS, WINDOW_POLICIES } from "@main/windowPolicies";
+import { getWindowState, updateWindowState } from "@main/windowState";
 import { BrowserWindow, shell } from "electron";
 
 export type { WebContents } from "electron";
@@ -28,7 +30,7 @@ class WindowManager {
         controls: TitleBarControls,
     ): void {
         this.windows.set(id, { window, route, controls });
-        this.registerWindowEvents(window);
+        this.registerWindowEvents(id, window);
     }
 
     removeWindow(id: string): void {
@@ -140,6 +142,7 @@ class WindowManager {
 
     createWindow(id: string, route: WindowRoute): string {
         const existing = this.windows.get(id);
+
         if (existing) {
             const win = existing.window;
             if (win.isMinimized()) win.restore();
@@ -152,9 +155,35 @@ class WindowManager {
         if (!policy) throw new Error(`Invalid route: ${route}`);
 
         const [options, controls] = policy();
+        const savedState = getWindowState(id);
+
+        if (savedState) {
+            if (savedState.x !== undefined && savedState.y !== undefined) {
+                options.x = savedState.x;
+                options.y = savedState.y;
+            }
+
+            if (
+                savedState.width !== undefined &&
+                savedState.height !== undefined
+            ) {
+                options.width = savedState.width;
+                options.height = savedState.height;
+            }
+        }
+
         const window = new BrowserWindow(options);
 
-        window.on("ready-to-show", () => window.show());
+        window.on("ready-to-show", () => {
+            if (savedState?.isMaximized) {
+                window.maximize();
+            }
+            if (savedState?.isFullscreen) {
+                window.setFullScreen(true);
+            }
+            window.show();
+        });
+
         window.on("closed", () => this.removeWindow(id));
         window.webContents.on("will-navigate", (event) =>
             event.preventDefault(),
@@ -183,22 +212,50 @@ class WindowManager {
         return id;
     }
 
-    private registerWindowEvents(window: BrowserWindow): void {
+    private registerWindowEvents(id: string, window: BrowserWindow): void {
         window.on("enter-full-screen", () => {
             this.emitter.send(window.webContents, "window:onEnterFullscreen");
+            updateWindowState(id, { isFullscreen: true });
         });
 
         window.on("leave-full-screen", () => {
             this.emitter.send(window.webContents, "window:onLeaveFullscreen");
+            updateWindowState(id, { isFullscreen: false });
         });
 
         window.on("maximize", () => {
             this.emitter.send(window.webContents, "window:onMaximize");
+            updateWindowState(id, { isMaximized: true });
         });
 
         window.on("unmaximize", () => {
             this.emitter.send(window.webContents, "window:onUnmaximize");
+            updateWindowState(id, { isMaximized: false });
         });
+
+        if (platform.isWindows) {
+            window.on("moved", () =>
+                updateWindowState(id, { ...window.getBounds() }),
+            );
+
+            window.on("resized", () =>
+                updateWindowState(id, { ...window.getBounds() }),
+            );
+        } else {
+            window.on("move", () =>
+                debounce(
+                    () => updateWindowState(id, { ...window.getBounds() }),
+                    500,
+                ),
+            );
+
+            window.on("resize", () =>
+                debounce(
+                    () => updateWindowState(id, { ...window.getBounds() }),
+                    500,
+                ),
+            );
+        }
     }
 }
 

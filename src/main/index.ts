@@ -1,12 +1,13 @@
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
-import trayDarkIcon from "@main/../../build/tray-dark.png?asset";
-import trayLightIcon from "@main/../../build/tray-light.png?asset";
+import trayIconDark from "@main/../../build/tray-dark.png?asset";
+import trayIconLight from "@main/../../build/tray-light.png?asset";
 import { registerSystemHandlers } from "@main/handlers/system/ipc";
 import { registerWindowHandlers } from "@main/handlers/window/ipc";
 import { windowManager } from "@main/windowManager";
 import { BASE_OPTIONS } from "@main/windowPolicies";
+import { getWindowState } from "@main/windowState";
 import {
     BrowserWindow,
     Menu,
@@ -23,19 +24,12 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 
-const updateTrayIcon = (): void => {
-    if (tray) {
-        const isDarkMode = nativeTheme.shouldUseDarkColors;
-        tray.setImage(isDarkMode ? trayDarkIcon : trayLightIcon);
-    }
-};
+const getTrayIcon = () =>
+    nativeTheme.shouldUseDarkColors ? trayIconDark : trayIconLight;
 
 const createTray = (): void => {
     if (tray) return;
-
-    tray = new Tray(
-        nativeTheme.shouldUseDarkColors ? trayDarkIcon : trayLightIcon,
-    );
+    tray = new Tray(getTrayIcon());
 
     const contextMenu = Menu.buildFromTemplate([
         {
@@ -54,13 +48,37 @@ const createTray = (): void => {
         else windowManager.toggleWindows();
     });
 
-    nativeTheme.on("updated", updateTrayIcon);
+    nativeTheme.on("updated", () => {
+        if (tray) {
+            tray.setImage(getTrayIcon());
+        }
+    });
 };
 
 const createMainWindow = (): BrowserWindow => {
-    const mainWindow = new BrowserWindow(BASE_OPTIONS);
+    const savedState = getWindowState("main");
+    const options = { ...BASE_OPTIONS };
+
+    if (savedState) {
+        if (savedState.x !== undefined && savedState.y !== undefined) {
+            options.x = savedState.x;
+            options.y = savedState.y;
+        }
+        if (savedState.width !== undefined && savedState.height !== undefined) {
+            options.width = savedState.width;
+            options.height = savedState.height;
+        }
+    }
+
+    const mainWindow = new BrowserWindow(options);
 
     mainWindow.on("ready-to-show", () => {
+        if (savedState?.isMaximized) {
+            mainWindow.maximize();
+        }
+        if (savedState?.isFullscreen) {
+            mainWindow.setFullScreen(true);
+        }
         mainWindow.show();
         createTray();
     });
