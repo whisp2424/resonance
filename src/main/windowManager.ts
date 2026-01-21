@@ -241,19 +241,12 @@ class WindowManager {
                 updateWindowState(id, { ...window.getBounds() }),
             );
         } else {
-            window.on("move", () =>
-                debounce(
-                    () => updateWindowState(id, { ...window.getBounds() }),
-                    500,
-                ),
-            );
+            const updateBounds = debounce(() => {
+                updateWindowState(id, { ...window.getBounds() });
+            }, 500);
 
-            window.on("resize", () =>
-                debounce(
-                    () => updateWindowState(id, { ...window.getBounds() }),
-                    500,
-                ),
-            );
+            window.on("move", updateBounds);
+            window.on("resize", updateBounds);
         }
     }
 }
