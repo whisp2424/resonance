@@ -5,9 +5,9 @@ import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconLight from "@main/../../build/tray-light.png?asset";
 import { registerSystemHandlers } from "@main/handlers/system/ipc";
 import { registerWindowHandlers } from "@main/handlers/window/ipc";
-import { windowManager } from "@main/windowManager";
-import { BASE_OPTIONS } from "@main/windowPolicies";
-import { getWindowState } from "@main/windowState";
+import { windowManager } from "@main/window/windowManager";
+import { BASE_OPTIONS } from "@main/window/windowPolicies";
+import { getWindowState } from "@main/window/windowState";
 import {
     BrowserWindow,
     Menu,

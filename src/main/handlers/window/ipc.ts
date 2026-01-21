@@ -1,7 +1,7 @@
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
 import { IpcListener } from "@electron-toolkit/typed-ipc/main";
-import { windowManager } from "@main/windowManager";
+import { windowManager } from "@main/window/windowManager";
 
 export const registerWindowHandlers = () => {
     const ipc = new IpcListener<MainIpcHandleEvents>();

@@ -6,8 +6,8 @@ import { join } from "node:path";
 import { IpcEmitter } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
 import { debounce } from "@main/utils/debounce";
-import { DEFAULT_CONTROLS, WINDOW_POLICIES } from "@main/windowPolicies";
-import { getWindowState, updateWindowState } from "@main/windowState";
+import { DEFAULT_CONTROLS, WINDOW_POLICIES } from "@main/window/windowPolicies";
+import { getWindowState, updateWindowState } from "@main/window/windowState";
 import { BrowserWindow, shell } from "electron";
 
 export type { WebContents } from "electron";

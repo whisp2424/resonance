@@ -2,7 +2,7 @@ import type { MainIpcHandleEvents } from "@shared/types/ipc";
 import type { Event, SystemPreferences } from "electron";
 
 import { IpcListener } from "@electron-toolkit/typed-ipc/main";
-import { windowManager } from "@main/windowManager";
+import { windowManager } from "@main/window/windowManager";
 import { nativeTheme } from "electron";
 
 let lastAccentColor: string | null = null;
