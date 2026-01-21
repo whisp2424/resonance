@@ -6,6 +6,7 @@ import trayIconLight from "@main/../../build/tray-light.png?asset";
 import { registerSettingsHandlers } from "@main/handlers/settings/ipc";
 import { registerSystemHandlers } from "@main/handlers/system/ipc";
 import { registerWindowHandlers } from "@main/handlers/window/ipc";
+import { getSettings, settingsStore } from "@main/settings";
 import { windowManager } from "@main/window/windowManager";
 import { BASE_OPTIONS } from "@main/window/windowPolicies";
 import { getWindowState } from "@main/window/windowState";
@@ -25,8 +26,23 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 
-const getTrayIcon = () =>
-    nativeTheme.shouldUseDarkColors ? trayIconDark : trayIconLight;
+const { theme } = getSettings();
+
+const getTrayIcon = () => {
+    const trayIcon = settingsStore.get("trayIcon");
+    switch (trayIcon) {
+        case "white":
+            return trayIconDark;
+        case "dark":
+            return trayIconLight;
+        case "auto":
+            return nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
+                ? trayIconDark
+                : trayIconLight;
+        default:
+            return trayIconLight;
+    }
+};
 
 const createTray = (): void => {
     if (tray) return;
@@ -50,9 +66,13 @@ const createTray = (): void => {
     });
 
     nativeTheme.on("updated", () => {
-        if (tray) {
-            tray.setImage(getTrayIcon());
-        }
+        if (!tray) return;
+        tray.setImage(getTrayIcon());
+    });
+
+    settingsStore.onDidChange("trayIcon", () => {
+        if (!tray) return;
+        tray.setImage(getTrayIcon());
     });
 };
 
@@ -131,6 +151,11 @@ app.whenReady().then(() => {
     registerWindowHandlers();
     registerSettingsHandlers();
     const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
+
+    nativeTheme.themeSource = theme;
+    settingsStore.onDidChange("theme", (theme) => {
+        if (theme) nativeTheme.themeSource = theme;
+    });
 
     app.on("window-all-closed", () => {
         cleanupSystemHandlers();

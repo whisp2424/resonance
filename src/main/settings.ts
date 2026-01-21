@@ -18,7 +18,7 @@ const schema: Schema<AppSettings> = {
     trayIcon: { type: "string", enum: ["auto", "white", "dark"] },
 };
 
-const store = new Store<AppSettings>({
+export const settingsStore = new Store<AppSettings>({
     name: "settings",
     clearInvalidConfig: true,
     defaults: DEFAULT_SETTINGS,
@@ -26,21 +26,21 @@ const store = new Store<AppSettings>({
 });
 
 export const getSettings = (): AppSettings => {
-    return { ...DEFAULT_SETTINGS, ...store.store };
+    return { ...DEFAULT_SETTINGS, ...settingsStore.store };
 };
 
 export const getSetting = <K extends keyof AppSettings>(
     key: K,
 ): AppSettings[K] | undefined => {
-    return store.get(key);
+    return settingsStore.get(key);
 };
 
 export const updateSettings = (settings: Partial<AppSettings>): AppSettings => {
     for (const [key, value] of Object.entries(settings))
-        store.set(
+        settingsStore.set(
             key as keyof AppSettings,
             value as AppSettings[keyof AppSettings],
         );
 
-    return store.store;
+    return settingsStore.store;
 };

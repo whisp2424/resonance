@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import TitleBar from "@renderer/components/layout/TitleBar";
 import HomeView from "@renderer/components/views/HomeView";
 import NotFound from "@renderer/components/views/NotFound";
+import SettingsView from "@renderer/components/views/SettingsView";
 import { useAccentColor } from "@renderer/hooks/useAccentColor";
 import { ROUTES } from "@shared/constants/routes";
 import { useEffect } from "react";
@@ -37,6 +38,7 @@ export default function App() {
             <TitleBar />
             <Routes>
                 <Route path={ROUTES.HOME} element={<HomeView />} />
+                <Route path={ROUTES.SETTINGS} element={<SettingsView />} />
                 <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
             </Routes>
         </div>
