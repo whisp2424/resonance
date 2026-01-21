@@ -4,7 +4,7 @@ import type { MainIpcListenEvents, TitleBarControls } from "@shared/types/ipc";
 import { join } from "node:path";
 
 import { IpcEmitter } from "@electron-toolkit/typed-ipc/main";
-import { is, platform } from "@electron-toolkit/utils";
+import { is } from "@electron-toolkit/utils";
 import { debounce } from "@main/utils/debounce";
 import { DEFAULT_CONTROLS, WINDOW_POLICIES } from "@main/windowPolicies";
 import { getWindowState, updateWindowState } from "@main/windowState";
@@ -184,6 +184,14 @@ class WindowManager {
         });
 
         window.on("closed", () => this.removeWindow(id));
+        window.on("close", () => {
+            updateWindowState(id, {
+                ...window.getBounds(),
+                isFullscreen: window.isFullScreen(),
+                isMaximized: window.isMaximized(),
+            });
+        });
+
         window.webContents.on("will-navigate", (event) =>
             event.preventDefault(),
         );
@@ -232,22 +240,14 @@ class WindowManager {
             updateWindowState(id, { isMaximized: false });
         });
 
-        if (platform.isWindows) {
-            window.on("moved", () =>
-                updateWindowState(id, { ...window.getBounds() }),
-            );
-
-            window.on("resized", () =>
-                updateWindowState(id, { ...window.getBounds() }),
-            );
-        } else {
-            const updateBounds = debounce(() => {
+        const updateBounds = debounce(() => {
+            try {
                 updateWindowState(id, { ...window.getBounds() });
-            }, 500);
+            } catch {}
+        }, 500);
 
-            window.on("move", updateBounds);
-            window.on("resize", updateBounds);
-        }
+        window.on("move", updateBounds);
+        window.on("resize", updateBounds);
     }
 }
 

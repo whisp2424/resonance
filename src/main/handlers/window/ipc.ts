@@ -1,5 +1,4 @@
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
-import type { WebContents } from "electron";
 
 import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { windowManager } from "@main/windowManager";
@@ -44,9 +43,7 @@ export const registerWindowHandlers = () => {
     });
 
     ipc.handle("window:getId", (event) => {
-        return windowManager.getWindowId(
-            event.sender as unknown as WebContents,
-        );
+        return windowManager.getWindowId(event.sender);
     });
 
     ipc.handle("window:getControls", (_, id) => {
