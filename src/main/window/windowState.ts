@@ -1,62 +1,52 @@
-import type { Schema } from "electron-store";
-
 import { Store } from "@main/store";
+import { type } from "arktype";
 
-export interface WindowState {
-    x?: number;
-    y?: number;
-    width?: number;
-    height?: number;
-    isMaximized?: boolean;
-    isFullscreen?: boolean;
-}
+const windowStateSchema = type({
+    "[string]": type({
+        "y?": "number",
+        "x?": "number",
+        "width?": "number",
+        "height?": "number",
+        "isMaximized?": "boolean",
+        "isFullscreen?": "boolean",
+    }),
+});
 
-const schema: Schema<Record<string, WindowState>> = {
-    additionalProperties: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-            x: { type: "number" },
-            y: { type: "number" },
-            width: { type: "number" },
-            height: { type: "number" },
-            isMaximized: { type: "boolean" },
-            isFullscreen: { type: "boolean" },
-        },
+type WindowState = typeof windowStateSchema.infer;
+
+const store = new Store<WindowState>({
+    filename: "window-state.json",
+    defaults: {},
+    encode: (data: WindowState) => JSON.stringify(data, null, 0),
+    decode: (data: unknown) => {
+        const result = windowStateSchema(data);
+        if (result instanceof type.errors) return {};
+        return result as WindowState;
     },
-};
-
-const store = new Store<Record<string, WindowState>>({
-    name: "window-state",
-    clearInvalidConfig: true,
-    schema,
 });
 
 export const updateWindowState = (
     id: string,
-    state: Partial<WindowState>,
+    state: Partial<WindowState[string]>,
 ): void => {
-    const oldState = store.get(id);
-    const mergedState = {
-        ...(oldState ?? {}),
-        ...state,
-    };
+    const oldState = store.get(id) ?? {};
+    const newState =
+        state.isFullscreen === true || state.isMaximized === true
+            ? {
+                  ...oldState,
+                  ...state,
+                  x: oldState.x,
+                  y: oldState.y,
+                  width: oldState.width,
+                  height: oldState.height,
+              }
+            : {
+                  ...oldState,
+                  ...state,
+              };
 
-    if (mergedState.isMaximized || mergedState.isFullscreen) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { x, y, width, height, ...newState } = state;
-        store.set(id, {
-            ...(oldState ?? {}),
-            ...newState,
-        });
-    } else {
-        store.set(id, {
-            ...(oldState ?? {}),
-            ...state,
-        });
-    }
+    store.set(id, newState);
 };
-
-export const getWindowState = (id: string): WindowState | undefined => {
+export const getWindowState = (id: string): WindowState[string] | undefined => {
     return store.get(id);
 };

@@ -1,23 +1,27 @@
-import type { AppSettings } from "@shared/types/settings";
-import type { Schema } from "electron-store";
-
 import { Store } from "@main/store";
+import { type } from "arktype";
+
+const appSettingsSchema = type({
+    theme: "'system' | 'light' | 'dark'",
+    trayIcon: "'auto' | 'white' | 'dark'",
+});
+
+export type AppSettings = typeof appSettingsSchema.infer;
 
 export const DEFAULT_SETTINGS: AppSettings = {
     theme: "system",
     trayIcon: "auto",
 };
 
-const schema: Schema<AppSettings> = {
-    theme: { type: "string", enum: ["system", "light", "dark"] },
-    trayIcon: { type: "string", enum: ["auto", "white", "dark"] },
-};
-
 export const settingsStore = new Store<AppSettings>({
-    name: "settings",
-    clearInvalidConfig: true,
+    filename: "settings.json",
     defaults: DEFAULT_SETTINGS,
-    schema,
+    encode: (data: AppSettings) => JSON.stringify(data, null, 0),
+    decode: (data: unknown) => {
+        const result = appSettingsSchema(data);
+        if (result instanceof type.errors) return DEFAULT_SETTINGS;
+        return result as AppSettings;
+    },
 });
 
 export const getSettings = (): AppSettings => {

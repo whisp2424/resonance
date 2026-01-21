@@ -31,7 +31,9 @@
     "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",
         "@electron-toolkit/utils": "^4.0.0",
-        "electron-store": "^11.0.2"
+        "arktype": "^2.1.29",
+        "chokidar": "^5.0.0",
+        "write-file-atomic": "^7.0.0"
     },
     "devDependencies": {
         "@base-ui/react": "^1.1.0",
@@ -47,6 +49,7 @@
         "@types/node": "^25.0.9",
         "@types/react": "^19.2.8",
         "@types/react-dom": "^19.2.3",
+        "@types/write-file-atomic": "^4.0.3",
         "@vitejs/plugin-react": "^5.1.2",
         "clsx": "^2.1.1",
         "electron": "^40.0.0",
