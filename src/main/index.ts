@@ -6,7 +6,7 @@ import trayIconLight from "@main/../../build/tray-light.png?asset";
 import { registerSettingsHandlers } from "@main/handlers/settings/ipc";
 import { registerSystemHandlers } from "@main/handlers/system/ipc";
 import { registerWindowHandlers } from "@main/handlers/window/ipc";
-import { getSettings, settingsStore } from "@main/settings";
+import { settingsStore } from "@main/settings";
 import { windowManager } from "@main/window/windowManager";
 import { BASE_OPTIONS } from "@main/window/windowPolicies";
 import { getWindowState } from "@main/window/windowState";
@@ -25,8 +25,6 @@ import product from "@main/../../build/product.json" with { type: "json" };
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
-
-const { theme } = getSettings();
 
 const getTrayIcon = () => {
     const trayIcon = settingsStore.get("trayIcon");
@@ -77,29 +75,28 @@ const createTray = (): void => {
 };
 
 const createMainWindow = (): BrowserWindow => {
-    const savedState = getWindowState("main");
     const options = { ...BASE_OPTIONS };
+    const savedState = getWindowState("main");
 
     if (savedState) {
         if (savedState.x !== undefined && savedState.y !== undefined) {
             options.x = savedState.x;
             options.y = savedState.y;
         }
+
         if (savedState.width !== undefined && savedState.height !== undefined) {
             options.width = savedState.width;
             options.height = savedState.height;
         }
+
+        if (savedState?.isFullscreen)
+            options.fullscreen = savedState.isFullscreen;
     }
 
     const mainWindow = new BrowserWindow(options);
 
     mainWindow.on("ready-to-show", () => {
-        if (savedState?.isMaximized) {
-            mainWindow.maximize();
-        }
-        if (savedState?.isFullscreen) {
-            mainWindow.setFullScreen(true);
-        }
+        if (savedState?.isMaximized) mainWindow.maximize();
         mainWindow.show();
         createTray();
     });
@@ -152,7 +149,6 @@ app.whenReady().then(() => {
     registerSettingsHandlers();
     const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
 
-    nativeTheme.themeSource = theme;
     settingsStore.onDidChange("theme", (theme) => {
         if (theme) nativeTheme.themeSource = theme;
     });

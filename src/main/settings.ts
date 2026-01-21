@@ -3,11 +3,6 @@ import type { Schema } from "electron-store";
 
 import { Store } from "@main/store";
 
-export type {
-    AppTheme as ThemeMode,
-    AppTrayIcon as TrayIconMode,
-} from "@shared/types/settings";
-
 export const DEFAULT_SETTINGS: AppSettings = {
     theme: "system",
     trayIcon: "auto",
