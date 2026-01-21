@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { is } from "@electron-toolkit/utils";
 import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconLight from "@main/../../build/tray-light.png?asset";
+import { registerSettingsHandlers } from "@main/handlers/settings/ipc";
 import { registerSystemHandlers } from "@main/handlers/system/ipc";
 import { registerWindowHandlers } from "@main/handlers/window/ipc";
 import { windowManager } from "@main/window/windowManager";
@@ -128,6 +129,7 @@ app.whenReady().then(() => {
     mainWindow = createMainWindow();
 
     registerWindowHandlers();
+    registerSettingsHandlers();
     const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
 
     app.on("window-all-closed", () => {

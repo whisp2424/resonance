@@ -1,3 +1,5 @@
+import type { Schema } from "electron-store";
+
 import { Store } from "@main/store";
 
 export interface WindowState {
@@ -9,7 +11,7 @@ export interface WindowState {
     isFullscreen?: boolean;
 }
 
-const schema = {
+const schema: Schema<Record<string, WindowState>> = {
     additionalProperties: {
         type: "object",
         additionalProperties: false,
@@ -22,7 +24,7 @@ const schema = {
             isFullscreen: { type: "boolean" },
         },
     },
-} as const;
+};
 
 const store = new Store<Record<string, WindowState>>({
     name: "window-state",
