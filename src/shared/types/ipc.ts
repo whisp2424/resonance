@@ -19,7 +19,6 @@ export type MainIpcHandleEvents = {
     "window:getId": () => string | null;
     "window:getControls": (id: string) => TitleBarControls;
     "system:getAccentColor": () => string;
-    "system:isDarkMode": () => boolean;
 };
 
 export type MainIpcListenEvents = {

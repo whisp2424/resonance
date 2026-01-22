@@ -3,7 +3,6 @@ import type { SystemPreferences } from "electron";
 
 import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { windowManager } from "@main/window/windowManager";
-import { nativeTheme } from "electron";
 
 let lastAccentColor: string | null = null;
 
@@ -19,10 +18,6 @@ export const registerSystemHandlers = (preferences: SystemPreferences) => {
 
     ipc.handle("system:getAccentColor", () => {
         return preferences.getAccentColor();
-    });
-
-    ipc.handle("system:isDarkMode", () => {
-        return nativeTheme.shouldUseDarkColors;
     });
 
     preferences.on("accent-color-changed", handleAccentColorChange);
