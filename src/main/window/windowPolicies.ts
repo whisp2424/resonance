@@ -4,7 +4,9 @@ import type { BrowserWindowConstructorOptions } from "electron";
 
 import { join } from "node:path";
 
-const backgroundColor = "#171717";
+import { nativeTheme } from "electron";
+
+const backgroundColor = nativeTheme.shouldUseDarkColors ? "#0a0a0a" : "#fafafa";
 
 export const BASE_OPTIONS: BrowserWindowConstructorOptions = {
     width: 800,

@@ -24,6 +24,7 @@ let tray: Tray | null = null;
 let isQuitting = false;
 
 const getTrayIcon = () => {
+    // https://github.com/electron/electron/issues/48736
     return nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
         ? trayIconDark
         : trayIconLight;
@@ -51,8 +52,7 @@ const createTray = (): void => {
     });
 
     nativeTheme.on("updated", () => {
-        if (!tray) return;
-        tray.setImage(getTrayIcon());
+        tray?.setImage(getTrayIcon());
     });
 };
 
