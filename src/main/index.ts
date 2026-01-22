@@ -3,13 +3,10 @@ import { join } from "node:path";
 import { is } from "@electron-toolkit/utils";
 import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconLight from "@main/../../build/tray-light.png?asset";
-import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
-import { settingsStore } from "@main/settings";
 import { windowManager } from "@main/window/windowManager";
 import { BASE_OPTIONS } from "@main/window/windowPolicies";
-import { getWindowState } from "@main/window/windowState";
 import {
     BrowserWindow,
     Menu,
@@ -27,19 +24,9 @@ let tray: Tray | null = null;
 let isQuitting = false;
 
 const getTrayIcon = () => {
-    const trayIcon = settingsStore.get("trayIcon");
-    switch (trayIcon) {
-        case "white":
-            return trayIconDark;
-        case "dark":
-            return trayIconLight;
-        case "auto":
-            return nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
-                ? trayIconDark
-                : trayIconLight;
-        default:
-            return trayIconLight;
-    }
+    return nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
+        ? trayIconDark
+        : trayIconLight;
 };
 
 const createTray = (): void => {
@@ -67,36 +54,12 @@ const createTray = (): void => {
         if (!tray) return;
         tray.setImage(getTrayIcon());
     });
-
-    settingsStore.onDidChange("trayIcon", () => {
-        if (!tray) return;
-        tray.setImage(getTrayIcon());
-    });
 };
 
 const createMainWindow = (): BrowserWindow => {
-    const options = { ...BASE_OPTIONS };
-    const savedState = getWindowState("main");
-
-    if (savedState) {
-        if (savedState.x !== undefined && savedState.y !== undefined) {
-            options.x = savedState.x;
-            options.y = savedState.y;
-        }
-
-        if (savedState.width !== undefined && savedState.height !== undefined) {
-            options.width = savedState.width;
-            options.height = savedState.height;
-        }
-
-        if (savedState?.isFullscreen)
-            options.fullscreen = savedState.isFullscreen;
-    }
-
-    const mainWindow = new BrowserWindow(options);
+    const mainWindow = new BrowserWindow(BASE_OPTIONS);
 
     mainWindow.on("ready-to-show", () => {
-        if (savedState?.isMaximized) mainWindow.maximize();
         mainWindow.show();
         createTray();
     });
@@ -146,12 +109,7 @@ app.whenReady().then(() => {
     mainWindow = createMainWindow();
 
     registerWindowHandlers();
-    registerSettingsHandlers();
     const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
-
-    settingsStore.onDidChange("theme", (theme) => {
-        if (theme) nativeTheme.themeSource = theme;
-    });
 
     app.on("window-all-closed", () => {
         cleanupSystemHandlers();

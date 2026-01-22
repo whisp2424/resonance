@@ -1,5 +1,5 @@
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
-import type { Event, SystemPreferences } from "electron";
+import type { SystemPreferences } from "electron";
 
 import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { windowManager } from "@main/window/windowManager";
@@ -10,18 +10,11 @@ let lastAccentColor: string | null = null;
 export const registerSystemHandlers = (preferences: SystemPreferences) => {
     const ipc = new IpcListener<MainIpcHandleEvents>();
 
-    const handleAccentColorChange = (_: Event, newColor: string) => {
+    const handleAccentColorChange = (_: Electron.Event, newColor: string) => {
         if (newColor !== lastAccentColor) {
             lastAccentColor = newColor;
             windowManager.emitEvent("system:onAccentColorChanged", newColor);
         }
-    };
-
-    const handleThemeChange = () => {
-        windowManager.emitEvent(
-            "system:onDarkModeChanged",
-            nativeTheme.shouldUseDarkColors,
-        );
     };
 
     ipc.handle("system:getAccentColor", () => {
@@ -33,13 +26,11 @@ export const registerSystemHandlers = (preferences: SystemPreferences) => {
     });
 
     preferences.on("accent-color-changed", handleAccentColorChange);
-    nativeTheme.on("updated", handleThemeChange);
 
     return () => {
         preferences.removeListener(
             "accent-color-changed",
             handleAccentColorChange,
         );
-        nativeTheme.removeListener("updated", handleThemeChange);
     };
 };
