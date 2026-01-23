@@ -9,6 +9,7 @@ import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
 import { initializeSettings, settingsManager } from "@main/settings";
+import { windowStateManager } from "@main/state/windowState";
 import { windowManager } from "@main/window/windowManager";
 import { BASE_OPTIONS } from "@main/window/windowPolicies";
 import {
@@ -72,6 +73,7 @@ const createMainWindow = (): BrowserWindow => {
     const mainWindow = new BrowserWindow(BASE_OPTIONS);
 
     mainWindow.on("ready-to-show", () => {
+        windowManager.applyWindowState("main", mainWindow);
         mainWindow.show();
         createTray();
     });
@@ -118,12 +120,11 @@ app.on("second-instance", () => {
 
 app.whenReady().then(async () => {
     await initializeSettings();
+    await windowStateManager.load();
     app.setAppUserModelId(product.appId);
     const settings = settingsManager.get();
     nativeTheme.themeSource = settings.appearance.appTheme;
     mainWindow = createMainWindow();
-
-    createTray(settings.appearance.trayIcon);
 
     const unsubscribeAppearanceSettings = settingsManager.onChanged(
         (settings) => {
@@ -137,10 +138,13 @@ app.whenReady().then(async () => {
     const cleanupSettingsHandlers = registerSettingsHandlers();
     const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
 
-    app.on("window-all-closed", () => {
+    app.on("will-quit", async () => {
         unsubscribeAppearanceSettings();
         cleanupSettingsHandlers();
         cleanupSystemHandlers();
+    });
+
+    app.on("window-all-closed", () => {
         app.quit();
     });
 });

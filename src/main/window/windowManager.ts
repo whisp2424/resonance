@@ -1,12 +1,14 @@
 import type { Route, WindowRoute } from "@shared/constants/routes";
 import type { MainIpcListenEvents, TitleBarControls } from "@shared/types/ipc";
+import type { Rectangle } from "electron";
 
 import { join } from "node:path";
 
 import { IpcEmitter } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
+import { windowStateManager } from "@main/state/windowState";
 import { DEFAULT_CONTROLS, WINDOW_POLICIES } from "@main/window/windowPolicies";
-import { BrowserWindow, shell } from "electron";
+import { BrowserWindow, screen, shell } from "electron";
 
 export type { WebContents } from "electron";
 
@@ -20,6 +22,7 @@ class WindowManager {
     emitter = new IpcEmitter<MainIpcListenEvents>();
     private windows = new Map<string, WindowProperties>();
     private hiddenWindows = new Set<string>();
+    private debounceTimer: NodeJS.Timeout | null = null;
 
     addWindow(
         id: string,
@@ -28,12 +31,17 @@ class WindowManager {
         controls: TitleBarControls,
     ): void {
         this.windows.set(id, { window, route, controls });
-        this.registerWindowEvents(window);
+        this.registerWindowEvents(id, window);
     }
 
     removeWindow(id: string): void {
         const info = this.windows.get(id);
         if (!info) return;
+
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = null;
+        }
 
         info.window.removeAllListeners("enter-full-screen");
         info.window.removeAllListeners("leave-full-screen");
@@ -128,16 +136,6 @@ class WindowManager {
         );
     }
 
-    emitEvent(channel: keyof MainIpcListenEvents, ...args: unknown[]): void {
-        for (const info of this.windows.values()) {
-            this.emitter.send(
-                info.window.webContents,
-                channel,
-                ...(args as [] | [string]),
-            );
-        }
-    }
-
     createWindow(id: string, route: WindowRoute): string {
         const existing = this.windows.get(id);
 
@@ -157,6 +155,7 @@ class WindowManager {
 
         window.on("ready-to-show", () => {
             window.show();
+            this.applyWindowState(id, window);
         });
 
         window.on("closed", () => this.removeWindow(id));
@@ -188,7 +187,26 @@ class WindowManager {
         return id;
     }
 
-    private registerWindowEvents(window: BrowserWindow): void {
+    emitEvent(channel: keyof MainIpcListenEvents, ...args: unknown[]): void {
+        for (const info of this.windows.values()) {
+            this.emitter.send(
+                info.window.webContents,
+                channel,
+                ...(args as []),
+            );
+        }
+    }
+
+    private updateBounds(id: string, window: BrowserWindow) {
+        if (this.debounceTimer) clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(async () => {
+            this.debounceTimer = null;
+            const bounds = window.getBounds();
+            await windowStateManager.updateBoundsState(id, bounds);
+        }, 500);
+    }
+
+    private registerWindowEvents(id: string, window: BrowserWindow): void {
         window.on("enter-full-screen", () => {
             this.emitter.send(window.webContents, "window:onEnterFullscreen");
         });
@@ -199,11 +217,77 @@ class WindowManager {
 
         window.on("maximize", () => {
             this.emitter.send(window.webContents, "window:onMaximize");
+            windowStateManager.updateMaximizedState(id, true);
         });
 
         window.on("unmaximize", () => {
             this.emitter.send(window.webContents, "window:onUnmaximize");
+            windowStateManager.updateMaximizedState(id, false);
         });
+
+        window.on("move", () => this.updateBounds(id, window));
+        window.on("resize", () => this.updateBounds(id, window));
+
+        window.on("close", () => {
+            if (!window.isMaximized() && !window.isFullScreen()) {
+                const bounds = window.getBounds();
+                windowStateManager.updateBoundsState(id, {
+                    x: bounds.x,
+                    y: bounds.y,
+                    width: bounds.width,
+                    height: bounds.height,
+                });
+            }
+        });
+    }
+
+    private validateBounds(bounds: Partial<Rectangle>): Partial<Rectangle> {
+        const displays = screen.getAllDisplays();
+        if (displays.length === 0) return {};
+
+        const { x, y, width, height } = bounds;
+
+        const isSizeValid =
+            width === undefined ||
+            height === undefined ||
+            (width > 0 && height > 0);
+
+        if (!isSizeValid) return {};
+        if (x === undefined || y === undefined) return bounds;
+
+        const DISPLAY_MARGIN = 100;
+        const isPositionVisible = displays.some(({ bounds: display }) => {
+            const withinHorizontalBounds =
+                x >= display.x - DISPLAY_MARGIN &&
+                x <= display.x + display.width;
+
+            const withinVerticalBounds =
+                y >= display.y - DISPLAY_MARGIN &&
+                y <= display.y + display.height;
+
+            return withinHorizontalBounds && withinVerticalBounds;
+        });
+
+        return isPositionVisible ? bounds : {};
+    }
+
+    public applyWindowState(id: string, window: BrowserWindow): void {
+        const savedState = windowStateManager.getState(id);
+        if (!savedState) return;
+
+        if (savedState.isMaximized) {
+            window.maximize();
+            return;
+        }
+
+        const bounds = this.validateBounds({
+            x: savedState.x,
+            y: savedState.y,
+            width: savedState.width,
+            height: savedState.height,
+        });
+
+        window.setBounds({ ...bounds });
     }
 }
 
