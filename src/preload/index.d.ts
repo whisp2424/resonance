@@ -1,3 +1,4 @@
+import type { Settings, SettingsKey } from "@shared/schema/settings";
 import type {
     MainIpcHandleEvents,
     MainIpcListenEvents,
@@ -13,9 +14,20 @@ type ElectronSend = <K extends keyof MainIpcListenEvents>(
     listener: (...args: MainIpcListenEvents[K]) => void,
 ) => () => void;
 
+type SettingsAPI = {
+    get: () => Promise<Settings>;
+    set: (settings: Partial<Settings>) => Promise<void>;
+    onChanged: (
+        listener: (settings: Settings, key?: SettingsKey) => void,
+        key?: SettingsKey,
+    ) => () => void;
+    onError: (listener: (message: string) => void) => () => void;
+};
+
 export interface ElectronAPI {
     invoke: ElectronInvoke;
     send: ElectronSend;
+    settings: SettingsAPI;
 }
 
 declare global {

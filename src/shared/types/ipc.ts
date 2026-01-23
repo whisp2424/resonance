@@ -1,4 +1,7 @@
 import type { WindowRoute } from "@shared/constants/routes";
+import type { Settings } from "@shared/schema/settings";
+
+export type SettingsKey = keyof Settings;
 
 export type TitleBarControls = {
     minimize?: boolean;
@@ -19,6 +22,8 @@ export type MainIpcHandleEvents = {
     "window:getId": () => string | null;
     "window:getControls": (id: string) => TitleBarControls;
     "system:getAccentColor": () => string;
+    "settings:get": () => Settings;
+    "settings:set": (settings: Partial<Settings>) => void;
 };
 
 export type MainIpcListenEvents = {
@@ -28,6 +33,8 @@ export type MainIpcListenEvents = {
     "window:onUnmaximize": [];
     "window:onWindowTitleChanged": [];
     "system:onAccentColorChanged": [color: string];
+    "settings:onChanged": [settings: Settings, key?: SettingsKey];
+    "settings:onError": [message: string];
 };
 
 export type MainIpcEvents = MainIpcHandleEvents | MainIpcListenEvents;

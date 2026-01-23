@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-svgr/client" />
 
+import type { Settings, SettingsKey } from "@shared/schema/settings";
 import type {
     MainIpcHandleEvents,
     MainIpcListenEvents,
@@ -23,5 +24,14 @@ declare global {
         invoke: ElectronInvoke;
         send: ElectronSend;
         getWindowId: () => Promise<string | null>;
+        settings: {
+            get: () => Promise<Settings>;
+            set: (settings: Partial<Settings>) => Promise<void>;
+            onChanged: (
+                listener: (settings: Settings, key?: SettingsKey) => void,
+                key?: SettingsKey,
+            ) => () => void;
+            onError: (listener: (message: string) => void) => () => void;
+        };
     };
 }

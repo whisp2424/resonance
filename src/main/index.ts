@@ -1,10 +1,14 @@
+import type { Settings } from "@shared/schema/settings";
+
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
 import trayIconDark from "@main/../../build/tray-dark.png?asset";
-import trayIconLight from "@main/../../build/tray-light.png?asset";
+import trayIconWhite from "@main/../../build/tray-white.png?asset";
+import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
+import { initializeSettings, settingsManager } from "@main/settings";
 import { windowManager } from "@main/window/windowManager";
 import { BASE_OPTIONS } from "@main/window/windowPolicies";
 import {
@@ -23,17 +27,24 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 
-const getTrayIcon = () => {
-    // https://github.com/electron/electron/issues/48736
-    return nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
-        ? trayIconDark
-        : trayIconLight;
+const getTrayIcon = (icon?: Settings["appearance"]["trayIcon"]) => {
+    switch (icon) {
+        case "white":
+            return trayIconWhite;
+        case "dark":
+            return trayIconDark;
+        default:
+            // https://github.com/electron/electron/issues/48736
+            return nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
+                ? trayIconWhite
+                : trayIconDark;
+    }
 };
 
-const createTray = (): void => {
+const createTray = (trayIcon?: Settings["appearance"]["trayIcon"]): void => {
     if (tray) return;
-    tray = new Tray(getTrayIcon());
 
+    tray = new Tray(getTrayIcon(trayIcon));
     const contextMenu = Menu.buildFromTemplate([
         {
             label: `Quit ${product.name.short}`,
@@ -46,13 +57,14 @@ const createTray = (): void => {
 
     tray.setToolTip(product.name.short);
     tray.setContextMenu(contextMenu);
+
     tray.on("click", () => {
         if (mainWindow?.isVisible()) mainWindow?.focus();
         else windowManager.toggleWindows();
     });
 
     nativeTheme.on("updated", () => {
-        tray?.setImage(getTrayIcon());
+        tray?.setImage(getTrayIcon(trayIcon));
     });
 };
 
@@ -104,14 +116,30 @@ app.on("second-instance", () => {
     }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+    await initializeSettings();
     app.setAppUserModelId(product.appId);
+    const settings = settingsManager.get();
+    nativeTheme.themeSource = settings.appearance.appTheme;
     mainWindow = createMainWindow();
 
+    createTray(settings.appearance.trayIcon);
+
+    const unsubscribeAppearanceSettings = settingsManager.onChanged(
+        (settings) => {
+            nativeTheme.themeSource = settings.appearance.appTheme;
+            tray?.setImage(getTrayIcon(settings.appearance.trayIcon));
+        },
+        "appearance",
+    );
+
     registerWindowHandlers();
+    const cleanupSettingsHandlers = registerSettingsHandlers();
     const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
 
     app.on("window-all-closed", () => {
+        unsubscribeAppearanceSettings();
+        cleanupSettingsHandlers();
         cleanupSystemHandlers();
         app.quit();
     });
