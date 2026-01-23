@@ -4,19 +4,15 @@ import type { BrowserWindowConstructorOptions } from "electron";
 
 import { join } from "node:path";
 
-import { nativeTheme } from "electron";
-
-const backgroundColor = nativeTheme.shouldUseDarkColors ? "#0a0a0a" : "#fafafa";
-
 export const BASE_OPTIONS: BrowserWindowConstructorOptions = {
     width: 800,
     height: 600,
-    minWidth: 600,
+    minWidth: 500,
     minHeight: 500,
     show: false,
     titleBarStyle: "hidden",
     titleBarOverlay: false,
-    backgroundColor,
+    backgroundColor: "#00000000",
     webPreferences: {
         preload: join(__dirname, "../preload/index.js"),
     },
@@ -35,8 +31,6 @@ export const SETTINGS_WINDOW: () => [
     {
         ...BASE_OPTIONS,
         fullscreenable: false,
-        width: 700,
-        height: 600,
     },
     { ...DEFAULT_CONTROLS },
 ];

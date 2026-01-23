@@ -32,9 +32,7 @@ export default defineConfig({
     },
     renderer: {
         build: { outDir: "dist/renderer" },
-        define: {
-            APP_NAME: JSON.stringify(product.name.short),
-        },
+        define: { APP_NAME: JSON.stringify(product.name.short) },
         plugins: [
             react(),
             tailwindcss(),

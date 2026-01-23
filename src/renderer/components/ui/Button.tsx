@@ -43,7 +43,7 @@ export default function Button({
     className = twMerge(
         clsx(
             className,
-            "rounded-md border-[1.2px] bg-linear-to-b from-transparent to-transparent px-3 py-1 text-sm transition duration-200 outline-none not-dark:border-neutral-400 not-dark:bg-neutral-100 not-dark:to-neutral-200 not-dark:hover:to-(--accent-color)/20 focus-visible:ring not-dark:active:from-black/2 not-dark:active:to-(--accent-color)/25 dark:border-neutral-800 dark:bg-neutral-900 dark:from-white/4 dark:hover:not-active:border-neutral-700 dark:active:from-transparent",
+            "rounded-md border-[1.5px] bg-linear-to-b from-transparent to-transparent px-3 py-1 text-sm transition duration-200 outline-none not-dark:border-neutral-400 not-dark:bg-neutral-100 not-dark:to-neutral-200 not-dark:hover:to-(--accent-color)/20 focus-visible:ring not-dark:active:from-black/2 not-dark:active:to-(--accent-color)/25 dark:border-neutral-800 dark:bg-neutral-900 dark:from-white/4 dark:hover:not-active:border-neutral-700 dark:active:from-transparent",
         ),
     );
     if ("as" in rest) {

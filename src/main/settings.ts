@@ -80,7 +80,7 @@ class SettingsManager {
             const oldSettings = this.settingsCache;
             await writeFile(
                 SETTINGS_FILE,
-                JSON.stringify(newSettings, null, 4),
+                JSON.stringify(newSettings, null, 2),
                 { encoding: "utf-8" },
             );
             this.settingsCache = newSettings;

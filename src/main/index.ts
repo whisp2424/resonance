@@ -9,9 +9,9 @@ import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
 import { initializeSettings, settingsManager } from "@main/settings";
-import { windowStateManager } from "@main/state/windowState";
 import { windowManager } from "@main/window/windowManager";
 import { BASE_OPTIONS } from "@main/window/windowPolicies";
+import { windowStateManager } from "@main/windowState";
 import {
     BrowserWindow,
     Menu,
@@ -70,7 +70,11 @@ const createTray = (trayIcon?: Settings["appearance"]["trayIcon"]): void => {
 };
 
 const createMainWindow = (): BrowserWindow => {
-    const mainWindow = new BrowserWindow(BASE_OPTIONS);
+    const mainWindow = new BrowserWindow({
+        ...BASE_OPTIONS,
+        width: 1200,
+        height: 700,
+    });
 
     mainWindow.on("ready-to-show", () => {
         windowManager.applyWindowState("main", mainWindow);
@@ -111,11 +115,10 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
 app.on("second-instance", () => {
-    if (mainWindow) {
-        mainWindow.show();
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.focus();
-    }
+    if (!mainWindow) return;
+    mainWindow.show();
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
 });
 
 app.whenReady().then(async () => {

@@ -6,8 +6,8 @@ import { join } from "node:path";
 
 import { IpcEmitter } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
-import { windowStateManager } from "@main/state/windowState";
 import { DEFAULT_CONTROLS, WINDOW_POLICIES } from "@main/window/windowPolicies";
+import { windowStateManager } from "@main/windowState";
 import { BrowserWindow, screen, shell } from "electron";
 
 export type { WebContents } from "electron";
@@ -271,7 +271,7 @@ class WindowManager {
         return isPositionVisible ? bounds : {};
     }
 
-    public applyWindowState(id: string, window: BrowserWindow): void {
+    applyWindowState(id: string, window: BrowserWindow): void {
         const savedState = windowStateManager.getState(id);
         if (!savedState) return;
 
