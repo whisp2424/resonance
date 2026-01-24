@@ -1,9 +1,7 @@
-import type { CSSProperties } from "react";
-
 import TitleBar from "@renderer/components/layout/TitleBar";
-import HomeView from "@renderer/components/views/HomeView";
 import NotFound from "@renderer/components/views/NotFound";
 import SettingsView from "@renderer/components/views/SettingsView";
+import SetupView from "@renderer/components/views/SetupView";
 import { useAccentColor } from "@renderer/hooks/useAccentColor";
 import { ROUTES } from "@shared/constants/routes";
 import { useEffect } from "react";
@@ -12,6 +10,15 @@ import { Route, Routes, useNavigate } from "react-router-dom";
 export default function App() {
     const accentColor = useAccentColor();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const root = document.documentElement;
+        root.style.setProperty("--color-accent", accentColor);
+
+        return () => {
+            root.style.removeProperty("--color-accent");
+        };
+    }, [accentColor]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -25,19 +32,14 @@ export default function App() {
         };
 
         window.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-        };
+        return () => window.removeEventListener("keydown", handleKeyDown);
     }, [navigate]);
 
     return (
-        <div
-            className="flex h-dvh w-full flex-col"
-            style={{ "--accent-color": accentColor } as CSSProperties}>
+        <div className="flex h-dvh w-full flex-col">
             <TitleBar />
             <Routes>
-                <Route path={ROUTES.HOME} element={<HomeView />} />
+                <Route path={ROUTES.HOME} element={<SetupView />} />
                 <Route path={ROUTES.SETTINGS} element={<SettingsView />} />
                 <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
             </Routes>

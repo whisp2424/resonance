@@ -43,6 +43,7 @@
         "@electron-toolkit/typed-ipc": "^1.0.2",
         "@eslint/js": "^9.39.2",
         "@iconify-json/fluent": "^1.2.37",
+        "@iconify-json/lucide": "^1.2.86",
         "@svgr/core": "^8.1.0",
         "@svgr/plugin-jsx": "^8.1.0",
         "@tailwindcss/vite": "^4.1.18",

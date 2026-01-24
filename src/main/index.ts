@@ -77,8 +77,8 @@ const createMainWindow = (): BrowserWindow => {
     });
 
     mainWindow.on("ready-to-show", () => {
-        windowManager.applyWindowState("main", mainWindow);
         mainWindow.show();
+        windowManager.applyWindowState("main", mainWindow);
         createTray();
     });
 

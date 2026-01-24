@@ -1,3 +1,58 @@
+import type { SideBarItem } from "@renderer/components/ui/SideBar";
+import type { ComponentType } from "react";
+
+import SideBar from "@renderer/components/ui/SideBar";
+import { useState } from "react";
+
+import IconAppearance from "~icons/lucide/brush";
+import IconInfo from "~icons/lucide/info";
+
+function AboutSettings() {
+    return (
+        <div className="flex flex-1 flex-col gap-4 p-6">
+            <h1 className="text-2xl font-semibold">About</h1>
+            <p className="text-neutral-600 dark:text-neutral-400">
+                Application information and details.
+            </p>
+        </div>
+    );
+}
+
+function AppearanceSettings() {
+    return (
+        <div className="flex flex-1 flex-col gap-4 p-6">
+            <h1 className="text-2xl font-semibold">Appearance</h1>
+            <p className="text-neutral-600 dark:text-neutral-400">
+                Customize the look and feel of the application.
+            </p>
+        </div>
+    );
+}
+
+const CATEGORY_COMPONENTS: Record<string, ComponentType> = {
+    about: AboutSettings,
+    appearance: AppearanceSettings,
+};
+
+const SIDEBAR_CATEGORIES: SideBarItem[] = [
+    { id: "about", label: "About", icon: IconInfo },
+    { id: "appearance", label: "Appearance", icon: IconAppearance },
+];
+
 export default function SettingsView() {
-    return <div className="flex h-full"></div>;
+    const [activeCategory, setActiveCategory] = useState("about");
+
+    const ActiveComponent = CATEGORY_COMPONENTS[activeCategory];
+
+    return (
+        <div className="flex h-full">
+            <SideBar
+                items={SIDEBAR_CATEGORIES}
+                activeItemId={activeCategory}
+                onActiveItemChange={setActiveCategory}
+                className="border-r border-neutral-300 bg-black/4 bg-linear-to-b p-4 dark:border-neutral-800 dark:bg-white/2"
+            />
+            <ActiveComponent />
+        </div>
+    );
 }

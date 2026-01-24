@@ -57,22 +57,12 @@ class WindowStateManager {
         this.stateCache = { ...state };
     }
 
-    async updateBoundsState(
+    async updateState(
         id: string,
-        bounds: { x?: number; y?: number; width?: number; height?: number },
+        updates: Partial<WindowState>,
     ): Promise<void> {
         const current = this.stateCache[id] ?? {};
-        const updated = { ...current, ...bounds };
-        const newState = { ...this.stateCache, [id]: updated };
-        await this.write(newState);
-    }
-
-    async updateMaximizedState(
-        id: string,
-        isMaximized: boolean,
-    ): Promise<void> {
-        const current = this.stateCache[id] ?? {};
-        const updated = { ...current, isMaximized };
+        const updated = { ...current, ...updates };
         const newState = { ...this.stateCache, [id]: updated };
         await this.write(newState);
     }

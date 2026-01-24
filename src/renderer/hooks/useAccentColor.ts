@@ -10,19 +10,23 @@ export const useAccentColor = (): string => {
     const [accentColor, setAccentColor] = useState("#0078d4");
 
     useEffect(() => {
-        (async () => {
-            const initialColor = await electron.invoke("system:getAccentColor");
-            setAccentColor(`#${stripAlpha(initialColor)}`);
-        })();
+        let isMounted = true;
 
-        const handleAccentColorChange = (color: string) =>
-            setAccentColor(`#${stripAlpha(color)}`);
+        electron.invoke("system:getAccentColor").then((color) => {
+            if (isMounted) setAccentColor(`#${stripAlpha(color)}`);
+        });
 
         const cleanup = electron.send(
             "system:onAccentColorChanged",
-            handleAccentColorChange,
+            (color) => {
+                setAccentColor(`#${stripAlpha(color)}`);
+            },
         );
-        return cleanup;
+
+        return () => {
+            isMounted = false;
+            cleanup();
+        };
     }, []);
 
     return accentColor;

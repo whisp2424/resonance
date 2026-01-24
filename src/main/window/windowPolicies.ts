@@ -30,7 +30,9 @@ export const SETTINGS_WINDOW: () => [
 ] = () => [
     {
         ...BASE_OPTIONS,
+        maximizable: false,
         fullscreenable: false,
+        minWidth: 800,
     },
     { ...DEFAULT_CONTROLS },
 ];

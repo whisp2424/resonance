@@ -24,6 +24,7 @@ const TitleBarButton = memo(function TitleBarButton({
     return (
         <button
             tabIndex={-1}
+            onMouseDown={(e) => e.preventDefault()}
             className={clsx(
                 "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-black/10 hover:duration-0 dark:hover:bg-white/10",
                 className,
@@ -188,7 +189,7 @@ export default function TitleBar() {
     if (isFullscreen) return null;
 
     return (
-        <div className="drag flex h-8 w-full flex-row items-center justify-between gap-4 bg-linear-to-t transition duration-300 ease-out">
+        <div className="drag fixed z-50 flex h-(--spacing-titlebar-height) w-full flex-row items-center justify-between gap-4 bg-linear-to-t transition duration-300 ease-out">
             <div className="flex h-full flex-1 flex-row items-center justify-start">
                 {windowId === "main" && (
                     <Logo className="ml-4 w-34 opacity-30" />

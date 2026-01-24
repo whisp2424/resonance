@@ -164,11 +164,6 @@ class WindowManager {
             event.preventDefault(),
         );
 
-        window.webContents.on("did-fail-load", () => {
-            this.removeWindow(id);
-            throw new Error(`Failed to load route: ${route}`);
-        });
-
         window.webContents.setWindowOpenHandler((details) => {
             shell.openExternal(details.url);
             return { action: "deny" };
@@ -197,12 +192,16 @@ class WindowManager {
         }
     }
 
-    private updateBounds(id: string, window: BrowserWindow) {
+    private updateState(id: string, window: BrowserWindow) {
         if (this.debounceTimer) clearTimeout(this.debounceTimer);
         this.debounceTimer = setTimeout(async () => {
             this.debounceTimer = null;
-            const bounds = window.getBounds();
-            await windowStateManager.updateBoundsState(id, bounds);
+            const bounds = window.getNormalBounds();
+            const isMaximized = window.isMaximized();
+            await windowStateManager.updateState(id, {
+                isMaximized,
+                ...bounds,
+            });
         }, 500);
     }
 
@@ -217,58 +216,88 @@ class WindowManager {
 
         window.on("maximize", () => {
             this.emitter.send(window.webContents, "window:onMaximize");
-            windowStateManager.updateMaximizedState(id, true);
+            windowStateManager.updateState(id, { isMaximized: true });
         });
 
         window.on("unmaximize", () => {
             this.emitter.send(window.webContents, "window:onUnmaximize");
-            windowStateManager.updateMaximizedState(id, false);
+            windowStateManager.updateState(id, { isMaximized: false });
         });
 
-        window.on("move", () => this.updateBounds(id, window));
-        window.on("resize", () => this.updateBounds(id, window));
-
-        window.on("close", () => {
-            if (!window.isMaximized() && !window.isFullScreen()) {
-                const bounds = window.getBounds();
-                windowStateManager.updateBoundsState(id, {
-                    x: bounds.x,
-                    y: bounds.y,
-                    width: bounds.width,
-                    height: bounds.height,
-                });
-            }
-        });
+        window.on("move", () => this.updateState(id, window));
+        window.on("resize", () => this.updateState(id, window));
+        window.on("close", () => this.updateState(id, window));
     }
 
     private validateBounds(bounds: Partial<Rectangle>): Partial<Rectangle> {
-        const displays = screen.getAllDisplays();
-        if (displays.length === 0) return {};
-
         const { x, y, width, height } = bounds;
 
-        const isSizeValid =
+        if (
+            x === undefined ||
+            y === undefined ||
             width === undefined ||
-            height === undefined ||
-            (width > 0 && height > 0);
+            height === undefined
+        ) {
+            return bounds;
+        }
 
-        if (!isSizeValid) return {};
-        if (x === undefined || y === undefined) return bounds;
+        const displays = screen.getAllDisplays();
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
 
-        const DISPLAY_MARGIN = 100;
-        const isPositionVisible = displays.some(({ bounds: display }) => {
-            const withinHorizontalBounds =
-                x >= display.x - DISPLAY_MARGIN &&
-                x <= display.x + display.width;
-
-            const withinVerticalBounds =
-                y >= display.y - DISPLAY_MARGIN &&
-                y <= display.y + display.height;
-
-            return withinHorizontalBounds && withinVerticalBounds;
+        const targetDisplay = screen.getDisplayNearestPoint({
+            x: centerX,
+            y: centerY,
         });
 
-        return isPositionVisible ? bounds : {};
+        let isVisible = false;
+        for (const display of displays) {
+            const { x: dx, y: dy, width: dw, height: dh } = display.workArea;
+
+            const intersects =
+                x < dx + dw && x + width > dx && y < dy + dh && y + height > dy;
+
+            if (intersects) {
+                isVisible = true;
+                break;
+            }
+        }
+
+        if (!isVisible) {
+            const workArea = targetDisplay.workArea;
+            return {
+                x: workArea.x + Math.floor((workArea.width - width) / 2),
+                y: workArea.y + Math.floor((workArea.height - height) / 2),
+                width,
+                height,
+            };
+        }
+
+        const workArea = targetDisplay.workArea;
+        const minVisibleWidth = Math.min(100, width);
+        const minVisibleHeight = Math.min(50, height);
+
+        let adjustedX = x;
+        let adjustedY = y;
+
+        if (x + width < workArea.x + minVisibleWidth) {
+            adjustedX = workArea.x + minVisibleWidth - width;
+        } else if (x > workArea.x + workArea.width - minVisibleWidth) {
+            adjustedX = workArea.x + workArea.width - minVisibleWidth;
+        }
+
+        if (y + height < workArea.y + minVisibleHeight) {
+            adjustedY = workArea.y + minVisibleHeight - height;
+        } else if (y > workArea.y + workArea.height - minVisibleHeight) {
+            adjustedY = workArea.y + workArea.height - minVisibleHeight;
+        }
+
+        return {
+            x: adjustedX,
+            y: adjustedY,
+            width,
+            height,
+        };
     }
 
     applyWindowState(id: string, window: BrowserWindow): void {

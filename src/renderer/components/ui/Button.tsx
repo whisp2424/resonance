@@ -42,8 +42,8 @@ export default function Button({
 }: ButtonProps) {
     className = twMerge(
         clsx(
+            "rounded-md border border-neutral-300 bg-neutral-200 px-4 py-1 text-sm transition duration-300 hover:bg-neutral-300 active:border-neutral-200 active:bg-neutral-200 active:text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:active:border-neutral-900 dark:active:bg-neutral-900 dark:active:text-neutral-400",
             className,
-            "rounded-md border-[1.5px] bg-linear-to-b from-transparent to-transparent px-3 py-1 text-sm transition duration-200 outline-none not-dark:border-neutral-400 not-dark:bg-neutral-100 not-dark:to-neutral-200 not-dark:hover:to-(--accent-color)/20 focus-visible:ring not-dark:active:from-black/2 not-dark:active:to-(--accent-color)/25 dark:border-neutral-800 dark:bg-neutral-900 dark:from-white/4 dark:hover:not-active:border-neutral-700 dark:active:from-transparent",
         ),
     );
     if ("as" in rest) {
