@@ -7,7 +7,8 @@ import { defineConfig } from "electron-vite";
 import icons from "unplugin-icons/vite";
 import svgr from "vite-plugin-svgr";
 
-import product from "./build/product.json" with { type: "json" };
+import productJson from "./build/product.json" with { type: "json" };
+import packageJson from "./package.json" with { type: "json" };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,7 +33,10 @@ export default defineConfig({
     },
     renderer: {
         build: { outDir: "dist/renderer" },
-        define: { APP_NAME: JSON.stringify(product.name.short) },
+        define: {
+            APP_VERSION: JSON.stringify(packageJson.version),
+            APP_NAME: JSON.stringify(productJson.name.short),
+        },
         plugins: [
             react(),
             tailwindcss(),

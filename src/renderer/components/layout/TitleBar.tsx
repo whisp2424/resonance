@@ -25,9 +25,14 @@ const TitleBarButton = memo(function TitleBarButton({
         <button
             tabIndex={-1}
             onMouseDown={(e) => e.preventDefault()}
-            className={clsx(
-                "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-black/10 hover:duration-0 dark:hover:bg-white/10",
-                className,
+            className={twMerge(
+                clsx(
+                    "no-drag flex h-full w-12 items-center justify-center",
+                    "transition duration-250",
+                    "hover:bg-black/10 hover:duration-0",
+                    "dark:hover:bg-white/10",
+                    className,
+                ),
             )}
             onClick={onClick}>
             <Icon className="size-4 scale-105" />
@@ -133,7 +138,7 @@ export default function TitleBar() {
         let mounted = true;
 
         (async () => {
-            const id = await electron.getWindowId();
+            const id = await electron.invoke("window:getId");
             if (mounted) setWindowId(id);
         })();
 
@@ -198,7 +203,8 @@ export default function TitleBar() {
             <div
                 className={twMerge(
                     clsx(
-                        "flex h-full flex-1 flex-row items-center justify-end",
+                        "flex flex-1 flex-row",
+                        "h-full items-center justify-end",
                         !isWindowFocused && "text-black/50 dark:text-white/50",
                     ),
                 )}>

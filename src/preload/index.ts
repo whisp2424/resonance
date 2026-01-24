@@ -1,4 +1,3 @@
-import type { Settings, SettingsKey } from "@shared/schema/settings";
 import type {
     MainIpcHandleEvents,
     MainIpcListenEvents,
@@ -29,38 +28,7 @@ const send = <K extends keyof MainIpcListenEvents>(
     };
 };
 
-const getWindowId = (): Promise<string | null> => {
-    return ipcRenderer.invoke("window:getId") as Promise<string | null>;
-};
-
-const settings = {
-    get: (): Promise<Settings> => {
-        return invoke("settings:get");
-    },
-
-    set: (settings: Partial<Settings>): Promise<void> => {
-        return invoke("settings:set", settings);
-    },
-
-    onChanged: (
-        listener: (settings: Settings, key?: SettingsKey) => void,
-        key?: SettingsKey,
-    ): (() => void) => {
-        return send("settings:onChanged", (settings, changedKey) => {
-            if (key === undefined || key === changedKey) {
-                listener(settings, changedKey);
-            }
-        });
-    },
-
-    onError: (listener: (message: string) => void): (() => void) => {
-        return send("settings:onError", listener);
-    },
-};
-
 contextBridge.exposeInMainWorld("electron", {
     invoke,
     send,
-    getWindowId,
-    settings,
 });

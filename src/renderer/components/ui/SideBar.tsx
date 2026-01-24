@@ -29,10 +29,12 @@ function SideBarButton({ item, isActive, onClick }: SideBarButtonProps) {
             onClick={onClick}
             className={twMerge(
                 clsx(
-                    "flex items-center gap-2 rounded-md px-3 py-1 text-sm",
+                    "flex items-center gap-2",
+                    "rounded-md px-3 py-1 text-sm",
                     isActive
                         ? "bg-black/10 dark:bg-white/10"
-                        : "text-neutral-500 hover:bg-black/2 dark:text-neutral-400 dark:hover:bg-white/2",
+                        : "text-neutral-500 hover:bg-black/2 " +
+                              "dark:text-neutral-400 dark:hover:bg-white/2",
                 ),
             )}>
             {Icon && <Icon className="size-4" />}
@@ -51,7 +53,8 @@ export default function SideBar({
         <div
             className={twMerge(
                 clsx(
-                    "no-drag flex h-full w-64 flex-col gap-1.5 p-2",
+                    "no-drag flex flex-col gap-1.5",
+                    "h-full w-64 p-2",
                     className,
                 ),
             )}>

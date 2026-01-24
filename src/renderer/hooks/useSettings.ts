@@ -6,14 +6,16 @@ export function useSettings() {
     const [settings, setSettings] = useState<Settings | null>(null);
 
     useEffect(() => {
-        window.electron.settings.get().then(setSettings);
+        window.electron.invoke("settings:get").then(setSettings);
 
-        const unsubscribeOnChanged = window.electron.settings.onChanged(
+        const unsubscribeOnChanged = window.electron.send(
+            "settings:onChanged",
             (newSettings) => setSettings(newSettings),
         );
 
-        const unsubscribeOnError = window.electron.settings.onError((message) =>
-            console.error("Settings error:", message),
+        const unsubscribeOnError = window.electron.send(
+            "settings:onError",
+            (message) => console.error("Settings error:", message),
         );
 
         return () => {
@@ -23,7 +25,7 @@ export function useSettings() {
     }, []);
 
     const updateSettings = useCallback(async (partial: Partial<Settings>) => {
-        await window.electron.settings.set(partial);
+        await window.electron.invoke("settings:set", partial);
     }, []);
 
     return [settings, updateSettings] as const;
