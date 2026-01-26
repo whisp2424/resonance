@@ -11,8 +11,8 @@ import { twMerge } from "tailwind-merge";
 
 type BaseProps = {
     icon?: IconElement;
-    children?: ReactNode;
     className?: string;
+    children: ReactNode;
 };
 
 type ButtonAsButton = BaseProps &
@@ -42,16 +42,7 @@ export default function Button({
 }: ButtonProps) {
     className = twMerge(
         clsx(
-            "flex flex-row items-center gap-2 px-4 py-2",
-            "rounded-xl border text-sm",
-            "transition duration-300 active:duration-200 active:ease-out",
-            "border-neutral-300 bg-linear-to-b from-transparent to-black/5",
-            "hover:from-black/5 hover:to-black/10",
-            "active:from-black/10 active:to-black/10",
-            "dark:border-neutral-800 dark:from-white/5 dark:to-transparent",
-            "dark:hover:from-white/10 dark:hover:to-white/5",
-            "dark:active:from-white/10 dark:active:to-white/10",
-            "active:shadow-inner",
+            "flex flex-row items-center gap-2 rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-1 text-sm transition duration-300 hover:border-neutral-400 hover:bg-neutral-200 active:border-neutral-400 active:bg-neutral-300 active:shadow-inner active:duration-200 active:ease-out dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700 dark:hover:bg-neutral-800 dark:active:border-neutral-700 dark:active:bg-neutral-900",
             className,
         ),
     );

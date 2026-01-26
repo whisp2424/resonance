@@ -27,10 +27,7 @@ const TitleBarButton = memo(function TitleBarButton({
             onMouseDown={(e) => e.preventDefault()}
             className={twMerge(
                 clsx(
-                    "no-drag flex h-full w-12 items-center justify-center",
-                    "transition duration-250",
-                    "hover:bg-black/10 hover:duration-0",
-                    "dark:hover:bg-white/10",
+                    "no-drag flex h-full w-12 items-center justify-center transition duration-250 hover:bg-black/10 hover:duration-0 dark:hover:bg-white/10",
                     className,
                 ),
             )}
@@ -203,8 +200,7 @@ export default function TitleBar() {
             <div
                 className={twMerge(
                     clsx(
-                        "flex flex-1 flex-row",
-                        "h-full items-center justify-end",
+                        "flex h-full flex-1 flex-row items-center justify-end",
                         !isWindowFocused && "text-black/50 dark:text-white/50",
                     ),
                 )}>
