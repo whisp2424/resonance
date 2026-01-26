@@ -1,14 +1,14 @@
 import type { Route, WindowRoute } from "@shared/constants/routes";
 import type { MainIpcListenEvents, TitleBarControls } from "@shared/types/ipc";
-import type { Rectangle } from "electron";
 
 import { join } from "node:path";
 
 import { IpcEmitter } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
+import { validateBounds } from "@main/window/validateBounds";
 import { DEFAULT_CONTROLS, WINDOW_POLICIES } from "@main/window/windowPolicies";
 import { windowStateManager } from "@main/windowState";
-import { BrowserWindow, screen, shell } from "electron";
+import { BrowserWindow, shell } from "electron";
 
 export type { WebContents } from "electron";
 
@@ -154,7 +154,7 @@ class WindowManager {
         const windowState = windowStateManager.getState(id);
 
         const validatedBounds = windowState
-            ? this.validateBounds({
+            ? validateBounds({
                   x: windowState.x,
                   y: windowState.y,
                   width: windowState.width,
@@ -167,16 +167,7 @@ class WindowManager {
             ...validatedBounds,
         });
 
-        window.on("ready-to-show", () => {
-            window.show();
-            if (windowState?.isMaximized) window.maximize();
-        });
-
-        window.webContents.on("will-navigate", (event) =>
-            event.preventDefault(),
-        );
-
-        window.on("closed", () => this.removeWindow(id));
+        this.addWindow(id, window, route, controls);
         window.webContents.setWindowOpenHandler((details) => {
             shell.openExternal(details.url);
             return { action: "deny" };
@@ -191,7 +182,6 @@ class WindowManager {
             });
         }
 
-        this.addWindow(id, window, route, controls);
         return id;
     }
 
@@ -205,78 +195,7 @@ class WindowManager {
         }
     }
 
-    validateBounds(bounds: Partial<Rectangle>): Partial<Rectangle> {
-        const { x, y, width, height } = bounds;
-
-        if (
-            x === undefined ||
-            y === undefined ||
-            width === undefined ||
-            height === undefined
-        ) {
-            return bounds;
-        }
-
-        const displays = screen.getAllDisplays();
-        const centerX = x + width / 2;
-        const centerY = y + height / 2;
-
-        const targetDisplay = screen.getDisplayNearestPoint({
-            x: centerX,
-            y: centerY,
-        });
-
-        let isVisible = false;
-        for (const display of displays) {
-            const { x: dx, y: dy, width: dw, height: dh } = display.workArea;
-
-            const intersects =
-                x < dx + dw && x + width > dx && y < dy + dh && y + height > dy;
-
-            if (intersects) {
-                isVisible = true;
-                break;
-            }
-        }
-
-        if (!isVisible) {
-            const workArea = targetDisplay.workArea;
-            return {
-                x: workArea.x + Math.floor((workArea.width - width) / 2),
-                y: workArea.y + Math.floor((workArea.height - height) / 2),
-                width,
-                height,
-            };
-        }
-
-        const workArea = targetDisplay.workArea;
-        const minVisibleWidth = Math.min(100, width);
-        const minVisibleHeight = Math.min(50, height);
-
-        let adjustedX = x;
-        let adjustedY = y;
-
-        if (x + width < workArea.x + minVisibleWidth) {
-            adjustedX = workArea.x + minVisibleWidth - width;
-        } else if (x > workArea.x + workArea.width - minVisibleWidth) {
-            adjustedX = workArea.x + workArea.width - minVisibleWidth;
-        }
-
-        if (y + height < workArea.y + minVisibleHeight) {
-            adjustedY = workArea.y + minVisibleHeight - height;
-        } else if (y > workArea.y + workArea.height - minVisibleHeight) {
-            adjustedY = workArea.y + workArea.height - minVisibleHeight;
-        }
-
-        return {
-            x: adjustedX,
-            y: adjustedY,
-            width,
-            height,
-        };
-    }
-
-    private updateState(id: string, window: BrowserWindow) {
+    private debounceUpdateState(id: string, window: BrowserWindow) {
         if (this.debounceTimer) clearTimeout(this.debounceTimer);
         this.debounceTimer = setTimeout(async () => {
             this.debounceTimer = null;
@@ -290,13 +209,15 @@ class WindowManager {
     }
 
     private registerWindowEvents(id: string, window: BrowserWindow): void {
-        window.on("enter-full-screen", () => {
-            this.emitter.send(window.webContents, "window:onEnterFullscreen");
+        const windowState = windowStateManager.getState(id);
+
+        window.on("ready-to-show", () => {
+            window.show();
+            if (windowState?.isMaximized) window.maximize();
         });
 
-        window.on("leave-full-screen", () => {
-            this.emitter.send(window.webContents, "window:onLeaveFullscreen");
-        });
+        window.on("move", () => this.debounceUpdateState(id, window));
+        window.on("resize", () => this.debounceUpdateState(id, window));
 
         window.on("maximize", () => {
             this.emitter.send(window.webContents, "window:onMaximize");
@@ -308,6 +229,14 @@ class WindowManager {
             windowStateManager.updateState(id, { isMaximized: false });
         });
 
+        window.on("enter-full-screen", () => {
+            this.emitter.send(window.webContents, "window:onEnterFullscreen");
+        });
+
+        window.on("leave-full-screen", () => {
+            this.emitter.send(window.webContents, "window:onLeaveFullscreen");
+        });
+
         window.on("close", () => {
             windowStateManager.updateState(id, {
                 ...window.getNormalBounds(),
@@ -315,8 +244,11 @@ class WindowManager {
             });
         });
 
-        window.on("move", () => this.updateState(id, window));
-        window.on("resize", () => this.updateState(id, window));
+        window.on("closed", () => this.removeWindow(id));
+
+        window.webContents.on("will-navigate", (event) =>
+            event.preventDefault(),
+        );
     }
 }
 

@@ -9,6 +9,7 @@ import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
 import { initializeSettings, settingsManager } from "@main/settings";
+import { validateBounds } from "@main/window/validateBounds";
 import { windowManager } from "@main/window/windowManager";
 import { BASE_OPTIONS } from "@main/window/windowPolicies";
 import { windowStateManager } from "@main/windowState";
@@ -73,7 +74,7 @@ const createMainWindow = (): BrowserWindow => {
     const windowState = windowStateManager.getState("main");
 
     const validatedBounds = windowState
-        ? windowManager.validateBounds({
+        ? validateBounds({
               x: windowState.x,
               y: windowState.y,
               width: windowState.width ?? 1200,
