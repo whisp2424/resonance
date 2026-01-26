@@ -151,19 +151,32 @@ class WindowManager {
         if (!policy) throw new Error(`Invalid route: ${route}`);
 
         const [options, controls] = policy();
-        const window = new BrowserWindow(options);
+        const windowState = windowStateManager.getState(id);
+
+        const validatedBounds = windowState
+            ? this.validateBounds({
+                  x: windowState.x,
+                  y: windowState.y,
+                  width: windowState.width,
+                  height: windowState.height,
+              })
+            : undefined;
+
+        const window = new BrowserWindow({
+            ...options,
+            ...validatedBounds,
+        });
 
         window.on("ready-to-show", () => {
             window.show();
-            this.applyWindowState(id, window);
+            if (windowState?.isMaximized) window.maximize();
         });
-
-        window.on("closed", () => this.removeWindow(id));
 
         window.webContents.on("will-navigate", (event) =>
             event.preventDefault(),
         );
 
+        window.on("closed", () => this.removeWindow(id));
         window.webContents.setWindowOpenHandler((details) => {
             shell.openExternal(details.url);
             return { action: "deny" };
@@ -192,44 +205,7 @@ class WindowManager {
         }
     }
 
-    private updateState(id: string, window: BrowserWindow) {
-        if (this.debounceTimer) clearTimeout(this.debounceTimer);
-        this.debounceTimer = setTimeout(async () => {
-            this.debounceTimer = null;
-            const bounds = window.getNormalBounds();
-            const isMaximized = window.isMaximized();
-            await windowStateManager.updateState(id, {
-                isMaximized,
-                ...bounds,
-            });
-        }, 500);
-    }
-
-    private registerWindowEvents(id: string, window: BrowserWindow): void {
-        window.on("enter-full-screen", () => {
-            this.emitter.send(window.webContents, "window:onEnterFullscreen");
-        });
-
-        window.on("leave-full-screen", () => {
-            this.emitter.send(window.webContents, "window:onLeaveFullscreen");
-        });
-
-        window.on("maximize", () => {
-            this.emitter.send(window.webContents, "window:onMaximize");
-            windowStateManager.updateState(id, { isMaximized: true });
-        });
-
-        window.on("unmaximize", () => {
-            this.emitter.send(window.webContents, "window:onUnmaximize");
-            windowStateManager.updateState(id, { isMaximized: false });
-        });
-
-        window.on("move", () => this.updateState(id, window));
-        window.on("resize", () => this.updateState(id, window));
-        window.on("close", () => this.updateState(id, window));
-    }
-
-    private validateBounds(bounds: Partial<Rectangle>): Partial<Rectangle> {
+    validateBounds(bounds: Partial<Rectangle>): Partial<Rectangle> {
         const { x, y, width, height } = bounds;
 
         if (
@@ -300,23 +276,47 @@ class WindowManager {
         };
     }
 
-    applyWindowState(id: string, window: BrowserWindow): void {
-        const savedState = windowStateManager.getState(id);
-        if (!savedState) return;
+    private updateState(id: string, window: BrowserWindow) {
+        if (this.debounceTimer) clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(async () => {
+            this.debounceTimer = null;
+            const bounds = window.getNormalBounds();
+            const isMaximized = window.isMaximized();
+            await windowStateManager.updateState(id, {
+                isMaximized,
+                ...bounds,
+            });
+        }, 500);
+    }
 
-        if (savedState.isMaximized) {
-            window.maximize();
-            return;
-        }
-
-        const bounds = this.validateBounds({
-            x: savedState.x,
-            y: savedState.y,
-            width: savedState.width,
-            height: savedState.height,
+    private registerWindowEvents(id: string, window: BrowserWindow): void {
+        window.on("enter-full-screen", () => {
+            this.emitter.send(window.webContents, "window:onEnterFullscreen");
         });
 
-        window.setBounds({ ...bounds });
+        window.on("leave-full-screen", () => {
+            this.emitter.send(window.webContents, "window:onLeaveFullscreen");
+        });
+
+        window.on("maximize", () => {
+            this.emitter.send(window.webContents, "window:onMaximize");
+            windowStateManager.updateState(id, { isMaximized: true });
+        });
+
+        window.on("unmaximize", () => {
+            this.emitter.send(window.webContents, "window:onUnmaximize");
+            windowStateManager.updateState(id, { isMaximized: false });
+        });
+
+        window.on("close", () => {
+            windowStateManager.updateState(id, {
+                ...window.getNormalBounds(),
+                isMaximized: window.isMaximized(),
+            });
+        });
+
+        window.on("move", () => this.updateState(id, window));
+        window.on("resize", () => this.updateState(id, window));
     }
 }
 

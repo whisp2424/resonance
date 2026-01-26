@@ -70,15 +70,25 @@ const createTray = (trayIcon?: Settings["appearance"]["trayIcon"]): void => {
 };
 
 const createMainWindow = (): BrowserWindow => {
+    const windowState = windowStateManager.getState("main");
+
+    const validatedBounds = windowState
+        ? windowManager.validateBounds({
+              x: windowState.x,
+              y: windowState.y,
+              width: windowState.width ?? 1200,
+              height: windowState.height ?? 700,
+          })
+        : { width: 1200, height: 700 };
+
     const mainWindow = new BrowserWindow({
         ...BASE_OPTIONS,
-        width: 1200,
-        height: 700,
+        ...validatedBounds,
     });
 
     mainWindow.on("ready-to-show", () => {
         mainWindow.show();
-        windowManager.applyWindowState("main", mainWindow);
+        if (windowState?.isMaximized) mainWindow.maximize();
         createTray();
     });
 
