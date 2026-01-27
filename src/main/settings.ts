@@ -1,4 +1,6 @@
 import type { Settings } from "@shared/schema/settings";
+import type { SettingsPath } from "@shared/types/ipc";
+import type { DeepPartial, PathValue } from "@shared/types/utils";
 import type { FSWatcher } from "chokidar";
 
 import { readFile } from "node:fs/promises";
@@ -6,6 +8,7 @@ import { join } from "node:path";
 
 import { windowManager } from "@main/window/windowManager";
 import { DEFAULT_SETTINGS, settingsSchema } from "@shared/schema/settings";
+import { deepMerge, setDeep } from "@shared/utils/object";
 import { type } from "arktype";
 import { watch } from "chokidar";
 import { app, dialog, shell } from "electron";
@@ -103,11 +106,31 @@ class SettingsManager {
         return changedKey;
     }
 
-    async update(partial: Partial<Settings>): Promise<SettingsKey | undefined> {
-        const result = settingsSchema({
-            ...this.get(),
-            ...partial,
-        });
+    async update(
+        partial: DeepPartial<Settings>,
+    ): Promise<SettingsKey | undefined> {
+        const result = settingsSchema(
+            deepMerge(
+                this.get() as unknown as Record<string, unknown>,
+                partial as unknown as Record<string, unknown>,
+            ),
+        );
+
+        if (result instanceof type.errors) throw new Error(result.summary);
+        return await this.write(result);
+    }
+
+    async setPath<P extends SettingsPath>(
+        path: P,
+        value: PathValue<Settings, P>,
+    ): Promise<SettingsKey | undefined> {
+        const result = settingsSchema(
+            setDeep(
+                this.get() as unknown as Record<string, unknown>,
+                path,
+                value,
+            ),
+        );
 
         if (result instanceof type.errors) throw new Error(result.summary);
         return await this.write(result);

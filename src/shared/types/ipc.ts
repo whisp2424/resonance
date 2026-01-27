@@ -1,7 +1,9 @@
 import type { WindowRoute } from "@shared/constants/routes";
 import type { Settings } from "@shared/schema/settings";
+import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
 export type SettingsKey = keyof Settings;
+export type SettingsPath = PathInto<Settings>;
 
 export type TitleBarControls = {
     minimize?: boolean;
@@ -23,7 +25,11 @@ export type MainIpcHandleEvents = {
     "window:getControls": (id: string) => TitleBarControls;
     "system:getAccentColor": () => string;
     "settings:get": () => Settings;
-    "settings:set": (settings: Partial<Settings>) => void;
+    "settings:set": (settings: DeepPartial<Settings>) => void;
+    "settings:setPath": <P extends SettingsPath>(
+        path: P,
+        value: PathValue<Settings, P>,
+    ) => void;
 };
 
 export type MainIpcListenEvents = {

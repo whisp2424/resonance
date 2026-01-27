@@ -14,5 +14,9 @@ export const registerSettingsHandlers = () => {
         await settingsManager.update(partial);
     });
 
+    ipc.handle("settings:setPath", async (_event, path, value) => {
+        await settingsManager.setPath(path, value);
+    });
+
     return () => ipc.dispose();
 };
