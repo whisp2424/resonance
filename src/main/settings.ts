@@ -198,7 +198,7 @@ class SettingsManager {
         try {
             await writeFile(
                 SETTINGS_FILE,
-                JSON.stringify(DEFAULT_SETTINGS, null, 4),
+                JSON.stringify(DEFAULT_SETTINGS, null, 2),
                 { encoding: "utf-8" },
             );
             this.settingsCache = DEFAULT_SETTINGS;

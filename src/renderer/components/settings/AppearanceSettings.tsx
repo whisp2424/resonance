@@ -1,3 +1,4 @@
+import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import {
     Select,
     SelectContent,
@@ -6,8 +7,6 @@ import {
     SelectValue,
 } from "@renderer/components/ui/Select";
 import { useSetting } from "@renderer/hooks/useSetting";
-
-import { SettingsCategory } from "./SettingsCategory";
 
 export function AppearanceSettings() {
     const themeSelectItems = [
@@ -37,7 +36,7 @@ export function AppearanceSettings() {
                 {appTheme !== undefined && (
                     <Select
                         items={themeSelectItems}
-                        defaultValue={appTheme}
+                        value={appTheme}
                         onValueChange={(newValue) => {
                             if (newValue) setAppTheme(newValue);
                         }}>
@@ -65,7 +64,7 @@ export function AppearanceSettings() {
                 {trayIcon !== undefined && (
                     <Select
                         items={trayIconSelectItems}
-                        defaultValue={trayIcon}
+                        value={trayIcon}
                         onValueChange={(newValue) => {
                             if (newValue) setTrayIcon(newValue);
                         }}>

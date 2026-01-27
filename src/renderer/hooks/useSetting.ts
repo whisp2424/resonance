@@ -2,10 +2,9 @@ import type { Settings } from "@shared/schema/settings";
 import type { SettingsPath } from "@shared/types/ipc";
 import type { PathValue } from "@shared/types/utils";
 
+import { useSettings } from "@renderer/hooks/useSettings";
 import { getDeep } from "@shared/utils/object";
 import { useCallback } from "react";
-
-import { useSettings } from "./useSettings";
 
 export function useSetting<P extends SettingsPath>(path: P) {
     const [settings, , setSetting] = useSettings();
