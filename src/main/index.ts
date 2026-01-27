@@ -66,6 +66,7 @@ const createTray = (trayIcon?: Settings["appearance"]["trayIcon"]): void => {
     });
 
     nativeTheme.on("updated", () => {
+        const trayIcon = settingsManager.get().appearance.trayIcon;
         tray?.setImage(getTrayIcon(trayIcon));
     });
 };
@@ -90,7 +91,7 @@ const createMainWindow = (): BrowserWindow => {
     mainWindow.on("ready-to-show", () => {
         mainWindow.show();
         if (windowState?.isMaximized) mainWindow.maximize();
-        createTray();
+        createTray(settingsManager.get().appearance.trayIcon);
     });
 
     mainWindow.on("close", (event) => {

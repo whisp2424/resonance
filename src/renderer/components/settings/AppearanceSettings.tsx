@@ -16,7 +16,14 @@ export function AppearanceSettings() {
         { label: "Dark", value: "dark" },
     ] as const;
 
+    const trayIconSelectItems = [
+        { label: "Auto", value: "auto" },
+        { label: "White", value: "white" },
+        { label: "Dark", value: "dark" },
+    ] as const;
+
     const [appTheme, setAppTheme] = useSetting("appearance.appTheme");
+    const [trayIcon, setTrayIcon] = useSetting("appearance.trayIcon");
 
     return (
         <SettingsCategory title="Appearance">
@@ -39,6 +46,34 @@ export function AppearanceSettings() {
                         </SelectTrigger>
                         <SelectContent alignItemWithTrigger={false}>
                             {themeSelectItems.map((item) => (
+                                <SelectItem key={item.value} value={item.value}>
+                                    {item.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            </div>
+
+            <div className="flex flex-row items-center justify-between gap-8">
+                <div>
+                    <h2>Tray icon color</h2>
+                    <p className="text-sm opacity-50">
+                        Choose the color of the tray icon
+                    </p>
+                </div>
+                {trayIcon !== undefined && (
+                    <Select
+                        items={trayIconSelectItems}
+                        defaultValue={trayIcon}
+                        onValueChange={(newValue) => {
+                            if (newValue) setTrayIcon(newValue);
+                        }}>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent alignItemWithTrigger={false}>
+                            {trayIconSelectItems.map((item) => (
                                 <SelectItem key={item.value} value={item.value}>
                                     {item.label}
                                 </SelectItem>
