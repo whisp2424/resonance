@@ -94,3 +94,10 @@
 @utility no-drag {
     -webkit-app-region: no-drag;
 }
+
+@utility theme-transition {
+    &,
+    & * {
+        transition: none !important;
+    }
+}

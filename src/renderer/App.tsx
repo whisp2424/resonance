@@ -12,6 +12,20 @@ export default function App() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+        const handleThemeChange = () => {
+            document.documentElement.classList.add("theme-transition");
+            document.documentElement.classList.remove("theme-transition");
+        };
+
+        mediaQuery.addEventListener("change", handleThemeChange);
+
+        return () =>
+            mediaQuery.removeEventListener("change", handleThemeChange);
+    }, []);
+
+    useEffect(() => {
         const root = document.documentElement;
         root.style.setProperty("--color-accent", accentColor);
 
