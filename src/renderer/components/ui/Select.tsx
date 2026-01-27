@@ -6,6 +6,7 @@ import { twMerge } from "tailwind-merge";
 import IconCheck from "~icons/lucide/check";
 import IconChevronDown from "~icons/lucide/chevron-down";
 import IconChevronUp from "~icons/lucide/chevron-up";
+import IconChevronUpDown from "~icons/lucide/chevrons-up-down";
 
 const Select = BaseSelect.Root;
 
@@ -56,14 +57,14 @@ function SelectTrigger({
             data-slot="select-trigger"
             data-size={size}
             className={twMerge(
-                "flex w-fit flex-row items-center justify-between gap-2 rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-1 text-sm whitespace-nowrap transition duration-300 outline-none hover:border-neutral-400 hover:bg-neutral-200 active:border-neutral-400 active:bg-neutral-300 active:shadow-inner active:duration-200 active:ease-out disabled:cursor-not-allowed disabled:opacity-50 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700 dark:hover:bg-neutral-800 dark:active:border-neutral-700 dark:active:bg-neutral-900 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+                "flex w-fit flex-row items-center justify-between gap-2 rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-1 text-sm whitespace-nowrap transition duration-300 outline-none hover:border-neutral-400 hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-50 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700 dark:hover:bg-neutral-800 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
                 className,
             )}
             {...props}>
             {children}
             <BaseSelect.Icon
                 render={
-                    <IconChevronDown className="pointer-events-none size-4 text-black/40 dark:text-white/40" />
+                    <IconChevronUpDown className="pointer-events-none size-4 text-black/40 dark:text-white/40" />
                 }
             />
         </BaseSelect.Trigger>

@@ -95,9 +95,8 @@
     -webkit-app-region: no-drag;
 }
 
-@utility theme-transition {
-    &,
-    & * {
+.theme-transition {
+    * {
         transition: none !important;
     }
 }

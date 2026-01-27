@@ -13,16 +13,24 @@ export default function App() {
 
     useEffect(() => {
         const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        let timeoutId: number | null = null;
 
         const handleThemeChange = () => {
-            document.documentElement.classList.add("theme-transition");
-            document.documentElement.classList.remove("theme-transition");
+            const root = document.documentElement;
+            root.classList.add("theme-transition");
+            if (timeoutId !== null) clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(() => {
+                root.classList.remove("theme-transition");
+                timeoutId = null;
+            }, 100);
         };
 
         mediaQuery.addEventListener("change", handleThemeChange);
 
-        return () =>
+        return () => {
             mediaQuery.removeEventListener("change", handleThemeChange);
+            if (timeoutId !== null) clearTimeout(timeoutId);
+        };
     }, []);
 
     useEffect(() => {
