@@ -4,7 +4,7 @@ import type { ComponentType } from "react";
 import { AboutSettings } from "@renderer/components/settings/AboutSettings";
 import { AppearanceSettings } from "@renderer/components/settings/AppearanceSettings";
 import SideBar from "@renderer/components/ui/SideBar";
-import { useState } from "react";
+import { useSetting } from "@renderer/hooks/useSetting";
 
 import IconAppearance from "~icons/lucide/brush";
 import IconInfo from "~icons/lucide/info";
@@ -20,7 +20,9 @@ const SIDEBAR_CATEGORIES: SideBarItem[] = [
 ];
 
 export default function SettingsView() {
-    const [activeCategory, setActiveCategory] = useState("about");
+    const [activeCategory = "about", setActiveCategory] =
+        useSetting("lastCategory");
+
     const ActiveComponent = CATEGORY_COMPONENTS[activeCategory];
 
     return (
@@ -28,7 +30,7 @@ export default function SettingsView() {
             <SideBar
                 items={SIDEBAR_CATEGORIES}
                 activeItemId={activeCategory}
-                onActiveItemChange={setActiveCategory}
+                onActiveItemChange={(id) => setActiveCategory(id)}
                 className="z-60 border-r border-neutral-300 bg-black/4 bg-linear-to-b p-4 dark:border-neutral-800 dark:bg-white/2"
             />
             {ActiveComponent && <ActiveComponent />}

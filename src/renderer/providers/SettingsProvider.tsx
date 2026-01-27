@@ -38,6 +38,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         [settings, updateSettings, setSetting],
     );
 
+    if (!settings) return null;
+
     return (
         <SettingsContext.Provider value={value}>
             {children}
