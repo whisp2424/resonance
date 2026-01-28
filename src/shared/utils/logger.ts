@@ -8,6 +8,7 @@ export const log = (
     severity: LogSeverity = "info",
 ): void => {
     const isRenderer = typeof window !== "undefined";
+    const processName = isRenderer ? "renderer" : "main";
 
     if (isRenderer) {
         const msg =
@@ -37,7 +38,7 @@ export const log = (
         message instanceof Error ? message.stack || message.message : message;
 
     console.log(
-        `${pc.dim(timestamp)} ` +
+        `${pc.dim(`[${processName}] ${timestamp}`)} ` +
             `${color(`${category.toLowerCase()}(${severity})`)} ` +
             `${pc.dim("~")} ${msg}`,
     );

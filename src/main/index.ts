@@ -14,6 +14,7 @@ import { validateBounds } from "@main/window/validateBounds";
 import { windowManager } from "@main/window/windowManager";
 import { BASE_OPTIONS } from "@main/window/windowPolicies";
 import { windowStateManager } from "@main/windowState";
+import { log } from "@shared/utils/logger";
 import {
     BrowserWindow,
     Menu,
@@ -156,6 +157,7 @@ app.whenReady().then(async () => {
     const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
 
     app.on("will-quit", async () => {
+        log("goodbye!", "main");
         unsubscribeAppearanceSettings();
         cleanupSettingsHandlers();
         cleanupSystemHandlers();
