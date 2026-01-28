@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { is } from "@electron-toolkit/utils";
 import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconWhite from "@main/../../build/tray-white.png?asset";
+import { registerAppHandlers } from "@main/ipc/app";
 import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
@@ -150,6 +151,7 @@ app.whenReady().then(async () => {
     );
 
     registerWindowHandlers();
+    registerAppHandlers();
     const cleanupSettingsHandlers = registerSettingsHandlers();
     const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
 

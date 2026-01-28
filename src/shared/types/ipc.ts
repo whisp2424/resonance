@@ -30,6 +30,11 @@ export type MainIpcHandleEvents = {
         path: P,
         value: PathValue<Settings, P>,
     ) => void;
+    "app:log": (
+        message: string,
+        category: string,
+        severity: "info" | "warning" | "error",
+    ) => void;
 };
 
 export type MainIpcListenEvents = {
