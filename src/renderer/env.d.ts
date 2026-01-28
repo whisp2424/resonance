@@ -19,7 +19,6 @@ type ElectronSend = <K extends keyof MainIpcListenEvents>(
 declare global {
     const APP_NAME: string;
     const APP_VERSION: string;
-
     const electron: {
         invoke: ElectronInvoke;
         send: ElectronSend;
