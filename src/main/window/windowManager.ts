@@ -19,10 +19,11 @@ interface WindowProperties {
 }
 
 class WindowManager {
-    emitter = new IpcEmitter<MainIpcListenEvents>();
     private windows = new Map<string, WindowProperties>();
     private hiddenWindows = new Set<string>();
     private debounceTimer: NodeJS.Timeout | null = null;
+
+    emitter = new IpcEmitter<MainIpcListenEvents>();
 
     addWindow(
         id: string,
@@ -57,7 +58,6 @@ class WindowManager {
     getWindowId(webContents: Electron.WebContents): string | null {
         for (const [id, info] of this.windows)
             if (info.window.webContents === webContents) return id;
-
         return null;
     }
 
@@ -66,33 +66,27 @@ class WindowManager {
     }
 
     closeWindow(id: string): void {
-        const info = this.windows.get(id);
-        info?.window.close();
+        this.windows.get(id)?.window.close();
     }
 
     minimizeWindow(id: string): void {
-        const info = this.windows.get(id);
-        info?.window.minimize();
+        this.windows.get(id)?.window.minimize();
     }
 
     maximizeWindow(id: string): void {
-        const info = this.windows.get(id);
-        info?.window.maximize();
+        this.windows.get(id)?.window.maximize();
     }
 
     unmaximizeWindow(id: string): void {
-        const info = this.windows.get(id);
-        info?.window.unmaximize();
+        this.windows.get(id)?.window.unmaximize();
     }
 
     isMaximized(id: string): boolean {
-        const info = this.windows.get(id);
-        return info?.window.isMaximized() ?? false;
+        return this.windows.get(id)?.window.isMaximized() ?? false;
     }
 
     isFullscreen(id: string): boolean {
-        const info = this.windows.get(id);
-        return info?.window.isFullScreen() ?? false;
+        return this.windows.get(id)?.window.isFullScreen() ?? false;
     }
 
     toggleWindows(): void {
@@ -104,26 +98,22 @@ class WindowManager {
 
         if (visibleWindows.length > 0) {
             for (const window of visibleWindows) {
-                for (const [id, properties] of this.windows) {
+                for (const [id, properties] of this.windows)
                     if (properties.window === window)
                         this.hiddenWindows.add(id);
-                }
 
                 window.hide();
             }
         } else {
-            for (const id of this.hiddenWindows) {
-                const properties = this.windows.get(id);
-                properties?.window.show();
-            }
+            for (const id of this.hiddenWindows)
+                this.windows.get(id)?.window.show();
 
             this.hiddenWindows.clear();
         }
     }
 
     getTitle(id: string): string {
-        const info = this.windows.get(id);
-        return info?.window.title ?? "";
+        return this.windows.get(id)?.window.title ?? "";
     }
 
     setTitle(id: string, title: string): void {
@@ -168,6 +158,7 @@ class WindowManager {
         });
 
         this.addWindow(id, window, route, controls);
+
         window.webContents.setWindowOpenHandler((details) => {
             shell.openExternal(details.url);
             return { action: "deny" };
@@ -178,7 +169,7 @@ class WindowManager {
             window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#${hash}`);
         } else {
             window.loadFile(join(__dirname, "../renderer/index.html"), {
-                hash: hash,
+                hash,
             });
         }
 
