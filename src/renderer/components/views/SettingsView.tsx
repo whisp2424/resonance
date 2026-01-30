@@ -12,39 +12,40 @@ import IconAppearance from "~icons/lucide/brush";
 import IconCode from "~icons/lucide/code";
 import IconInfo from "~icons/lucide/info";
 
-const BASE_CATEGORY_COMPONENTS: Record<string, ComponentType> = {
+const CATEGORY_COMPONENTS: Record<string, ComponentType> = {
     about: AboutSettings,
     appearance: AppearanceSettings,
 };
 
-const BASE_SIDEBAR_CATEGORIES: SideBarItem[] = [
+const SIDEBAR_CATEGORIES: SideBarItem[] = [
     { id: "about", label: "About", icon: IconInfo },
     { id: "appearance", label: "Appearance", icon: IconAppearance },
 ];
 
 export default function SettingsView() {
     const [isDev, setIsDev] = useState(false);
-    const [storedCategory, setActiveCategory] = useSetting("lastCategory");
+    const [lastCategory, setLastCategory] = useSetting("lastCategory");
 
     useEffect(() => {
         electron.invoke("app:isDev").then(setIsDev);
     }, []);
 
     const categoryComponents = isDev
-        ? { ...BASE_CATEGORY_COMPONENTS, dev: DevSettings }
-        : BASE_CATEGORY_COMPONENTS;
+        ? { ...CATEGORY_COMPONENTS, dev: DevSettings }
+        : CATEGORY_COMPONENTS;
 
     const sidebarCategories = isDev
         ? [
-              ...BASE_SIDEBAR_CATEGORIES,
+              ...SIDEBAR_CATEGORIES,
               { id: "dev", label: "Developer", icon: IconCode },
           ]
-        : BASE_SIDEBAR_CATEGORIES;
+        : SIDEBAR_CATEGORIES;
 
     const defaultCategory = sidebarCategories[0].id;
+
     const activeCategory =
-        storedCategory && storedCategory in categoryComponents
-            ? storedCategory
+        lastCategory && lastCategory in categoryComponents
+            ? lastCategory
             : defaultCategory;
 
     const ActiveComponent = categoryComponents[activeCategory];
@@ -54,7 +55,7 @@ export default function SettingsView() {
             <SideBar
                 items={sidebarCategories}
                 activeItemId={activeCategory}
-                onActiveItemChange={setActiveCategory}
+                onActiveItemChange={setLastCategory}
                 className="z-60 border-r border-neutral-300 bg-black/4 bg-linear-to-b p-4 dark:border-neutral-800 dark:bg-white/2"
             />
             {ActiveComponent && <ActiveComponent />}
