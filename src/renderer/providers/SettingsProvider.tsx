@@ -9,9 +9,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const [settings, setSettings] = useState<Settings | null>(null);
 
     useEffect(() => {
-        window.electron.invoke("settings:get").then(setSettings);
+        electron.invoke("settings:get").then(setSettings);
 
-        const unsubscribeOnChanged = window.electron.send(
+        const unsubscribeOnChanged = electron.send(
             "settings:onChanged",
             (newSettings) => setSettings(newSettings),
         );
@@ -21,7 +21,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     const updateSettings = useCallback(
         async (partial: DeepPartial<Settings>) =>
-            await window.electron.invoke("settings:set", partial),
+            await electron.invoke("settings:set", partial),
         [],
     );
 
@@ -29,7 +29,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         async <P extends SettingsPath>(
             path: P,
             value: PathValue<Settings, P>,
-        ) => await window.electron.invoke("settings:setPath", path, value),
+        ) => await electron.invoke("settings:setPath", path, value),
         [],
     );
 

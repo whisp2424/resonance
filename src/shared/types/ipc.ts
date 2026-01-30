@@ -35,6 +35,7 @@ export type MainIpcHandleEvents = {
         category: string,
         severity: "info" | "warning" | "error",
     ) => void;
+    "app:isDev": () => boolean;
 };
 
 export type MainIpcListenEvents = {

@@ -13,11 +13,11 @@ export default function SetupView() {
         <div
             className="flex h-full items-center justify-center bg-cover bg-center"
             style={{ backgroundImage }}>
-            <div className="flex w-lg max-w-[95%] flex-col items-center justify-center">
-                <Logo className="w-xs transition-all sm:w-md" />
+            <div className="flex w-lg max-w-[90%] flex-col items-center justify-center">
+                <Logo className="w-sm sm:w-md" />
                 <p className="my-8 text-center text-balance opacity-50">
-                    No media sources have been found. To get started, visit
-                    settings and add some media sources to import your music.
+                    Your library is empty since no media sources have been setup
+                    yet. You can add new media sources from the settings.
                 </p>
                 <Button
                     icon={IconCog}
