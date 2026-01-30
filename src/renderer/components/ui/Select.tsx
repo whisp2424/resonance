@@ -1,6 +1,7 @@
 import type * as React from "react";
 
 import { Select as BaseSelect } from "@base-ui/react/select";
+import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
 
 import IconCheck from "~icons/lucide/check";
@@ -45,26 +46,26 @@ function SelectValue({
 
 function SelectTrigger({
     className,
-    size = "default",
     children,
     ...props
 }: Omit<BaseSelect.Trigger.Props, "className"> & {
-    size?: "sm" | "default";
     className?: string;
 }) {
+    className = twMerge(
+        clsx(
+            "flex w-fit flex-row items-center justify-between gap-2 rounded-lg border border-neutral-300/80 bg-linear-to-b from-[#f5f5f5] to-[#e8e8e8] px-4 py-1 text-sm font-medium whitespace-nowrap text-neutral-700 shadow-[0_0.5px_1px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] transition duration-200 ease-out outline-none hover:from-[#fafafa] hover:to-[#f0f0f0] hover:shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.95)] disabled:pointer-events-none disabled:opacity-50 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:border-0 dark:from-[#3d3d3d] dark:to-[#323232] dark:text-neutral-200 dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] dark:hover:from-[#454545] dark:hover:to-[#3a3a3a] dark:hover:text-neutral-100 dark:hover:shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)]",
+            className,
+        ),
+    );
     return (
         <BaseSelect.Trigger
             data-slot="select-trigger"
-            data-size={size}
-            className={twMerge(
-                "flex w-fit flex-row items-center justify-between gap-2 rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-1 text-sm whitespace-nowrap transition duration-300 outline-none hover:border-neutral-400 hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-50 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700 dark:hover:bg-neutral-800 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-                className,
-            )}
+            className={className}
             {...props}>
             {children}
             <BaseSelect.Icon
                 render={
-                    <IconChevronUpDown className="pointer-events-none size-4 text-black/40 dark:text-white/40" />
+                    <IconChevronUpDown className="pointer-events-none size-4 opacity-60" />
                 }
             />
         </BaseSelect.Trigger>
