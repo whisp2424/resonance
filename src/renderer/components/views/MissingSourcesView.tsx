@@ -14,7 +14,7 @@ export default function SetupView() {
             className="flex h-full items-center justify-center bg-cover bg-center"
             style={{ backgroundImage }}>
             <div className="flex w-lg max-w-[95%] flex-col items-center justify-center">
-                <Logo className="w-md max-w-full" />
+                <Logo className="w-xs transition-all sm:w-md" />
                 <p className="my-8 text-center text-balance opacity-50">
                     No media sources have been found. To get started, visit
                     settings and add some media sources to import your music.

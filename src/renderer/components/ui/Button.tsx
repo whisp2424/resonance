@@ -13,6 +13,7 @@ type BaseProps = {
     icon?: IconElement;
     className?: string;
     children: ReactNode;
+    variant?: "primary" | "secondary";
 };
 
 type ButtonAsButton = BaseProps &
@@ -34,24 +35,36 @@ type ButtonAsLink = BaseProps & {
 
 type ButtonProps = ButtonAsButton | ButtonAsAnchor | ButtonAsLink;
 
+const variants = {
+    primary: [
+        "bg-gradient-to-b from-[color-mix(in_oklab,var(--color-accent)_90%,white)] to-[var(--color-accent)] text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.25)] hover:from-[var(--color-accent)] hover:to-[color-mix(in_oklab,var(--color-accent)_90%,black)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.2)] active:from-[color-mix(in_oklab,var(--color-accent)_90%,black)] active:to-[color-mix(in_oklab,var(--color-accent)_80%,black)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.25)] dark:from-[var(--color-accent)] dark:to-[color-mix(in_oklab,var(--color-accent)_80%,black)] dark:text-white/90 dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:hover:from-[color-mix(in_oklab,var(--color-accent)_90%,white)] dark:hover:to-[color-mix(in_oklab,var(--color-accent)_95%,white)] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] dark:active:from-[var(--color-accent)] dark:active:to-[color-mix(in_oklab,var(--color-accent)_80%,black)] dark:active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]",
+    ],
+    secondary: [
+        "bg-gradient-to-b from-[#f5f5f5] to-[#e8e8e8] text-neutral-700 border border-neutral-300/80 shadow-[0_0.5px_1px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] hover:from-[#fafafa] hover:to-[#f0f0f0] hover:shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.95)] active:from-[#e0e0e0] active:to-[#d5d5d5] active:shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] dark:from-[#3d3d3d] dark:to-[#323232] dark:text-neutral-200 dark:border-0 dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] dark:hover:from-[#454545] dark:hover:to-[#3a3a3a] dark:hover:text-neutral-100 dark:hover:shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] dark:active:from-[#353535] dark:active:to-[#2d2d2d] dark:active:shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.2)]",
+    ],
+};
+
 export default function Button({
     children,
     className,
     icon: Icon,
+    variant = "secondary",
     ...rest
 }: ButtonProps) {
     className = twMerge(
         clsx(
-            "flex flex-row items-center gap-2 rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-1 text-sm shadow transition duration-300 hover:border-neutral-400 hover:bg-neutral-200 active:border-neutral-400 active:bg-neutral-300 active:shadow-inner active:duration-200 active:ease-out dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700 dark:hover:bg-neutral-800 dark:active:border-neutral-700 dark:active:bg-neutral-900",
+            "relative inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-1 text-sm font-medium transition-all duration-150 ease-out disabled:pointer-events-none disabled:opacity-50",
+            variants[variant],
             className,
         ),
     );
+
     if ("as" in rest) {
         if (rest.as === "a") {
             const { ...anchorProps } = rest;
             return (
                 <a className={className} {...anchorProps}>
-                    {Icon && <Icon className="translate-y-[0.05em]" />}
+                    {Icon && <Icon className="size-4 translate-y-[0.05em]" />}
                     {children}
                 </a>
             );
@@ -65,7 +78,7 @@ export default function Button({
                     to={to}
                     replace={replace}
                     {...linkProps}>
-                    {Icon && <Icon className="translate-y-[0.05em]" />}
+                    {Icon && <Icon className="size-4 translate-y-[0.05em]" />}
                     {children}
                 </Link>
             );
@@ -75,7 +88,7 @@ export default function Button({
     const { ...buttonProps } = rest as ButtonAsButton;
     return (
         <button className={className} {...buttonProps}>
-            {Icon && <Icon className="translate-y-[0.05em]" />}
+            {Icon && <Icon className="size-4 translate-y-[0.05em]" />}
             {children}
         </button>
     );
