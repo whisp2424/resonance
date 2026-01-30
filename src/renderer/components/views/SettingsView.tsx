@@ -19,9 +19,16 @@ const SIDEBAR_CATEGORIES: SideBarItem[] = [
     { id: "appearance", label: "Appearance", icon: IconAppearance },
 ];
 
+const DEFAULT_CATEGORY = SIDEBAR_CATEGORIES[0].id;
+
 export default function SettingsView() {
-    const [activeCategory = "about", setActiveCategory] =
+    const [storedCategory = DEFAULT_CATEGORY, setActiveCategory] =
         useSetting("lastCategory");
+
+    const activeCategory =
+        storedCategory in CATEGORY_COMPONENTS
+            ? storedCategory
+            : DEFAULT_CATEGORY;
 
     const ActiveComponent = CATEGORY_COMPONENTS[activeCategory];
 
@@ -30,7 +37,7 @@ export default function SettingsView() {
             <SideBar
                 items={SIDEBAR_CATEGORIES}
                 activeItemId={activeCategory}
-                onActiveItemChange={(id) => setActiveCategory(id)}
+                onActiveItemChange={setActiveCategory}
                 className="z-60 border-r border-neutral-300 bg-black/4 bg-linear-to-b p-4 dark:border-neutral-800 dark:bg-white/2"
             />
             {ActiveComponent && <ActiveComponent />}
