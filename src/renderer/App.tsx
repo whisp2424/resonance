@@ -1,7 +1,7 @@
 import TitleBar from "@renderer/components/layout/TitleBar";
+import MissingSourcesView from "@renderer/components/views/MissingSourcesView";
 import NotFound from "@renderer/components/views/NotFound";
 import SettingsView from "@renderer/components/views/SettingsView";
-import SetupView from "@renderer/components/views/SetupView";
 import { useAccentColor } from "@renderer/hooks/useAccentColor";
 import { ROUTES } from "@shared/constants/routes";
 import { useEffect } from "react";
@@ -61,7 +61,7 @@ export default function App() {
         <div className="flex h-dvh w-full flex-col">
             <TitleBar />
             <Routes>
-                <Route path={ROUTES.HOME} element={<SetupView />} />
+                <Route path={ROUTES.HOME} element={<MissingSourcesView />} />
                 <Route path={ROUTES.SETTINGS} element={<SettingsView />} />
                 <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
             </Routes>
