@@ -26,7 +26,7 @@ const config: Configuration = {
         uninstallDisplayName: "${productName}",
     },
     linux: { target: ["tar.gz"] },
-    npmRebuild: false,
+    npmRebuild: true,
 };
 
 export default config;
