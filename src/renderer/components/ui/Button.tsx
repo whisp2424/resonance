@@ -56,13 +56,14 @@ export default function Button({
     const className = clsx(
         "relative inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-1 text-sm transition duration-150 ease-out disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
+        rest.className ?? "",
     );
 
     if ("as" in rest) {
         if (rest.as === "a") {
             const { ...anchorProps } = rest;
             return (
-                <a className={className} {...anchorProps}>
+                <a {...anchorProps} className={className}>
                     {Icon && <Icon className="size-4 translate-y-[0.05em]" />}
                     {children}
                 </a>
@@ -73,10 +74,10 @@ export default function Button({
             const { to, replace, ...linkProps } = rest;
             return (
                 <Link
+                    {...linkProps}
                     className={className}
                     to={to}
-                    replace={replace}
-                    {...linkProps}>
+                    replace={replace}>
                     {Icon && <Icon className="size-4 translate-y-[0.05em]" />}
                     {children}
                 </Link>
@@ -86,7 +87,7 @@ export default function Button({
 
     const { ...buttonProps } = rest as ButtonAsButton;
     return (
-        <button className={className} {...buttonProps}>
+        <button {...buttonProps} className={className}>
             {Icon && <Icon className="size-4 translate-y-[0.05em]" />}
             {children}
         </button>
