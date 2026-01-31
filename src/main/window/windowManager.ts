@@ -126,7 +126,7 @@ class WindowManager {
         );
     }
 
-    createWindow(id: string, route: WindowRoute): string {
+    createWindow(id: string, route: WindowRoute, parentId?: string): string {
         const existing = this.windows.get(id);
 
         if (existing) {
@@ -140,9 +140,10 @@ class WindowManager {
         const policy = WINDOW_POLICIES[route];
         if (!policy) throw new Error(`Invalid route: ${route}`);
 
-        const [options, controls] = policy();
-        const windowState = windowStateManager.getState(id);
+        const parentWindow = parentId ? this.getWindow(parentId) : undefined;
+        const [options, controls] = policy(parentWindow);
 
+        const windowState = windowStateManager.getState(id);
         const validatedBounds = windowState
             ? validateBounds({
                   x: windowState.x,

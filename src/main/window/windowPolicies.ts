@@ -1,6 +1,6 @@
 import type { Route } from "@shared/constants/routes";
 import type { TitleBarControls } from "@shared/types/ipc";
-import type { BrowserWindowConstructorOptions } from "electron";
+import type { BrowserWindow, BrowserWindowConstructorOptions } from "electron";
 
 import { join } from "node:path";
 
@@ -22,10 +22,9 @@ export const DEFAULT_CONTROLS: TitleBarControls = {
     close: true,
 };
 
-const SETTINGS_WINDOW: () => [
-    BrowserWindowConstructorOptions,
-    TitleBarControls,
-] = () => [
+const SETTINGS_WINDOW: (
+    parent?: BrowserWindow,
+) => [BrowserWindowConstructorOptions, TitleBarControls] = () => [
     {
         ...BASE_OPTIONS,
         maximizable: false,
@@ -35,23 +34,26 @@ const SETTINGS_WINDOW: () => [
     { ...DEFAULT_CONTROLS },
 ];
 
-const ADD_SOURCE_WINDOW: () => [
-    BrowserWindowConstructorOptions,
-    TitleBarControls,
-] = () => [
+const ADD_SOURCE_WINDOW: (
+    parent?: BrowserWindow,
+) => [BrowserWindowConstructorOptions, TitleBarControls] = (parent) => [
     {
         ...BASE_OPTIONS,
         maximizable: false,
         fullscreenable: false,
         resizable: false,
         width: 500,
+        parent,
+        modal: true,
     },
     { ...DEFAULT_CONTROLS },
 ];
 
 export const WINDOW_POLICIES: Record<
     Exclude<Route, "*" | "/">,
-    () => [BrowserWindowConstructorOptions, TitleBarControls]
+    (
+        parent?: BrowserWindow,
+    ) => [BrowserWindowConstructorOptions, TitleBarControls]
 > = {
     "/settings": SETTINGS_WINDOW,
     "/add-source": ADD_SOURCE_WINDOW,
