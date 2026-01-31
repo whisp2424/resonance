@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import { AboutSettings } from "@renderer/components/settings/AboutSettings";
 import { AppearanceSettings } from "@renderer/components/settings/AppearanceSettings";
 import { DevSettings } from "@renderer/components/settings/DevSettings";
+import { LibrarySettings } from "@renderer/components/settings/LibrarySettings";
 import SideBar from "@renderer/components/ui/SideBar";
 import { useSetting } from "@renderer/hooks/useSetting";
 import { useEffect, useState } from "react";
@@ -11,15 +12,18 @@ import { useEffect, useState } from "react";
 import IconAppearance from "~icons/lucide/brush";
 import IconCode from "~icons/lucide/code";
 import IconInfo from "~icons/lucide/info";
+import IconLibrary from "~icons/lucide/library-big";
 
 const CATEGORY_COMPONENTS: Record<string, ComponentType> = {
     about: AboutSettings,
     appearance: AppearanceSettings,
+    library: LibrarySettings,
 };
 
 const SIDEBAR_CATEGORIES: SideBarItem[] = [
     { id: "about", label: "About", icon: IconInfo },
     { id: "appearance", label: "Appearance", icon: IconAppearance },
+    { id: "library", label: "Library", icon: IconLibrary },
 ];
 
 export default function SettingsView() {

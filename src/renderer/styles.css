@@ -48,7 +48,7 @@
     textarea {
         &:focus-visible {
             outline: none;
-            @apply ring-3 ring-(--color-accent)/50;
+            @apply ring-2 ring-(--color-accent);
         }
     }
 

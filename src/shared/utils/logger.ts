@@ -39,7 +39,7 @@ export const log = (
 
     console.log(
         `${pc.dim(`[${processName}] ${timestamp}`)} ` +
-            `${color(`${category.toLowerCase()}(${severity})`)} ` +
+            `${color(`${category}(${severity})`)} ` +
             `${pc.dim("~")} ${msg}`,
     );
 };

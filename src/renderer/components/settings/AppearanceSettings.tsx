@@ -43,7 +43,7 @@ export function AppearanceSettings() {
                         <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent alignItemWithTrigger={false}>
+                        <SelectContent>
                             {themeSelectItems.map((item) => (
                                 <SelectItem key={item.value} value={item.value}>
                                     {item.label}
@@ -56,10 +56,8 @@ export function AppearanceSettings() {
 
             <div className="flex flex-row items-center justify-between gap-8">
                 <div>
-                    <h2>Tray icon color</h2>
-                    <p className="text-sm opacity-50">
-                        Choose the color of the tray icon
-                    </p>
+                    <h2>Tray icon</h2>
+                    <p className="text-sm opacity-50">Pick a tray icon color</p>
                 </div>
                 {trayIcon !== undefined && (
                     <Select
@@ -71,7 +69,7 @@ export function AppearanceSettings() {
                         <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent alignItemWithTrigger={false}>
+                        <SelectContent>
                             {trayIconSelectItems.map((item) => (
                                 <SelectItem key={item.value} value={item.value}>
                                     {item.label}

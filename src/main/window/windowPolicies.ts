@@ -5,8 +5,6 @@ import type { BrowserWindowConstructorOptions } from "electron";
 import { join } from "node:path";
 
 export const BASE_OPTIONS: BrowserWindowConstructorOptions = {
-    width: 800,
-    height: 600,
     minWidth: 500,
     minHeight: 500,
     show: false,
@@ -24,7 +22,7 @@ export const DEFAULT_CONTROLS: TitleBarControls = {
     close: true,
 };
 
-export const SETTINGS_WINDOW: () => [
+const SETTINGS_WINDOW: () => [
     BrowserWindowConstructorOptions,
     TitleBarControls,
 ] = () => [
@@ -37,9 +35,24 @@ export const SETTINGS_WINDOW: () => [
     { ...DEFAULT_CONTROLS },
 ];
 
+const ADD_SOURCE_WINDOW: () => [
+    BrowserWindowConstructorOptions,
+    TitleBarControls,
+] = () => [
+    {
+        ...BASE_OPTIONS,
+        maximizable: false,
+        fullscreenable: false,
+        resizable: false,
+        width: 500,
+    },
+    { ...DEFAULT_CONTROLS },
+];
+
 export const WINDOW_POLICIES: Record<
     Exclude<Route, "*" | "/">,
     () => [BrowserWindowConstructorOptions, TitleBarControls]
 > = {
     "/settings": SETTINGS_WINDOW,
+    "/add-source": ADD_SOURCE_WINDOW,
 };
