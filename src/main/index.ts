@@ -7,7 +7,9 @@ import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
 import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconWhite from "@main/../../build/tray-white.png?asset";
+import { runMigrations } from "@main/database";
 import { registerAppHandlers } from "@main/ipc/app";
+import { registerDatabaseHandlers } from "@main/ipc/database";
 import { registerLibraryHandlers } from "@main/ipc/library";
 import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
@@ -140,6 +142,7 @@ app.on("second-instance", () => {
 
 app.whenReady().then(async () => {
     await initializeSettings();
+    await runMigrations();
     await windowStateManager.load();
     app.setAppUserModelId(product.appId);
     const settings = settingsManager.get();
@@ -160,6 +163,8 @@ app.whenReady().then(async () => {
     registerAppHandlers(ipc);
     registerLibraryHandlers(ipc);
     registerSettingsHandlers(ipc);
+    registerDatabaseHandlers(ipc);
+
     const cleanupSystemHandlers = registerSystemHandlers(
         ipc,
         systemPreferences,

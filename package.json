@@ -27,7 +27,9 @@
         "lint": "eslint --cache .",
         "lint:fix": "eslint --cache --fix .",
         "format": "prettier --write .",
-        "fix": "pnpm run lint:fix && pnpm run format"
+        "fix": "pnpm run lint:fix && pnpm run format",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate"
     },
     "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",

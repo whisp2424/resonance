@@ -20,6 +20,8 @@ class LibraryManager {
     }
 
     async addSource(uri: string, type: SourceType, name?: string) {
+        if (!name) name = uri;
+
         const result = await db
             .insert(sourcesTable)
             .values({ displayName: name, uri, type })

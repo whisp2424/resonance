@@ -47,12 +47,13 @@ export default function AddSourceView() {
 
             setUri("");
             setDisplayName("");
+            setIsSubmitting(false);
+            window.close();
         } catch (err) {
+            setIsSubmitting(false);
             setError(
                 err instanceof Error ? err.message : "Failed to add source",
             );
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -94,6 +95,9 @@ export default function AddSourceView() {
                     placeholder="Music"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAdd();
+                    }}
                 />
             </Field>
             <Field name="uri">
@@ -104,6 +108,9 @@ export default function AddSourceView() {
                     placeholder="C:/Users/..."
                     value={uri}
                     onChange={(e) => setUri(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAdd();
+                    }}
                 />
                 <FieldError>
                     An URI path pointing to the source is required

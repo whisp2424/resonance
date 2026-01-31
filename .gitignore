@@ -141,5 +141,5 @@ vite.config.ts.timestamp-*
 .vite/
 
 # Database/Drizzle
-*.db
+*.db*
 drizzle

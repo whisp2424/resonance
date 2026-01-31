@@ -13,12 +13,13 @@ export type TitleBarControls = {
 };
 
 export type MainIpcHandleEvents = {
+    "app:isDev": () => boolean;
     "app:log": (
         message: string,
         category: string,
         severity: "info" | "warning" | "error",
     ) => void;
-    "app:isDev": () => boolean;
+
     "window:close": (id: string) => void;
     "window:maximize": (id: string) => void;
     "window:unmaximize": (id: string) => void;
@@ -30,20 +31,48 @@ export type MainIpcHandleEvents = {
     "window:new": (route: WindowRoute, id: string) => string;
     "window:getId": () => string | null;
     "window:getControls": (id: string) => TitleBarControls;
+
     "system:getAccentColor": () => string;
+
     "settings:get": () => Settings;
     "settings:set": (settings: DeepPartial<Settings>) => void;
     "settings:setPath": <P extends SettingsPath>(
         path: P,
         value: PathValue<Settings, P>,
     ) => void;
+
     "library:addSource": (
         uri: string,
         type: SourceType,
         name?: string,
-    ) =>
-        | { id: number; type: string; uri: string; displayName: string | null }
-        | undefined;
+    ) => {
+        id: number;
+        type: string;
+        uri: string;
+        displayName: string;
+    };
+
+    "library:getSources": (type?: SourceType) => {
+        id: number;
+        type: string;
+        uri: string;
+        displayName: string;
+    }[];
+
+    "library:removeSource": (uri: string, type?: SourceType) => void;
+
+    "dev:getTables": () => string[];
+    "dev:getTableSchema": (table: string) => {
+        name: string;
+        type: string;
+        notnull: number;
+        dflt_value: unknown;
+        pk: number;
+    }[];
+
+    "dev:getTableCount": (table: string) => number;
+    "dev:query": (sql: string) => Record<string, unknown>[];
+    "dev:delete": (table: string, where: Record<string, unknown>) => void;
 };
 
 export type MainIpcListenEvents = {
@@ -52,9 +81,13 @@ export type MainIpcListenEvents = {
     "window:onMaximize": [];
     "window:onUnmaximize": [];
     "window:onWindowTitleChanged": [];
+
     "system:onAccentColorChanged": [color: string];
+
     "settings:onChanged": [settings: Settings, key?: SettingsKey];
     "settings:onError": [message: string];
+
+    "library:onSourcesChanged": [];
 };
 
 export type MainIpcEvents = MainIpcHandleEvents | MainIpcListenEvents;

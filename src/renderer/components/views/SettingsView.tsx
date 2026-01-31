@@ -3,7 +3,7 @@ import type { ComponentType } from "react";
 
 import { AboutSettings } from "@renderer/components/settings/AboutSettings";
 import { AppearanceSettings } from "@renderer/components/settings/AppearanceSettings";
-import { DevSettings } from "@renderer/components/settings/DevSettings";
+import { DeveloperSettings } from "@renderer/components/settings/DeveloperSettings";
 import { LibrarySettings } from "@renderer/components/settings/LibrarySettings";
 import SideBar from "@renderer/components/ui/SideBar";
 import { useSetting } from "@renderer/hooks/useSetting";
@@ -35,7 +35,7 @@ export default function SettingsView() {
     }, []);
 
     const categoryComponents = isDev
-        ? { ...CATEGORY_COMPONENTS, dev: DevSettings }
+        ? { ...CATEGORY_COMPONENTS, dev: DeveloperSettings }
         : CATEGORY_COMPONENTS;
 
     const sidebarCategories = isDev

@@ -6,7 +6,7 @@ export const sourcesTable = sqliteTable(
         id: int().primaryKey({ autoIncrement: true }),
         type: text().notNull(),
         uri: text().notNull(),
-        displayName: text(),
+        displayName: text().notNull(),
     },
     (table) => [unique().on(table.type, table.uri)],
 );

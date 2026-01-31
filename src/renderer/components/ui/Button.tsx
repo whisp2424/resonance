@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 type BaseProps = {
     icon?: IconElement;
     className?: string;
-    children: ReactNode;
+    children?: ReactNode;
     variant?: "primary" | "secondary";
 };
 

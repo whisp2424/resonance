@@ -16,6 +16,13 @@ const config: Configuration = {
         "!{.env,.env.*,.npmrc,pnpm-lock.yaml}",
         "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}",
     ],
+    extraResources: [
+        {
+            from: "./drizzle",
+            to: "drizzle",
+            filter: ["**/*"],
+        },
+    ],
     win: {
         executableName: product.name.executable,
         target: [{ target: "nsis", arch: ["x64"] }],
