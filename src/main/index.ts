@@ -1,11 +1,14 @@
 import type { Settings } from "@shared/schema/settings";
+import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
 import { join } from "node:path";
 
+import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
 import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconWhite from "@main/../../build/tray-white.png?asset";
 import { registerAppHandlers } from "@main/ipc/app";
+import { registerLibraryHandlers } from "@main/ipc/library";
 import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
@@ -151,16 +154,22 @@ app.whenReady().then(async () => {
         "appearance",
     );
 
-    registerWindowHandlers();
-    registerAppHandlers();
-    const cleanupSettingsHandlers = registerSettingsHandlers();
-    const cleanupSystemHandlers = registerSystemHandlers(systemPreferences);
+    const ipc = new IpcListener<MainIpcHandleEvents>();
+
+    registerWindowHandlers(ipc);
+    registerAppHandlers(ipc);
+    registerLibraryHandlers(ipc);
+    registerSettingsHandlers(ipc);
+    const cleanupSystemHandlers = registerSystemHandlers(
+        ipc,
+        systemPreferences,
+    );
 
     app.on("will-quit", async () => {
         log("goodbye!", "main");
         unsubscribeAppearanceSettings();
-        cleanupSettingsHandlers();
         cleanupSystemHandlers();
+        ipc.dispose();
     });
 
     app.on("window-all-closed", () => {

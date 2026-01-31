@@ -1,13 +1,10 @@
 import type { MediaSource } from "@main/database/schema";
+import type { SourceType } from "@shared/constants/sources";
 
 import { db } from "@main/database";
 import { sourcesTable } from "@main/database/schema";
 import { log } from "@shared/utils/logger";
 import { and, eq } from "drizzle-orm";
-
-// for now, we only care about implementing local playback, but the possibility
-// to easily extend later on more sources exists.
-export type SourceType = "local";
 
 class LibraryManager {
     async getSources(type?: SourceType): Promise<MediaSource[]> {

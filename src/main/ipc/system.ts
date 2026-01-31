@@ -1,14 +1,15 @@
+import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 import type { SystemPreferences } from "electron";
 
-import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { windowManager } from "@main/window/windowManager";
 
 let lastAccentColor: string | null = null;
 
-export const registerSystemHandlers = (preferences: SystemPreferences) => {
-    const ipc = new IpcListener<MainIpcHandleEvents>();
-
+export const registerSystemHandlers = (
+    ipc: IpcListener<MainIpcHandleEvents>,
+    preferences: SystemPreferences,
+) => {
     const handleAccentColorChange = (_: Electron.Event, newColor: string) => {
         if (newColor !== lastAccentColor) {
             lastAccentColor = newColor;

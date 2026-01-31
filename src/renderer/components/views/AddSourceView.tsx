@@ -1,5 +1,8 @@
+import type { SourceType } from "@shared/constants/sources";
+
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
-import { Field, FieldLabel } from "@renderer/components/ui/Field";
+import Button from "@renderer/components/ui/Button";
+import { Field, FieldError, FieldLabel } from "@renderer/components/ui/Field";
 import Input from "@renderer/components/ui/Input";
 import {
     Select,
@@ -8,14 +11,50 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@renderer/components/ui/Select";
+import { SOURCE_TYPES } from "@shared/constants/sources";
 import { useState } from "react";
 
-import Button from "../ui/Button";
-
 export default function AddSourceView() {
-    const [sourceType, setSourceType] = useState("local");
+    const [sourceType, setSourceType] = useState<SourceType>(
+        SOURCE_TYPES.LOCAL,
+    );
+    const [displayName, setDisplayName] = useState("");
+    const [uri, setUri] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const sourceTypeItems = [{ label: "Local", value: "local" }] as const;
+    const sourceTypeItems = [
+        { label: "Local", value: SOURCE_TYPES.LOCAL },
+    ] as const;
+
+    const handleAdd = async () => {
+        if (!uri.trim()) return;
+
+        setIsSubmitting(true);
+        setError(null);
+        try {
+            const result = await electron.invoke(
+                "library:addSource",
+                uri.trim(),
+                sourceType,
+                displayName.trim() || undefined,
+            );
+
+            if (!result) {
+                setError("A source with this URI already exists");
+                return;
+            }
+
+            setUri("");
+            setDisplayName("");
+        } catch (err) {
+            setError(
+                err instanceof Error ? err.message : "Failed to add source",
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <SettingsCategory title="Add media source">
@@ -31,7 +70,7 @@ export default function AddSourceView() {
                     items={sourceTypeItems}
                     value={sourceType}
                     onValueChange={(newValue) => {
-                        if (newValue) setSourceType(newValue);
+                        if (newValue) setSourceType(newValue as SourceType);
                     }}>
                     <SelectTrigger>
                         <SelectValue />
@@ -50,14 +89,37 @@ export default function AddSourceView() {
                     Display name
                     <span className="px-1.5 opacity-40">optional</span>
                 </FieldLabel>
-                <Input type="text" placeholder="Music" />
+                <Input
+                    type="text"
+                    placeholder="Music"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                />
             </Field>
-            <Field name="displayName">
+            <Field name="uri">
                 <FieldLabel>URI</FieldLabel>
-                <Input type="text" placeholder="C:/Users/..." />
+                <Input
+                    required
+                    type="text"
+                    placeholder="C:/Users/..."
+                    value={uri}
+                    onChange={(e) => setUri(e.target.value)}
+                />
+                <FieldError>
+                    An URI path pointing to the source is required
+                </FieldError>
             </Field>
+            {error && (
+                <div className="rounded-md border border-red-400 bg-linear-to-t from-red-500/20 to-red-500/10 p-4 text-sm text-red-950 dark:bg-linear-to-b dark:text-red-100">
+                    {error}
+                </div>
+            )}
             <div className="flex flex-1 items-end justify-end gap-4">
-                <Button>Add</Button>
+                <Button
+                    onClick={handleAdd}
+                    disabled={!uri.trim() || isSubmitting}>
+                    {isSubmitting ? "Adding..." : "Add"}
+                </Button>
             </div>
         </SettingsCategory>
     );

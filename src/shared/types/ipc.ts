@@ -1,4 +1,5 @@
 import type { WindowRoute } from "@shared/constants/routes";
+import type { SourceType } from "@shared/constants/sources";
 import type { Settings } from "@shared/schema/settings";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
@@ -12,6 +13,12 @@ export type TitleBarControls = {
 };
 
 export type MainIpcHandleEvents = {
+    "app:log": (
+        message: string,
+        category: string,
+        severity: "info" | "warning" | "error",
+    ) => void;
+    "app:isDev": () => boolean;
     "window:close": (id: string) => void;
     "window:maximize": (id: string) => void;
     "window:unmaximize": (id: string) => void;
@@ -30,12 +37,13 @@ export type MainIpcHandleEvents = {
         path: P,
         value: PathValue<Settings, P>,
     ) => void;
-    "app:log": (
-        message: string,
-        category: string,
-        severity: "info" | "warning" | "error",
-    ) => void;
-    "app:isDev": () => boolean;
+    "library:addSource": (
+        uri: string,
+        type: SourceType,
+        name?: string,
+    ) =>
+        | { id: number; type: string; uri: string; displayName: string | null }
+        | undefined;
 };
 
 export type MainIpcListenEvents = {

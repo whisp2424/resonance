@@ -1,11 +1,11 @@
+import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
-import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { windowManager } from "@main/window/windowManager";
 
-export const registerWindowHandlers = () => {
-    const ipc = new IpcListener<MainIpcHandleEvents>();
-
+export const registerWindowHandlers = (
+    ipc: IpcListener<MainIpcHandleEvents>,
+) => {
     ipc.handle("window:close", (_, id) => {
         windowManager.closeWindow(id);
     });

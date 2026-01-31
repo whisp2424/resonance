@@ -1,11 +1,11 @@
+import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
-import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { settingsManager } from "@main/settings";
 
-export const registerSettingsHandlers = () => {
-    const ipc = new IpcListener<MainIpcHandleEvents>();
-
+export const registerSettingsHandlers = (
+    ipc: IpcListener<MainIpcHandleEvents>,
+) => {
     ipc.handle("settings:get", () => {
         return settingsManager.get();
     });
@@ -17,6 +17,4 @@ export const registerSettingsHandlers = () => {
     ipc.handle("settings:setPath", async (_event, path, value) => {
         await settingsManager.setPath(path, value);
     });
-
-    return () => ipc.dispose();
 };
