@@ -68,6 +68,7 @@ export default function App() {
                 <Route path={ROUTES.SETTINGS} element={<SettingsView />} />
                 <Route path={ROUTES.ADD_SOURCE} element={<AddSourceView />} />
                 <Route path={ROUTES.DIALOG} element={<DialogView />} />
+                <Route path={ROUTES.MODAL} element={<DialogView />} />
                 <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
             </Routes>
         </div>

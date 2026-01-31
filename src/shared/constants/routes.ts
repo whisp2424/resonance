@@ -4,6 +4,7 @@ export const ROUTES = {
     SETTINGS: "/settings",
     ADD_SOURCE: "/add-source",
     DIALOG: "/dialog",
+    MODAL: "/modal",
 } as const;
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES];

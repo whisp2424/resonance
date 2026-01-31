@@ -19,6 +19,7 @@ class DialogManager {
         options: DialogOptions,
     ): Promise<DialogResult> {
         let dialogId: string;
+        let route: "/dialog" | "/modal";
 
         if (options.id) {
             const existing = this.pending.get(options.id);
@@ -34,6 +35,7 @@ class DialogManager {
                 });
             }
             dialogId = options.id;
+            route = "/modal";
         } else {
             do {
                 dialogId = `dialog-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -41,6 +43,7 @@ class DialogManager {
                 this.pending.has(dialogId) ||
                 windowManager.getWindow(dialogId)
             );
+            route = "/dialog";
         }
 
         const parentId = windowManager.getWindowId(event.sender);
@@ -52,7 +55,7 @@ class DialogManager {
             try {
                 windowManager.createWindow(
                     dialogId,
-                    "/dialog",
+                    route,
                     parentId ?? undefined,
                 );
             } catch (error) {

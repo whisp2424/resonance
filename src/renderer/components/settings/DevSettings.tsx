@@ -154,7 +154,7 @@ export function DevSettings() {
                     <FieldLabel>
                         Custom ID{" "}
                         <span className="font-normal opacity-50">
-                            (optional, focus existing)
+                            (modal if set, focus existing)
                         </span>
                     </FieldLabel>
                     <Input

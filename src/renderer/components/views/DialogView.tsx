@@ -79,27 +79,31 @@ export default function DialogView() {
     const buttons = options.buttons ?? DEFAULT_BUTTONS[options.type];
 
     return (
-        <div className="flex h-full flex-col items-center justify-center gap-6 p-8">
-            <Icon className="size-12" />
-            <div className="text-center">
-                <h1 className="mb-2 text-lg font-semibold">{options.title}</h1>
-                <p className="text-sm opacity-70">{options.description}</p>
+        <div className="flex h-full flex-row items-start gap-4 p-5">
+            <div className="flex items-center justify-center pt-1">
+                <Icon className="size-6" />
             </div>
-            <div className="flex gap-3">
-                {buttons.map((button) => (
-                    <Button
-                        key={button.value}
-                        variant={button.variant}
-                        onClick={() =>
-                            electron.invoke(
-                                "dialog:close",
-                                windowId,
-                                button.value,
-                            )
-                        }>
-                        {button.label}
-                    </Button>
-                ))}
+            <div className="flex flex-1 flex-col justify-center gap-3">
+                <div>
+                    <h1 className="text-base font-semibold">{options.title}</h1>
+                    <p className="text-sm opacity-70">{options.description}</p>
+                </div>
+                <div className="flex gap-2 pt-1">
+                    {buttons.map((button) => (
+                        <Button
+                            key={button.value}
+                            variant={button.variant}
+                            onClick={() =>
+                                electron.invoke(
+                                    "dialog:close",
+                                    windowId,
+                                    button.value,
+                                )
+                            }>
+                            {button.label}
+                        </Button>
+                    ))}
+                </div>
             </div>
         </div>
     );

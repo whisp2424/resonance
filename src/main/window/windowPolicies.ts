@@ -51,11 +51,29 @@ const ADD_SOURCE_WINDOW: (
 
 const DIALOG_WINDOW: (
     parent?: BrowserWindow,
+) => [BrowserWindowConstructorOptions, TitleBarControls] = () => [
+    {
+        ...BASE_OPTIONS,
+        width: 520,
+        height: 160,
+        minWidth: 400,
+        minHeight: 120,
+        resizable: false,
+        maximizable: false,
+        fullscreenable: false,
+    },
+    { minimize: false, maximize: false, close: true },
+];
+
+const MODAL_WINDOW: (
+    parent?: BrowserWindow,
 ) => [BrowserWindowConstructorOptions, TitleBarControls] = (parent) => [
     {
         ...BASE_OPTIONS,
-        width: 420,
-        height: 280,
+        width: 520,
+        height: 240,
+        minWidth: 400,
+        minHeight: 160,
         resizable: false,
         maximizable: false,
         fullscreenable: false,
@@ -74,4 +92,5 @@ export const WINDOW_POLICIES: Record<
     "/settings": SETTINGS_WINDOW,
     "/add-source": ADD_SOURCE_WINDOW,
     "/dialog": DIALOG_WINDOW,
+    "/modal": MODAL_WINDOW,
 };
