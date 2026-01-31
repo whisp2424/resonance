@@ -72,6 +72,7 @@ Resonance uses a multi-process architecture with separate codebases for `main`, 
 
 - **Utilities**: Use utility classes directly in JSX.
 - **Conditional Classes**: Use `clsx` and `twMerge` helpers.
+- **Single Line**: Always keep classname strings on a single line when using `twMerge`/`clsx`.
 - **Custom CSS**: Defined in `src/renderer/styles.css` with `@utility`.
 
 ## IPC Communication (typed-ipc)
