@@ -72,7 +72,6 @@ Resonance uses a multi-process architecture with separate codebases for `main`, 
 
 - **Utilities**: Use utility classes directly in JSX.
 - **Conditional Classes**: Use `clsx` and `twMerge` helpers.
-- **Single Line**: Always keep classname strings on a single line when using `twMerge`/`clsx`.
 - **Custom CSS**: Defined in `src/renderer/styles.css` with `@utility`.
 
 ## IPC Communication (typed-ipc)
@@ -93,6 +92,21 @@ Resonance uses a multi-process architecture with separate codebases for `main`, 
 
 - Icons are handled via `unplugin-icons`.
 - Use the following syntax: `import IconName from '~icons/lucide/icon-name'`.
+
+### Dev Mode Detection
+
+- Use `is.dev` from `@electron-toolkit/utils` to check if app is running in development mode.
+- Import it in the main process: `import { is } from "@electron-toolkit/utils"`.
+- Example: `if (!is.dev) throw new Error("Developer tools only available in dev mode");`
+
+### Logging
+
+- **Avoid** using `console.*` methods directly where possible.
+- Use the `log` utility from `@shared/utils/logger` instead.
+- This provides consistent formatting across main and renderer processes with timestamps, severity levels, and color-coded output.
+- **Main process**: `import { log } from "@shared/utils/logger"; log("Message", "category", "info");`
+- **Renderer process**: Automatically forwards logs to main process via IPC for centralized logging.
+- **Severity levels**: `"info"` (default), `"warning"`, `"error"`.
 
 ## Agent Workflow Policy
 
