@@ -22,10 +22,10 @@ class LibraryManager {
         return sources;
     }
 
-    async addSource(uri: string, type: SourceType) {
+    async addSource(uri: string, type: SourceType, name?: string) {
         const result = await db
             .insert(sourcesTable)
-            .values({ uri, type })
+            .values({ displayName: name, uri, type })
             .onConflictDoNothing()
             .returning();
 

@@ -10,12 +10,13 @@ import {
 } from "@renderer/components/ui/Select";
 import { useState } from "react";
 
-import Button from "../ui/Button";
-
 export default function AddSourceView() {
     const [sourceType, setSourceType] = useState("local");
 
-    const sourceTypeItems = [{ label: "Local", value: "local" }] as const;
+    const sourceTypeItems = [
+        { label: "Local", value: "local" },
+        { label: "Dummy", value: "dummy" },
+    ] as const;
 
     return (
         <SettingsCategory title="Add media source">
@@ -27,7 +28,6 @@ export default function AddSourceView() {
                     </p>
                 </div>
                 <Select
-                    disabled
                     items={sourceTypeItems}
                     value={sourceType}
                     onValueChange={(newValue) => {
@@ -56,9 +56,6 @@ export default function AddSourceView() {
                 <FieldLabel>URI</FieldLabel>
                 <Input type="text" placeholder="C:/Users/..." />
             </Field>
-            <div className="flex flex-1 items-end justify-end gap-4">
-                <Button>Add</Button>
-            </div>
         </SettingsCategory>
     );
 }
