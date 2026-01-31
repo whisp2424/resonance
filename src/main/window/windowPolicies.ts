@@ -49,6 +49,22 @@ const ADD_SOURCE_WINDOW: (
     { ...DEFAULT_CONTROLS },
 ];
 
+const DIALOG_WINDOW: (
+    parent?: BrowserWindow,
+) => [BrowserWindowConstructorOptions, TitleBarControls] = (parent) => [
+    {
+        ...BASE_OPTIONS,
+        width: 420,
+        height: 280,
+        resizable: false,
+        maximizable: false,
+        fullscreenable: false,
+        parent,
+        modal: true,
+    },
+    { minimize: false, maximize: false, close: true },
+];
+
 export const WINDOW_POLICIES: Record<
     Exclude<Route, "*" | "/">,
     (
@@ -57,4 +73,5 @@ export const WINDOW_POLICIES: Record<
 > = {
     "/settings": SETTINGS_WINDOW,
     "/add-source": ADD_SOURCE_WINDOW,
+    "/dialog": DIALOG_WINDOW,
 };

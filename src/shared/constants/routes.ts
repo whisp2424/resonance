@@ -3,6 +3,7 @@ export const ROUTES = {
     HOME: "/",
     SETTINGS: "/settings",
     ADD_SOURCE: "/add-source",
+    DIALOG: "/dialog",
 } as const;
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES];
