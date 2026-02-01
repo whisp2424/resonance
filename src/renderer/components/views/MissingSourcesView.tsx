@@ -17,8 +17,7 @@ export default function SetupView() {
                 <Logo className="w-sm sm:w-md" />
                 <p className="my-8 text-center text-balance opacity-50">
                     Your library is empty since no media sources have been setup
-                    yet, add some media sources in the settings app to get
-                    started.
+                    yet, add some media sources in the settings to get started.
                 </p>
                 <Button
                     icon={IconCog}

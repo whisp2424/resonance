@@ -1,5 +1,4 @@
 import Button from "@renderer/components/ui/Button";
-import Input from "@renderer/components/ui/Input";
 import {
     Select,
     SelectContent,
@@ -7,6 +6,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@renderer/components/ui/Select";
+import TextInput from "@renderer/components/ui/TextInput";
 import { useCallback, useEffect, useState } from "react";
 
 import IconRefresh from "~icons/lucide/refresh-cw";
@@ -142,7 +142,7 @@ export function DatabaseDebugView() {
 
             <div className="flex w-full flex-col gap-2">
                 <div className="flex gap-2">
-                    <Input
+                    <TextInput
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         className="flex-1 font-mono text-sm"

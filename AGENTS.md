@@ -52,8 +52,14 @@ Resonance uses a multi-process architecture with separate codebases for `main`, 
 ### TypeScript & Types
 
 - **Strict Mode**: Always define proper types; avoid `any`. Use `unknown` for uncertain types.
-- **Absolute Imports**: Always use aliases: `@main/*`, `@renderer/*`, `@preload/*`, `@shared/*`.
 - **Module Syntax**: Use `import type` for type-only imports.
+
+### Imports
+
+- **ALWAYS use import aliases over relative imports**: Use `@main/*`, `@renderer/*`, `@preload/*`, `@shared/*` instead of relative paths like `../` or `./`.
+- **Never use relative imports** when an alias is available for the target module.
+- **Order**: Enforced by ESLint (Types -> Builtins -> External -> Internal).
+- **Node Protocol**: Always use `node:` prefix (e.g., `import path from "node:path"`).
 
 ### Imports & Formatting
 
@@ -73,6 +79,7 @@ Resonance uses a multi-process architecture with separate codebases for `main`, 
 - **Utilities**: Use utility classes directly in JSX.
 - **Conditional Classes**: Use `clsx` and `twMerge` helpers.
 - **Custom CSS**: Defined in `src/renderer/styles.css` with `@utility`.
+- **Size Utilities**: **AVOID** using `h-*` and `w-*` with the same value. Prefer `size-*` instead (e.g., use `size-4` instead of `h-4 w-4`).
 
 ## IPC Communication (typed-ipc)
 
@@ -112,4 +119,5 @@ Resonance uses a multi-process architecture with separate codebases for `main`, 
 
 1. **Understand First**: Use `grep` and `glob` to explore patterns before editing.
 2. **Linter Rule**: NEVER run `pnpm lint`. Always use `pnpm lint:fix`. No exceptions.
-3. **Verification**: After changes, run `pnpm check` and `pnpm fix` to ensure quality.
+3. **Documentation Changes**: When updating ONLY documentation files (_.md, _.txt) or configuration files that don't affect code, **SKIP** running `pnpm fix` and `pnpm check`.
+4. **Verification**: After changes, run `pnpm check` and `pnpm fix` to ensure quality.

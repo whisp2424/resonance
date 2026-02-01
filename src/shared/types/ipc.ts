@@ -1,6 +1,7 @@
 import type { WindowRoute } from "@shared/constants/routes";
 import type { SourceType } from "@shared/constants/sources";
 import type { Settings } from "@shared/schema/settings";
+import type { DialogOptions, DialogResult } from "@shared/types/dialog";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
 export type SettingsKey = keyof Settings;
@@ -39,6 +40,14 @@ export type MainIpcHandleEvents = {
     "settings:setPath": <P extends SettingsPath>(
         path: P,
         value: PathValue<Settings, P>,
+    ) => void;
+
+    "dialog:open": (options: DialogOptions) => Promise<DialogResult>;
+    "dialog:getOptions": (windowId: string) => DialogOptions | null;
+    "dialog:close": (windowId: string, result?: DialogResult) => void;
+    "dialog:resize": (
+        windowId: string,
+        dimensions: { width: number; height: number },
     ) => void;
 
     "library:addSource": (

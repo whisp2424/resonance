@@ -10,6 +10,7 @@ import trayIconWhite from "@main/../../build/tray-white.png?asset";
 import { runMigrations } from "@main/database";
 import { registerAppHandlers } from "@main/ipc/app";
 import { registerDatabaseHandlers } from "@main/ipc/database";
+import { registerDialogHandlers } from "@main/ipc/dialog";
 import { registerLibraryHandlers } from "@main/ipc/library";
 import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
@@ -17,7 +18,7 @@ import { registerWindowHandlers } from "@main/ipc/window";
 import { initializeSettings, settingsManager } from "@main/settings";
 import { validateBounds } from "@main/window/validateBounds";
 import { windowManager } from "@main/window/windowManager";
-import { BASE_OPTIONS } from "@main/window/windowPolicies";
+import { DEFAULT_OPTIONS } from "@main/window/windowPolicies";
 import { windowStateManager } from "@main/windowState";
 import { log } from "@shared/utils/logger";
 import {
@@ -81,17 +82,15 @@ const createTray = (trayIcon?: Settings["appearance"]["trayIcon"]): void => {
 const createMainWindow = (): BrowserWindow => {
     const windowState = windowStateManager.getState("main");
 
-    const validatedBounds = windowState
-        ? validateBounds({
-              x: windowState.x,
-              y: windowState.y,
-              width: windowState.width ?? 1200,
-              height: windowState.height ?? 700,
-          })
-        : { width: 1200, height: 700 };
+    const validatedBounds = validateBounds({
+        x: windowState?.x,
+        y: windowState?.y,
+        width: windowState?.width ?? 1200,
+        height: windowState?.height ?? 700,
+    });
 
     const mainWindow = new BrowserWindow({
-        ...BASE_OPTIONS,
+        ...DEFAULT_OPTIONS,
         ...validatedBounds,
     });
 
@@ -164,6 +163,7 @@ app.whenReady().then(async () => {
     registerLibraryHandlers(ipc);
     registerSettingsHandlers(ipc);
     registerDatabaseHandlers(ipc);
+    registerDialogHandlers(ipc);
 
     const cleanupSystemHandlers = registerSystemHandlers(
         ipc,

@@ -1,16 +1,20 @@
 import type { Route } from "@shared/constants/routes";
 import type { TitleBarControls } from "@shared/types/ipc";
-import type { BrowserWindowConstructorOptions } from "electron";
+import type { BrowserWindow, BrowserWindowConstructorOptions } from "electron";
 
 import { join } from "node:path";
 
-export const BASE_OPTIONS: BrowserWindowConstructorOptions = {
+type WindowPolicy = (
+    parent?: BrowserWindow,
+) => [BrowserWindowConstructorOptions, TitleBarControls];
+
+export const DEFAULT_OPTIONS: BrowserWindowConstructorOptions = {
     minWidth: 500,
     minHeight: 500,
-    show: false,
     titleBarStyle: "hidden",
     titleBarOverlay: false,
     backgroundColor: "#00000000",
+    show: false,
     webPreferences: {
         preload: join(__dirname, "../preload/index.js"),
     },
@@ -22,37 +26,61 @@ export const DEFAULT_CONTROLS: TitleBarControls = {
     close: true,
 };
 
-const SETTINGS_WINDOW: () => [
-    BrowserWindowConstructorOptions,
-    TitleBarControls,
-] = () => [
-    {
-        ...BASE_OPTIONS,
-        maximizable: false,
-        fullscreenable: false,
-        minWidth: 800,
-    },
-    { ...DEFAULT_CONTROLS },
-];
+const DIALOG_OPTIONS: BrowserWindowConstructorOptions = {
+    width: 600,
+    height: 200,
+    minWidth: undefined,
+    minHeight: undefined,
+    fullscreenable: false,
+    maximizable: false,
+    resizable: false,
+};
 
-const ADD_SOURCE_WINDOW: () => [
-    BrowserWindowConstructorOptions,
-    TitleBarControls,
-] = () => [
-    {
-        ...BASE_OPTIONS,
-        maximizable: false,
-        fullscreenable: false,
-        resizable: false,
-        width: 500,
-    },
-    { ...DEFAULT_CONTROLS },
-];
+const DIALOG_CONTROLS: Partial<TitleBarControls> = {
+    minimize: false,
+    maximize: false,
+};
+
+const createPolicy = (
+    options: BrowserWindowConstructorOptions,
+    controls: Partial<TitleBarControls> = {},
+): WindowPolicy => {
+    return (parent) => [
+        {
+            ...DEFAULT_OPTIONS,
+            ...options,
+            ...(parent ? { parent } : {}),
+        },
+        { ...DEFAULT_CONTROLS, ...controls },
+    ];
+};
 
 export const WINDOW_POLICIES: Record<
     Exclude<Route, "*" | "/">,
-    () => [BrowserWindowConstructorOptions, TitleBarControls]
+    WindowPolicy
 > = {
-    "/settings": SETTINGS_WINDOW,
-    "/add-source": ADD_SOURCE_WINDOW,
+    "/settings": createPolicy({
+        minWidth: 800,
+        fullscreenable: false,
+        maximizable: false,
+    }),
+
+    "/add-source": createPolicy({
+        width: 500,
+        height: 400,
+        minWidth: undefined,
+        minHeight: undefined,
+        fullscreenable: false,
+        maximizable: false,
+        resizable: false,
+        modal: true,
+    }),
+
+    "/modal": createPolicy(
+        {
+            ...DIALOG_OPTIONS,
+            modal: true,
+        },
+        DIALOG_CONTROLS,
+    ),
 };

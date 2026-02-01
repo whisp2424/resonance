@@ -3,7 +3,6 @@ import type { SourceType } from "@shared/constants/sources";
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import Button from "@renderer/components/ui/Button";
 import { Field, FieldError, FieldLabel } from "@renderer/components/ui/Field";
-import Input from "@renderer/components/ui/Input";
 import {
     Select,
     SelectContent,
@@ -11,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@renderer/components/ui/Select";
+import TextInput from "@renderer/components/ui/TextInput";
 import { SOURCE_TYPES } from "@shared/constants/sources";
 import { useState } from "react";
 
@@ -90,8 +90,7 @@ export default function AddSourceView() {
                     Display name
                     <span className="px-1.5 opacity-40">optional</span>
                 </FieldLabel>
-                <Input
-                    type="text"
+                <TextInput
                     placeholder="Music"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
@@ -102,9 +101,8 @@ export default function AddSourceView() {
             </Field>
             <Field name="uri">
                 <FieldLabel>URI</FieldLabel>
-                <Input
+                <TextInput
                     required
-                    type="text"
                     placeholder="C:/Users/..."
                     value={uri}
                     onChange={(e) => setUri(e.target.value)}

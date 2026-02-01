@@ -34,12 +34,13 @@ export const registerWindowHandlers = (
         return windowManager.getTitle(id);
     });
 
-    ipc.handle("window:setTitle", (_, title, id) => {
-        windowManager.setTitle(title, id);
+    ipc.handle("window:setTitle", (_, id, title) => {
+        windowManager.setTitle(id, title);
     });
 
-    ipc.handle("window:new", (_, route, id) => {
-        return windowManager.createWindow(id, route);
+    ipc.handle("window:new", (event, route, id) => {
+        const parentId = windowManager.getWindowId(event.sender);
+        return windowManager.createWindow(id, route, parentId ?? undefined);
     });
 
     ipc.handle("window:getId", (event) => {

@@ -114,7 +114,7 @@ export function LibrarySettings() {
     const { sources, removeSource } = useLibrarySources();
     return (
         <SettingsCategory title="Library">
-            <div className="flex flex-col gap-4 rounded-md border border-neutral-300 bg-black/4 px-6 py-4 dark:border-neutral-800 dark:bg-white/2">
+            <div className="flex flex-col gap-4 rounded-md border border-neutral-300 bg-black/4 p-4 dark:border-neutral-800 dark:bg-white/2">
                 <SourcesList sources={sources} onRemove={removeSource} />
                 <div className="flex flex-row items-center justify-end">
                     <Button
@@ -126,7 +126,7 @@ export function LibrarySettings() {
                                 "addSource",
                             );
                         }}>
-                        Add...
+                        Add source
                     </Button>
                 </div>
             </div>
