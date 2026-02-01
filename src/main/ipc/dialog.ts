@@ -3,6 +3,7 @@ import type { DialogOptions, DialogResult } from "@shared/types/dialog";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
 import { windowManager } from "@main/window/windowManager";
+import { shell } from "electron";
 
 class DialogManager {
     private options = new Map<string, DialogOptions>();
@@ -74,8 +75,12 @@ class DialogManager {
                         const opts = this.options.get(dialogId);
                         if (opts) {
                             const cancelable = opts.cancelable ?? true;
-                            if (!cancelable) event.preventDefault();
-                            else this.closeDialog(dialogId, null);
+                            if (!cancelable) {
+                                event.preventDefault();
+                                shell.beep();
+                            } else {
+                                this.closeDialog(dialogId, null);
+                            }
                         }
                     });
                 }

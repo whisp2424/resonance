@@ -20,7 +20,7 @@ interface TableSchema {
     pk: number;
 }
 
-export function DatabaseDebugView() {
+export function DatabaseDebug() {
     const [tables, setTables] = useState<string[]>([]);
     const [selectedTable, setSelectedTable] = useState<string>("");
     const [tableSchema, setTableSchema] = useState<TableSchema[]>([]);

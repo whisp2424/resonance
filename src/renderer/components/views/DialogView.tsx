@@ -101,12 +101,12 @@ export default function DialogView() {
 
     return (
         <div
-            className="flex h-full flex-row items-start gap-4 p-8"
+            className="flex h-full flex-row items-start gap-4 p-6 pt-8"
             ref={containerRef}>
             <Icon className="size-14 opacity-50" />
             <div className="flex h-full flex-1 flex-col justify-between gap-2">
-                <div className="">
-                    <h1 className="text-xl">{options.title}</h1>
+                <div>
+                    <h1 className="text-lg">{options.title}</h1>
                     <p className="text-sm opacity-50">{options.description}</p>
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-1">
