@@ -91,7 +91,7 @@ function SourceItem({ source, onRemove }: SourceItemProps) {
 function SourcesList({ sources, onRemove }: SourceListProps) {
     if (sources.length === 0) {
         return (
-            <p className="pt-8 pb-4 text-center text-neutral-500 dark:text-neutral-400">
+            <p className="pt-8 pb-4 text-center opacity-50">
                 No media sources have been setup yet...
             </p>
         );
