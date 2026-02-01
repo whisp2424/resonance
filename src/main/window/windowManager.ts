@@ -1,5 +1,6 @@
 import type { Route, WindowRoute } from "@shared/constants/routes";
 import type { MainIpcListenEvents, TitleBarControls } from "@shared/types/ipc";
+import type { Rectangle } from "electron";
 
 import { join } from "node:path";
 
@@ -65,6 +66,12 @@ class WindowManager {
         return { ...DEFAULT_CONTROLS, ...this.windows.get(id)?.controls };
     }
 
+    setControls(id: string, controls: Partial<TitleBarControls>): void {
+        const info = this.windows.get(id);
+        if (!info) return;
+        info.controls = { ...info.controls, ...controls };
+    }
+
     closeWindow(id: string): void {
         this.windows.get(id)?.window.close();
     }
@@ -126,7 +133,12 @@ class WindowManager {
         );
     }
 
-    createWindow(id: string, route: WindowRoute, parentId?: string): string {
+    createWindow(
+        id: string,
+        route: WindowRoute,
+        parentId?: string,
+        customOptions?: Partial<Electron.BrowserWindowConstructorOptions>,
+    ): string {
         const existing = this.windows.get(id);
 
         if (existing) {
@@ -141,23 +153,44 @@ class WindowManager {
         if (!policy) throw new Error(`Invalid route: ${route}`);
 
         const parentWindow = parentId ? this.getWindow(parentId) : undefined;
-        const [options, controls] = policy(parentWindow);
+        const [policyOptions, controls] = policy(parentWindow);
 
-        const windowState = windowStateManager.getState(id);
-        const validatedBounds = windowState
-            ? validateBounds({
-                  x: windowState.x,
-                  y: windowState.y,
-                  width: windowState.width,
-                  height: windowState.height,
-              })
+        // Merge policy options with custom options (custom takes precedence)
+        const options = {
+            ...policyOptions,
+            ...customOptions,
+        };
+
+        const isDialog = route === "/modal";
+        const windowState = !isDialog
+            ? windowStateManager.getState(id)
             : undefined;
 
-        const window = new BrowserWindow({
-            ...options,
-            ...validatedBounds,
-        });
+        const useSavedPosition = !isDialog && options.movable !== false;
+        const useSavedSize = !isDialog && options.resizable !== false;
 
+        const bounds: Partial<Rectangle> = {};
+
+        if (useSavedPosition) {
+            bounds.x = windowState?.x;
+            bounds.y = windowState?.y;
+        }
+
+        if (useSavedSize) {
+            bounds.width = windowState?.width;
+            bounds.height = windowState?.height;
+        }
+
+        const validatedBounds = validateBounds(bounds);
+        const windowOptions = {
+            ...options,
+            x: validatedBounds.x ?? options.x,
+            y: validatedBounds.y ?? options.y,
+            width: validatedBounds.width ?? options.width,
+            height: validatedBounds.height ?? options.height,
+        };
+
+        const window = new BrowserWindow(windowOptions);
         this.addWindow(id, window, route, controls);
 
         window.webContents.setWindowOpenHandler((details) => {
@@ -202,24 +235,35 @@ class WindowManager {
 
     private registerWindowEvents(id: string, window: BrowserWindow): void {
         const windowState = windowStateManager.getState(id);
+        const info = this.windows.get(id);
+        const isDialog = info?.route === "/modal";
 
         window.on("ready-to-show", () => {
             window.show();
             if (windowState?.isMaximized) window.maximize();
         });
 
-        window.on("move", () => this.debounceUpdateState(id, window));
-        window.on("resize", () => this.debounceUpdateState(id, window));
+        if (!isDialog) {
+            window.on("move", () => this.debounceUpdateState(id, window));
+            window.on("resize", () => this.debounceUpdateState(id, window));
 
-        window.on("maximize", () => {
-            this.emitter.send(window.webContents, "window:onMaximize");
-            windowStateManager.updateState(id, { isMaximized: true });
-        });
+            window.on("maximize", () => {
+                this.emitter.send(window.webContents, "window:onMaximize");
+                windowStateManager.updateState(id, { isMaximized: true });
+            });
 
-        window.on("unmaximize", () => {
-            this.emitter.send(window.webContents, "window:onUnmaximize");
-            windowStateManager.updateState(id, { isMaximized: false });
-        });
+            window.on("unmaximize", () => {
+                this.emitter.send(window.webContents, "window:onUnmaximize");
+                windowStateManager.updateState(id, { isMaximized: false });
+            });
+
+            window.on("close", () => {
+                windowStateManager.updateState(id, {
+                    ...window.getNormalBounds(),
+                    isMaximized: window.isMaximized(),
+                });
+            });
+        }
 
         window.on("enter-full-screen", () => {
             this.emitter.send(window.webContents, "window:onEnterFullscreen");
@@ -227,13 +271,6 @@ class WindowManager {
 
         window.on("leave-full-screen", () => {
             this.emitter.send(window.webContents, "window:onLeaveFullscreen");
-        });
-
-        window.on("close", () => {
-            windowStateManager.updateState(id, {
-                ...window.getNormalBounds(),
-                isMaximized: window.isMaximized(),
-            });
         });
 
         window.on("closed", () => this.removeWindow(id));
