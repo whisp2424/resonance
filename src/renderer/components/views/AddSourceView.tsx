@@ -11,17 +11,18 @@ import {
     SelectValue,
 } from "@renderer/components/ui/Select";
 import TextInput from "@renderer/components/ui/TextInput";
+import { useDialog } from "@renderer/hooks/useDialog";
 import { SOURCE_TYPES } from "@shared/constants/sources";
 import { useState } from "react";
 
 export default function AddSourceView() {
+    const { openDialog } = useDialog();
     const [sourceType, setSourceType] = useState<SourceType>(
         SOURCE_TYPES.LOCAL,
     );
     const [displayName, setDisplayName] = useState("");
     const [uri, setUri] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const sourceTypeItems = [
         { label: "Local", value: SOURCE_TYPES.LOCAL },
@@ -31,7 +32,6 @@ export default function AddSourceView() {
         if (!uri.trim()) return;
 
         setIsSubmitting(true);
-        setError(null);
         try {
             const result = await electron.invoke(
                 "library:addSource",
@@ -41,7 +41,13 @@ export default function AddSourceView() {
             );
 
             if (!result) {
-                setError("A source with this URI already exists");
+                setIsSubmitting(false);
+                await openDialog({
+                    type: "error",
+                    title: "Error",
+                    description: "A source with this URI already exists",
+                    id: "add-source-error",
+                });
                 return;
             }
 
@@ -51,9 +57,13 @@ export default function AddSourceView() {
             window.close();
         } catch (err) {
             setIsSubmitting(false);
-            setError(
-                err instanceof Error ? err.message : "Failed to add source",
-            );
+            await openDialog({
+                type: "error",
+                title: "Error",
+                description:
+                    err instanceof Error ? err.message : "Failed to add source",
+                id: "add-source-error",
+            });
         }
     };
 
@@ -114,11 +124,6 @@ export default function AddSourceView() {
                     An URI path pointing to the source is required
                 </FieldError>
             </Field>
-            {error && (
-                <div className="rounded-md border border-red-400 bg-linear-to-t from-red-500/20 to-red-500/10 p-4 text-sm text-red-950 dark:bg-linear-to-b dark:text-red-100">
-                    {error}
-                </div>
-            )}
             <div className="flex flex-1 items-end justify-end gap-4">
                 <Button
                     onClick={handleAdd}

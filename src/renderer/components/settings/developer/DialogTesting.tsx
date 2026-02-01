@@ -2,7 +2,6 @@ import type { DialogType } from "@shared/types/dialog";
 
 import Button from "@renderer/components/ui/Button";
 import { Field, FieldLabel } from "@renderer/components/ui/Field";
-import NumberInput from "@renderer/components/ui/NumberInput";
 import {
     Select,
     SelectContent,
@@ -26,20 +25,8 @@ export default function DialogTesting() {
     const [secondaryLabel, setSecondaryLabel] = useState("Cancel");
     const [showSecondary, setShowSecondary] = useState(false);
     const [isCancelable, setIsCancelable] = useState(true);
-    const [customId, setCustomId] = useState("");
-    const [customWidth, setCustomWidth] = useState<number | undefined>(
-        undefined,
-    );
-    const [customHeight, setCustomHeight] = useState<number | undefined>(
-        undefined,
-    );
 
     const handleOpenDialog = async () => {
-        if (!customId) {
-            console.warn("Dialog ID is required");
-            return;
-        }
-
         const buttons = [
             ...(showSecondary
                 ? [
@@ -62,11 +49,8 @@ export default function DialogTesting() {
             type: dialogType,
             title,
             description,
-            id: customId,
             buttons,
             cancelable: isCancelable,
-            width: customWidth,
-            height: customHeight,
         });
 
         console.log("Dialog result:", result);
@@ -87,7 +71,7 @@ export default function DialogTesting() {
                             <SelectItem value="info">Info</SelectItem>
                             <SelectItem value="warning">Warning</SelectItem>
                             <SelectItem value="error">Error</SelectItem>
-                            <SelectItem value="confirm">Confirm</SelectItem>
+                            <SelectItem value="question">Question</SelectItem>
                         </SelectContent>
                     </Select>
                 </Field>
@@ -152,53 +136,8 @@ export default function DialogTesting() {
                 </Field>
             </div>
 
-            <Field name="customId">
-                <FieldLabel>Dialog ID</FieldLabel>
-                <TextInput
-                    value={customId}
-                    placeholder="e.g., unsaved-changes-dialog"
-                    onChange={(e) => setCustomId(e.target.value)}
-                />
-            </Field>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field name="width">
-                    <FieldLabel>Width (optional)</FieldLabel>
-                    <NumberInput
-                        value={customWidth}
-                        placeholder="600"
-                        min={0}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            setCustomWidth(
-                                value ? Number.parseInt(value, 10) : undefined,
-                            );
-                        }}
-                    />
-                </Field>
-
-                <Field name="height">
-                    <FieldLabel>Height (optional)</FieldLabel>
-                    <NumberInput
-                        value={customHeight}
-                        placeholder="200"
-                        min={0}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            setCustomHeight(
-                                value ? Number.parseInt(value, 10) : undefined,
-                            );
-                        }}
-                    />
-                </Field>
-            </div>
-
             <div className="flex justify-end pt-2">
-                <Button
-                    disabled={Boolean(!customId.trim())}
-                    onClick={handleOpenDialog}>
-                    Open Dialog
-                </Button>
+                <Button onClick={handleOpenDialog}>Open Dialog</Button>
             </div>
         </div>
     );

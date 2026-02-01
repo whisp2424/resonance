@@ -1,6 +1,5 @@
 import TitleBar from "@renderer/components/layout/TitleBar";
 import AddSourceView from "@renderer/components/views/AddSourceView";
-import DialogView from "@renderer/components/views/DialogView";
 import MissingSourcesView from "@renderer/components/views/MissingSourcesView";
 import NotFound from "@renderer/components/views/NotFound";
 import SettingsView from "@renderer/components/views/SettingsView";
@@ -66,7 +65,6 @@ export default function App() {
                 <Route path={ROUTES.HOME} element={<MissingSourcesView />} />
                 <Route path={ROUTES.SETTINGS} element={<SettingsView />} />
                 <Route path={ROUTES.ADD_SOURCE} element={<AddSourceView />} />
-                <Route path={ROUTES.MODAL} element={<DialogView />} />
                 <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
             </Routes>
         </div>

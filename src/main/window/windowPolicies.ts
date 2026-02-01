@@ -26,21 +26,6 @@ export const DEFAULT_CONTROLS: TitleBarControls = {
     close: true,
 };
 
-const DIALOG_OPTIONS: BrowserWindowConstructorOptions = {
-    width: 600,
-    height: 200,
-    minWidth: undefined,
-    minHeight: undefined,
-    fullscreenable: false,
-    maximizable: false,
-    resizable: false,
-};
-
-const DIALOG_CONTROLS: Partial<TitleBarControls> = {
-    minimize: false,
-    maximize: false,
-};
-
 const createPolicy = (
     options: BrowserWindowConstructorOptions,
     controls: Partial<TitleBarControls> = {},
@@ -75,12 +60,4 @@ export const WINDOW_POLICIES: Record<
         resizable: false,
         modal: true,
     }),
-
-    "/modal": createPolicy(
-        {
-            ...DIALOG_OPTIONS,
-            modal: true,
-        },
-        DIALOG_CONTROLS,
-    ),
 };

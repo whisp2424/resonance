@@ -155,19 +155,15 @@ class WindowManager {
         const parentWindow = parentId ? this.getWindow(parentId) : undefined;
         const [policyOptions, controls] = policy(parentWindow);
 
-        // Merge policy options with custom options (custom takes precedence)
         const options = {
             ...policyOptions,
             ...customOptions,
         };
 
-        const isDialog = route === "/modal";
-        const windowState = !isDialog
-            ? windowStateManager.getState(id)
-            : undefined;
+        const windowState = windowStateManager.getState(id);
 
-        const useSavedPosition = !isDialog && options.movable !== false;
-        const useSavedSize = !isDialog && options.resizable !== false;
+        const useSavedPosition = options.movable !== false;
+        const useSavedSize = options.resizable !== false;
 
         const bounds: Partial<Rectangle> = {};
 
@@ -235,35 +231,31 @@ class WindowManager {
 
     private registerWindowEvents(id: string, window: BrowserWindow): void {
         const windowState = windowStateManager.getState(id);
-        const info = this.windows.get(id);
-        const isDialog = info?.route === "/modal";
 
         window.on("ready-to-show", () => {
             window.show();
             if (windowState?.isMaximized) window.maximize();
         });
 
-        if (!isDialog) {
-            window.on("move", () => this.debounceUpdateState(id, window));
-            window.on("resize", () => this.debounceUpdateState(id, window));
+        window.on("move", () => this.debounceUpdateState(id, window));
+        window.on("resize", () => this.debounceUpdateState(id, window));
 
-            window.on("maximize", () => {
-                this.emitter.send(window.webContents, "window:onMaximize");
-                windowStateManager.updateState(id, { isMaximized: true });
-            });
+        window.on("maximize", () => {
+            this.emitter.send(window.webContents, "window:onMaximize");
+            windowStateManager.updateState(id, { isMaximized: true });
+        });
 
-            window.on("unmaximize", () => {
-                this.emitter.send(window.webContents, "window:onUnmaximize");
-                windowStateManager.updateState(id, { isMaximized: false });
-            });
+        window.on("unmaximize", () => {
+            this.emitter.send(window.webContents, "window:onUnmaximize");
+            windowStateManager.updateState(id, { isMaximized: false });
+        });
 
-            window.on("close", () => {
-                windowStateManager.updateState(id, {
-                    ...window.getNormalBounds(),
-                    isMaximized: window.isMaximized(),
-                });
+        window.on("close", () => {
+            windowStateManager.updateState(id, {
+                ...window.getNormalBounds(),
+                isMaximized: window.isMaximized(),
             });
-        }
+        });
 
         window.on("enter-full-screen", () => {
             this.emitter.send(window.webContents, "window:onEnterFullscreen");

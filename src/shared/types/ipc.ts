@@ -42,13 +42,7 @@ export type MainIpcHandleEvents = {
         value: PathValue<Settings, P>,
     ) => void;
 
-    "dialog:open": (options: DialogOptions) => Promise<DialogResult>;
-    "dialog:getOptions": (windowId: string) => DialogOptions | null;
-    "dialog:close": (windowId: string, result?: DialogResult) => void;
-    "dialog:resize": (
-        windowId: string,
-        dimensions: { width: number; height: number },
-    ) => void;
+    "dialog:open": (options: DialogOptions) => DialogResult;
 
     "library:addSource": (
         uri: string,
