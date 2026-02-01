@@ -53,6 +53,7 @@ Resonance uses a multi-process architecture with separate codebases for `main`, 
 
 - **Strict Mode**: Always define proper types; avoid `any`. Use `unknown` for uncertain types.
 - **Module Syntax**: Use `import type` for type-only imports.
+- **No Type Casting**: **NEVER** use type casting (`as` or `as unknown as`) unless strictly necessary and there's no other choice. Fix the underlying type issues instead of working around them with casts.
 
 ### Imports
 
