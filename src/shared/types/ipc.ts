@@ -2,6 +2,7 @@ import type { WindowRoute } from "@shared/constants/routes";
 import type { SourceType } from "@shared/constants/sources";
 import type { Settings } from "@shared/schema/settings";
 import type { DialogOptions, DialogResult } from "@shared/types/dialog";
+import type { LibraryMediaSource } from "@shared/types/library";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
 export type SettingsKey = keyof Settings;
@@ -48,19 +49,9 @@ export type MainIpcHandleEvents = {
         uri: string,
         type: SourceType,
         name?: string,
-    ) => {
-        id: number;
-        type: string;
-        uri: string;
-        displayName: string;
-    };
+    ) => LibraryMediaSource | undefined;
 
-    "library:getSources": (type?: SourceType) => {
-        id: number;
-        type: string;
-        uri: string;
-        displayName: string;
-    }[];
+    "library:getSources": (type?: SourceType) => LibraryMediaSource[];
 
     "library:removeSource": (uri: string, type?: SourceType) => void;
 

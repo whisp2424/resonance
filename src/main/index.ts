@@ -9,7 +9,7 @@ import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconWhite from "@main/../../build/tray-white.png?asset";
 import { runMigrations } from "@main/database";
 import { registerAppHandlers } from "@main/ipc/app";
-import { registerDatabaseHandlers } from "@main/ipc/database";
+import { registerDatabaseHandlers } from "@main/ipc/dev";
 import { registerDialogHandlers } from "@main/ipc/dialog";
 import { registerLibraryHandlers } from "@main/ipc/library";
 import { registerSettingsHandlers } from "@main/ipc/settings";

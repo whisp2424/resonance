@@ -1,5 +1,6 @@
 import type { IconElement } from "@renderer/types/iconElement";
 import type { SourceType } from "@shared/constants/sources";
+import type { LibraryMediaSource } from "@shared/types/library";
 
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import Button from "@renderer/components/ui/Button";
@@ -9,20 +10,13 @@ import IconFileQuestion from "~icons/lucide/file-question-mark";
 import IconFolder from "~icons/lucide/folder";
 import IconTrash from "~icons/lucide/trash-2";
 
-type Source = {
-    id: number;
-    type: string;
-    uri: string;
-    displayName: string;
-};
-
 interface SourceItemProps {
-    source: Source;
+    source: LibraryMediaSource;
     onRemove: (uri: string, type: SourceType) => void;
 }
 
 interface SourceListProps {
-    sources: Source[];
+    sources: LibraryMediaSource[];
     onRemove: (uri: string, type: SourceType) => void;
 }
 
@@ -31,7 +25,7 @@ const SOURCE_ICONS: Record<string, IconElement> = {
 };
 
 function useLibrarySources() {
-    const [sources, setSources] = useState<Source[]>([]);
+    const [sources, setSources] = useState<LibraryMediaSource[]>([]);
     const hasLoaded = useRef(false);
 
     const loadSources = useCallback(async () => {
