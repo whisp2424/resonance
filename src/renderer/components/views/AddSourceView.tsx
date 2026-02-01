@@ -1,6 +1,5 @@
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import { Field, FieldLabel } from "@renderer/components/ui/Field";
-import Input from "@renderer/components/ui/Input";
 import {
     Select,
     SelectContent,
@@ -8,6 +7,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@renderer/components/ui/Select";
+import TextInput from "@renderer/components/ui/TextInput";
 import { useState } from "react";
 
 import Button from "../ui/Button";
@@ -50,11 +50,11 @@ export default function AddSourceView() {
                     Display name
                     <span className="px-1.5 opacity-40">optional</span>
                 </FieldLabel>
-                <Input type="text" placeholder="Music" />
+                <TextInput placeholder="Music" />
             </Field>
             <Field name="displayName">
                 <FieldLabel>URI</FieldLabel>
-                <Input type="text" placeholder="C:/Users/..." />
+                <TextInput placeholder="C:/Users/..." />
             </Field>
             <div className="flex flex-1 items-end justify-end gap-4">
                 <Button>Add</Button>
