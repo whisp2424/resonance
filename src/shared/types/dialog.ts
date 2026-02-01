@@ -11,9 +11,11 @@ export interface DialogOptions {
     type: DialogType;
     title: string;
     description: string;
+    id: string;
     buttons?: DialogButton[];
     cancelable?: boolean;
-    id?: string;
+    width?: number;
+    height?: number;
 }
 
 export type DialogResult = string | null;

@@ -1,7 +1,7 @@
 import type { WindowRoute } from "@shared/constants/routes";
 import type { Settings } from "@shared/schema/settings";
+import type { DialogOptions, DialogResult } from "@shared/types/dialog";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
-import type { DialogOptions, DialogResult } from "./dialog";
 
 export type SettingsKey = keyof Settings;
 export type SettingsPath = PathInto<Settings>;
@@ -40,6 +40,10 @@ export type MainIpcHandleEvents = {
     "dialog:open": (options: DialogOptions) => Promise<DialogResult>;
     "dialog:getOptions": (windowId: string) => DialogOptions | null;
     "dialog:close": (windowId: string, result?: DialogResult) => void;
+    "dialog:resize": (
+        windowId: string,
+        dimensions: { width: number; height: number },
+    ) => void;
 };
 
 export type MainIpcListenEvents = {

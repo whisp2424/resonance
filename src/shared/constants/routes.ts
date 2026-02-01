@@ -3,7 +3,6 @@ export const ROUTES = {
     HOME: "/",
     SETTINGS: "/settings",
     ADD_SOURCE: "/add-source",
-    DIALOG: "/dialog",
     MODAL: "/modal",
 } as const;
 

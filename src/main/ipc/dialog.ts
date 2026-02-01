@@ -18,32 +18,24 @@ class DialogManager {
         event: Electron.IpcMainInvokeEvent,
         options: DialogOptions,
     ): Promise<DialogResult> {
-        let dialogId: string;
-        let route: "/dialog" | "/modal";
+        const dialogId = options.id;
 
-        if (options.id) {
-            const existing = this.pending.get(options.id);
-            if (existing) {
-                const win = windowManager.getWindow(options.id);
-                if (win) {
-                    if (win.isMinimized()) win.restore();
-                    if (!win.isVisible()) win.show();
-                    win.focus();
-                }
+        const existing = this.pending.get(dialogId);
+
+        if (existing) {
+            const win = windowManager.getWindow(dialogId);
+            if (win && !win.isDestroyed()) {
+                if (win.isMinimized()) win.restore();
+                if (!win.isVisible()) win.show();
+                win.focus();
+
                 return new Promise((resolve) => {
                     existing.resolve = resolve;
                 });
             }
-            dialogId = options.id;
-            route = "/modal";
-        } else {
-            do {
-                dialogId = `dialog-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-            } while (
-                this.pending.has(dialogId) ||
-                windowManager.getWindow(dialogId)
-            );
-            route = "/dialog";
+
+            this.pending.delete(dialogId);
+            this.options.delete(dialogId);
         }
 
         const parentId = windowManager.getWindowId(event.sender);
@@ -53,11 +45,40 @@ class DialogManager {
             this.pending.set(dialogId, { resolve, reject });
 
             try {
+                const customOptions: Partial<Electron.BrowserWindowConstructorOptions> =
+                    {};
+
+                if (options.width) customOptions.width = options.width;
+                if (options.height) customOptions.height = options.height;
+
                 windowManager.createWindow(
                     dialogId,
-                    route,
+                    "/modal",
                     parentId ?? undefined,
+                    customOptions,
                 );
+
+                const window = windowManager.getWindow(dialogId);
+
+                if (window) {
+                    const isCancelable = options.cancelable ?? true;
+                    if (!isCancelable) {
+                        windowManager.setControls(dialogId, {
+                            minimize: false,
+                            maximize: false,
+                            close: false,
+                        });
+                    }
+
+                    window.on("close", (event) => {
+                        const opts = this.options.get(dialogId);
+                        if (opts) {
+                            const cancelable = opts.cancelable ?? true;
+                            if (!cancelable) event.preventDefault();
+                            else this.closeDialog(dialogId, null);
+                        }
+                    });
+                }
             } catch (error) {
                 this.options.delete(dialogId);
                 this.pending.delete(dialogId);
@@ -72,13 +93,37 @@ class DialogManager {
 
     closeDialog(windowId: string, result?: DialogResult): void {
         const pending = this.pending.get(windowId);
+
         if (pending) {
             pending.resolve(result ?? null);
             this.pending.delete(windowId);
         }
 
         this.options.delete(windowId);
-        windowManager.closeWindow(windowId);
+
+        const win = windowManager.getWindow(windowId);
+        if (win && !win.isDestroyed()) windowManager.closeWindow(windowId);
+    }
+
+    resizeDialog(
+        windowId: string,
+        dimensions: { width: number; height: number },
+    ): void {
+        const win = windowManager.getWindow(windowId);
+        if (win && !win.isDestroyed()) {
+            const currentBounds = win.getBounds();
+
+            const needsResize =
+                dimensions.width > currentBounds.width ||
+                dimensions.height > currentBounds.height;
+
+            if (needsResize) {
+                win.setBounds({
+                    width: Math.max(currentBounds.width, dimensions.width),
+                    height: Math.max(currentBounds.height, dimensions.height),
+                });
+            }
+        }
     }
 }
 
@@ -94,21 +139,22 @@ export const registerDialogHandlers = () => {
         },
     );
 
-    ipc.handle(
-        "dialog:getOptions",
-        (_: Electron.IpcMainInvokeEvent, windowId: string) => {
-            return dialogManager.getOptions(windowId);
-        },
-    );
+    ipc.handle("dialog:getOptions", (_, windowId: string) => {
+        return dialogManager.getOptions(windowId);
+    });
+
+    ipc.handle("dialog:close", (_, windowId: string, result?: DialogResult) => {
+        dialogManager.closeDialog(windowId, result);
+    });
 
     ipc.handle(
-        "dialog:close",
+        "dialog:resize",
         (
-            _: Electron.IpcMainInvokeEvent,
+            _,
             windowId: string,
-            result?: DialogResult,
+            dimensions: { width: number; height: number },
         ) => {
-            dialogManager.closeDialog(windowId, result);
+            dialogManager.resizeDialog(windowId, dimensions);
         },
     );
 };
