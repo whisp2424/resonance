@@ -8,8 +8,8 @@ export function LibrarySettings() {
         <SettingsCategory title="Library">
             <div className="flex flex-col gap-4 rounded-md border border-neutral-300 bg-black/4 p-4 dark:border-neutral-800 dark:bg-white/2">
                 <div className="flex flex-col items-center justify-center gap-2 py-6 text-center opacity-50">
-                    <IconFolder className="size-16" />
-                    <span>No media sources have been setup yet!</span>
+                    <IconFolder className="size-12" />
+                    <span>No media sources have been setup yet...</span>
                 </div>
                 <div className="flex flex-row items-center justify-end">
                     <Button
