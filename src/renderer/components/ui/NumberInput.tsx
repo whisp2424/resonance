@@ -62,22 +62,20 @@ export default function NumberInput({
                 onChange={onChange}
                 {...props}
             />
-            <div className="absolute top-1/2 right-1 flex -translate-y-1/2 flex-col">
+            <div className="absolute top-1/2 right-2 flex -translate-y-1/2 flex-col">
                 <button
                     type="button"
                     onClick={() => handleButtonClick(step)}
-                    className="flex h-3 w-4 items-center justify-center text-neutral-800/50 hover:text-neutral-800 dark:text-neutral-200/50 dark:hover:text-neutral-200"
-                    tabIndex={-1}
-                    aria-label="Increase value">
-                    <ChevronUp className="h-3 w-3" />
+                    className="opacity-50 hover:opacity-80"
+                    tabIndex={-1}>
+                    <ChevronUp className="size-3" />
                 </button>
                 <button
                     type="button"
                     onClick={() => handleButtonClick(-step)}
-                    className="flex h-3 w-4 items-center justify-center text-neutral-800/50 hover:text-neutral-800 dark:text-neutral-200/50 dark:hover:text-neutral-200"
-                    tabIndex={-1}
-                    aria-label="Decrease value">
-                    <ChevronDown className="h-3 w-3" />
+                    className="opacity-50 hover:opacity-80"
+                    tabIndex={-1}>
+                    <ChevronDown className="size-3" />
                 </button>
             </div>
         </div>
