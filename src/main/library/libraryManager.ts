@@ -23,10 +23,6 @@ class LibraryManager {
         if (backend) query.where(eq(sourcesTable.backend, backend));
 
         const sources = await query;
-
-        if (sources.length === 0)
-            log("no media sources found in the database!", "library");
-
         return sources;
     }
 
@@ -74,7 +70,7 @@ class LibraryManager {
                 success: false,
                 error: "duplicate",
                 message:
-                    "This media source has already been added to your library.",
+                    "This media source has already been added to your library",
             };
         }
 

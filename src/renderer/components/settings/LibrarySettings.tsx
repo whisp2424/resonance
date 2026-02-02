@@ -4,8 +4,9 @@ import type { LibraryMediaSource } from "@shared/types/library";
 
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import Button from "@renderer/components/ui/Button";
+import { useLibraryContext } from "@renderer/contexts/LibraryContext";
 import { useDialog } from "@renderer/hooks/useDialog";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 
 import IconFileQuestion from "~icons/lucide/file-question-mark";
 import IconFolder from "~icons/lucide/folder";
@@ -24,61 +25,6 @@ interface SourceListProps {
 const SOURCE_ICONS: Record<string, IconElement> = {
     local: IconFolder,
 };
-
-function useLibrarySources() {
-    const { openDialog } = useDialog();
-    const [sources, setSources] = useState<LibraryMediaSource[]>([]);
-    const hasLoaded = useRef(false);
-
-    const loadSources = useCallback(async () => {
-        const loadedSources = await electron.invoke("library:getSources");
-        setSources(loadedSources);
-    }, []);
-
-    useEffect(() => {
-        if (!hasLoaded.current) {
-            (async () => {
-                await loadSources();
-                hasLoaded.current = true;
-            })();
-        }
-
-        const unsubscribe = electron.send(
-            "library:onSourcesChanged",
-            loadSources,
-        );
-
-        return () => unsubscribe();
-    }, [loadSources]);
-
-    const removeSource = useCallback(
-        async (source: LibraryMediaSource) => {
-            const result = await openDialog({
-                type: "question",
-                title: `Remove ${source.displayName}`,
-                description: `Are you sure you want to remove ${source.displayName}? This won't delete your files.`,
-                buttons: [
-                    { label: "Cancel", value: "cancel", variant: "secondary" },
-                    { label: "Remove", value: "remove", variant: "primary" },
-                ],
-                cancelable: true,
-                id: "confirm:remove-source",
-            });
-
-            if (result === "remove") {
-                await electron.invoke(
-                    "library:removeSource",
-                    source.uri,
-                    source.backend as MediaBackend,
-                );
-                await loadSources();
-            }
-        },
-        [loadSources, openDialog],
-    );
-
-    return { sources, removeSource };
-}
 
 function SourceItem({ source, onRemove }: SourceItemProps) {
     const Icon = SOURCE_ICONS[source.backend] ?? IconFileQuestion;
@@ -129,11 +75,33 @@ function SourcesList({ sources, onRemove }: SourceListProps) {
 }
 
 export function LibrarySettings() {
-    const { sources, removeSource } = useLibrarySources();
+    const { sources, removeSource } = useLibraryContext();
+    const { openDialog } = useDialog();
+
+    const handleRemove = useCallback(
+        async (source: LibraryMediaSource) => {
+            const result = await openDialog({
+                type: "question",
+                title: `Remove ${source.displayName}`,
+                description: `Are you sure you want to remove ${source.displayName}? This won't delete your files.`,
+                buttons: [
+                    { label: "Cancel", value: "cancel", variant: "secondary" },
+                    { label: "Remove", value: "remove", variant: "primary" },
+                ],
+                id: "confirm:remove-source",
+            });
+
+            if (result === "remove") {
+                await removeSource(source.uri, source.backend as MediaBackend);
+            }
+        },
+        [removeSource, openDialog],
+    );
+
     return (
         <SettingsCategory title="Library">
             <div className="flex flex-col gap-6 rounded-lg border border-neutral-300 bg-black/4 px-6 py-4 dark:border-neutral-800 dark:bg-white/2">
-                <SourcesList sources={sources} onRemove={removeSource} />
+                <SourcesList sources={sources} onRemove={handleRemove} />
                 <div className="flex flex-row items-center justify-end">
                     <Button
                         variant="primary"

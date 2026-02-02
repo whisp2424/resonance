@@ -25,7 +25,7 @@ export class LocalMediaBackend extends MediaBackend {
             if (!stats.isDirectory())
                 return {
                     valid: false,
-                    error: "The path you provided does not belong to a directory. Ensure the path is correct and try again.",
+                    error: "The path you provided does not belong to a directory. Ensure the path is correct and try again",
                 };
 
             return {
@@ -36,7 +36,7 @@ export class LocalMediaBackend extends MediaBackend {
             if ((error as NodeJS.ErrnoException).code === "ENOENT")
                 return {
                     valid: false,
-                    error: "The provided directory does not exist. Ensure the path is correct and try again.",
+                    error: "The provided directory does not exist. Ensure the path is correct and try again",
                 };
             return {
                 valid: false,

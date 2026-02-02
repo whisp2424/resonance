@@ -1,4 +1,5 @@
 import App from "@renderer/App";
+import { LibraryProvider } from "@renderer/providers/LibraryProvider";
 import { SettingsProvider } from "@renderer/providers/SettingsProvider";
 import "@renderer/styles.css";
 import { StrictMode } from "react";
@@ -9,7 +10,9 @@ createRoot(document.getElementById("root")!).render(
     <StrictMode>
         <HashRouter>
             <SettingsProvider>
-                <App />
+                <LibraryProvider>
+                    <App />
+                </LibraryProvider>
             </SettingsProvider>
         </HashRouter>
     </StrictMode>,

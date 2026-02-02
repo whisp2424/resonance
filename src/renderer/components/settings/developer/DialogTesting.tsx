@@ -19,12 +19,11 @@ export default function DialogTesting() {
     const [dialogType, setDialogType] = useState<DialogType>("info");
     const [title, setTitle] = useState("Dialog Title");
     const [description, setDescription] = useState(
-        "This is a dialog description.",
+        "This is a dialog description",
     );
     const [primaryLabel, setPrimaryLabel] = useState("OK");
     const [secondaryLabel, setSecondaryLabel] = useState("Cancel");
     const [showSecondary, setShowSecondary] = useState(false);
-    const [isCancelable, setIsCancelable] = useState(true);
 
     const handleOpenDialog = async () => {
         const buttons = [
@@ -50,7 +49,6 @@ export default function DialogTesting() {
             title,
             description,
             buttons,
-            cancelable: isCancelable,
         });
 
         console.log("Dialog result:", result);
@@ -72,23 +70,6 @@ export default function DialogTesting() {
                             <SelectItem value="warning">Warning</SelectItem>
                             <SelectItem value="error">Error</SelectItem>
                             <SelectItem value="question">Question</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </Field>
-
-                <Field name="cancelable">
-                    <FieldLabel>Cancelable</FieldLabel>
-                    <Select
-                        value={isCancelable ? "true" : "false"}
-                        onValueChange={(v) => setIsCancelable(v === "true")}>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="true">
-                                True (ESC works)
-                            </SelectItem>
-                            <SelectItem value="false">False</SelectItem>
                         </SelectContent>
                     </Select>
                 </Field>

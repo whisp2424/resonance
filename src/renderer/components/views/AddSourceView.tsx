@@ -55,7 +55,7 @@ export default function AddSourceView() {
                     title: "Source already exists",
                     description:
                         result.message ||
-                        "This media source has already been added to your library.",
+                        "This media source has already been added to your library",
                     id: "warning:duplicate-source",
                 });
             } else if (result.error === "invalid") {
@@ -64,7 +64,7 @@ export default function AddSourceView() {
                     title: "Invalid source provided",
                     description:
                         result.message ||
-                        "The URI provided is not valid for the selected media backend, ensure the URI is correct and try again.",
+                        "The URI provided is not valid for the selected media backend, ensure the URI is correct and try again",
                     id: "error:invalid-source",
                 });
             } else {
@@ -73,7 +73,7 @@ export default function AddSourceView() {
                     title: "An error occurred trying to add the source",
                     description:
                         result.message ||
-                        "An unexpected error occurred. Please try again.",
+                        "An unexpected error occurred. Please try again",
                     id: "error:add-source",
                 });
             }

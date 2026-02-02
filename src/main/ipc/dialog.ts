@@ -28,11 +28,6 @@ export const registerDialogHandlers = (
                 defaultId:
                     options.buttons?.findIndex((button) => button.default) ??
                     (options.type === "question" ? 1 : 0),
-                cancelId: options.cancelable
-                    ? options.type === "question"
-                        ? 0
-                        : undefined
-                    : undefined,
             };
 
             const result = parentWindow

@@ -13,7 +13,6 @@ export interface DialogOptions {
     description: string;
     id?: string;
     buttons?: DialogButton[];
-    cancelable?: boolean;
 }
 
 export type DialogResult = string | null;
