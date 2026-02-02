@@ -1,9 +1,10 @@
 import type { IconElement } from "@renderer/types/iconElement";
-import type { SourceType } from "@shared/constants/sources";
+import type { MediaBackend } from "@shared/constants/mediaBackends";
 import type { LibraryMediaSource } from "@shared/types/library";
 
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import Button from "@renderer/components/ui/Button";
+import { useDialog } from "@renderer/hooks/useDialog";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import IconFileQuestion from "~icons/lucide/file-question-mark";
@@ -12,12 +13,12 @@ import IconTrash from "~icons/lucide/trash-2";
 
 interface SourceItemProps {
     source: LibraryMediaSource;
-    onRemove: (uri: string, type: SourceType) => void;
+    onRemove: (source: LibraryMediaSource) => void;
 }
 
 interface SourceListProps {
     sources: LibraryMediaSource[];
-    onRemove: (uri: string, type: SourceType) => void;
+    onRemove: (source: LibraryMediaSource) => void;
 }
 
 const SOURCE_ICONS: Record<string, IconElement> = {
@@ -25,6 +26,7 @@ const SOURCE_ICONS: Record<string, IconElement> = {
 };
 
 function useLibrarySources() {
+    const { openDialog } = useDialog();
     const [sources, setSources] = useState<LibraryMediaSource[]>([]);
     const hasLoaded = useRef(false);
 
@@ -50,31 +52,53 @@ function useLibrarySources() {
     }, [loadSources]);
 
     const removeSource = useCallback(
-        async (uri: string, type: SourceType) => {
-            await electron.invoke("library:removeSource", uri, type);
-            await loadSources();
+        async (source: LibraryMediaSource) => {
+            const result = await openDialog({
+                type: "question",
+                title: `Remove ${source.displayName}`,
+                description: `Are you sure you want to remove ${source.displayName}? This won't delete your files.`,
+                buttons: [
+                    { label: "Cancel", value: "cancel", variant: "secondary" },
+                    { label: "Remove", value: "remove", variant: "primary" },
+                ],
+                cancelable: true,
+                id: "confirm:remove-source",
+            });
+
+            if (result === "remove") {
+                await electron.invoke(
+                    "library:removeSource",
+                    source.uri,
+                    source.backend as MediaBackend,
+                );
+                await loadSources();
+            }
         },
-        [loadSources],
+        [loadSources, openDialog],
     );
 
     return { sources, removeSource };
 }
 
 function SourceItem({ source, onRemove }: SourceItemProps) {
-    const Icon = SOURCE_ICONS[source.type] ?? IconFileQuestion;
+    const Icon = SOURCE_ICONS[source.backend] ?? IconFileQuestion;
     return (
         <li className="flex items-center gap-4">
             <Icon className="size-6 opacity-50" />
             <div className="flex flex-1 flex-col">
-                <div className="flex items-center gap-2">
-                    <span>{source.displayName}</span>
-                    <span className="text-sm opacity-50">{source.type}</span>
-                </div>
+                <span>
+                    {source.displayName}{" "}
+                    <span className="text-xs opacity-50">
+                        ({source.backend})
+                    </span>
+                </span>
                 <span className="text-sm opacity-50">{source.uri}</span>
             </div>
             <Button
                 icon={IconTrash}
-                onClick={() => onRemove(source.uri, source.type as SourceType)}
+                onClick={() => {
+                    onRemove(source);
+                }}
                 className="p-2">
                 Remove
             </Button>
@@ -108,7 +132,7 @@ export function LibrarySettings() {
     const { sources, removeSource } = useLibrarySources();
     return (
         <SettingsCategory title="Library">
-            <div className="flex flex-col gap-6 rounded-md border border-neutral-300 bg-black/4 px-6 py-4 dark:border-neutral-800 dark:bg-white/2">
+            <div className="flex flex-col gap-6 rounded-lg border border-neutral-300 bg-black/4 px-6 py-4 dark:border-neutral-800 dark:bg-white/2">
                 <SourcesList sources={sources} onRemove={removeSource} />
                 <div className="flex flex-row items-center justify-end">
                     <Button

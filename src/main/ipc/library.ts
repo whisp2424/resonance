@@ -9,7 +9,7 @@ export const registerLibraryHandlers = (
 ) => {
     ipc.handle("library:addSource", async (_, uri, type, name) => {
         const result = await libraryManager.addSource(uri, type, name);
-        if (result) windowManager.emitEvent("library:onSourcesChanged");
+        if (result.success) windowManager.emitEvent("library:onSourcesChanged");
         return result;
     });
 

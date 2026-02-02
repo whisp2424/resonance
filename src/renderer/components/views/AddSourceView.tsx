@@ -1,4 +1,5 @@
-import type { SourceType } from "@shared/constants/sources";
+import type { MediaBackend } from "@shared/constants/mediaBackends";
+import type { AddSourceResult } from "@shared/types/library";
 
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import Button from "@renderer/components/ui/Button";
@@ -12,58 +13,70 @@ import {
 } from "@renderer/components/ui/Select";
 import TextInput from "@renderer/components/ui/TextInput";
 import { useDialog } from "@renderer/hooks/useDialog";
-import { SOURCE_TYPES } from "@shared/constants/sources";
+import { MEDIA_BACKENDS } from "@shared/constants/mediaBackends";
 import { useState } from "react";
 
 export default function AddSourceView() {
     const { openDialog } = useDialog();
-    const [sourceType, setSourceType] = useState<SourceType>(
-        SOURCE_TYPES.LOCAL,
+    const [sourceBackend, setSourceBackend] = useState<MediaBackend>(
+        MEDIA_BACKENDS.LOCAL,
     );
+
     const [displayName, setDisplayName] = useState("");
     const [uri, setUri] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const sourceTypeItems = [
-        { label: "Local", value: SOURCE_TYPES.LOCAL },
+    const sourceBackendItems = [
+        { label: "Local", value: MEDIA_BACKENDS.LOCAL },
     ] as const;
 
     const handleAdd = async () => {
         if (!uri.trim()) return;
 
         setIsSubmitting(true);
-        try {
-            const result = await electron.invoke(
-                "library:addSource",
-                uri.trim(),
-                sourceType,
-                displayName.trim() || undefined,
-            );
+        const result: AddSourceResult = await electron.invoke(
+            "library:addSource",
+            uri.trim(),
+            sourceBackend,
+            displayName.trim() || undefined,
+        );
 
-            if (!result) {
-                setIsSubmitting(false);
-                await openDialog({
-                    type: "error",
-                    title: "Error",
-                    description: "A source with this URI already exists",
-                    id: "add-source-error",
-                });
-                return;
-            }
-
+        if (result.success) {
             setUri("");
             setDisplayName("");
             setIsSubmitting(false);
             window.close();
-        } catch (err) {
+        } else {
             setIsSubmitting(false);
-            await openDialog({
-                type: "error",
-                title: "Error",
-                description:
-                    err instanceof Error ? err.message : "Failed to add source",
-                id: "add-source-error",
-            });
+
+            if (result.error === "duplicate") {
+                await openDialog({
+                    type: "warning",
+                    title: "Source already exists",
+                    description:
+                        result.message ||
+                        "This media source has already been added to your library.",
+                    id: "warning:duplicate-source",
+                });
+            } else if (result.error === "invalid") {
+                await openDialog({
+                    type: "error",
+                    title: "Invalid source provided",
+                    description:
+                        result.message ||
+                        "The URI provided is not valid for the selected media backend, ensure the URI is correct and try again.",
+                    id: "error:invalid-source",
+                });
+            } else {
+                await openDialog({
+                    type: "error",
+                    title: "An error occurred trying to add the source",
+                    description:
+                        result.message ||
+                        "An unexpected error occurred. Please try again.",
+                    id: "error:add-source",
+                });
+            }
         }
     };
 
@@ -71,23 +84,24 @@ export default function AddSourceView() {
         <SettingsCategory title="Add media source">
             <div className="flex flex-row items-center justify-between gap-8">
                 <div>
-                    <h2>Source type</h2>
+                    <h2>Media backend</h2>
                     <p className="text-sm opacity-50">
-                        Pick where the source will be added from
+                        Pick a media backend to use for this source
                     </p>
                 </div>
                 <Select
                     disabled
-                    items={sourceTypeItems}
-                    value={sourceType}
+                    items={sourceBackendItems}
+                    value={sourceBackend}
                     onValueChange={(newValue) => {
-                        if (newValue) setSourceType(newValue as SourceType);
+                        if (newValue)
+                            setSourceBackend(newValue as MediaBackend);
                     }}>
                     <SelectTrigger>
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        {sourceTypeItems.map((item) => (
+                        {sourceBackendItems.map((item) => (
                             <SelectItem key={item.value} value={item.value}>
                                 {item.label}
                             </SelectItem>
@@ -98,7 +112,7 @@ export default function AddSourceView() {
             <Field name="displayName">
                 <FieldLabel>
                     Display name
-                    <span className="px-1.5 opacity-40">optional</span>
+                    <span className="px-1.5 opacity-40">(optional)</span>
                 </FieldLabel>
                 <TextInput
                     placeholder="Music"
@@ -111,15 +125,26 @@ export default function AddSourceView() {
             </Field>
             <Field name="uri">
                 <FieldLabel>URI</FieldLabel>
-                <TextInput
-                    required
-                    placeholder="C:/Users/..."
-                    value={uri}
-                    onChange={(e) => setUri(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") handleAdd();
-                    }}
-                />
+                <div className="flex flex-row gap-2">
+                    <TextInput
+                        required
+                        className="flex-1"
+                        placeholder="C:/Users/..."
+                        value={uri}
+                        onChange={(e) => setUri(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") handleAdd();
+                        }}
+                    />
+                    <Button
+                        onClick={async () => {
+                            const folder =
+                                await electron.invoke("dialog:pickFolder");
+                            if (folder) setUri(folder);
+                        }}>
+                        Browse...
+                    </Button>
+                </div>
                 <FieldError>
                     An URI path pointing to the source is required
                 </FieldError>
@@ -128,7 +153,7 @@ export default function AddSourceView() {
                 <Button
                     onClick={handleAdd}
                     disabled={!uri.trim() || isSubmitting}>
-                    {isSubmitting ? "Adding..." : "Add"}
+                    Add
                 </Button>
             </div>
         </SettingsCategory>

@@ -1,8 +1,4 @@
-export abstract class MediaBackend {
-    abstract readonly BACKEND_NAME: string;
-
-    abstract parseName(uri: string): string;
-}
+import type { MediaBackend } from "@main/library/mediaBackend";
 
 export class MediaBackendRegistry {
     private mediaBackends = new Map<string, MediaBackend>();

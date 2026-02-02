@@ -1,8 +1,11 @@
+import type { MediaBackend } from "@shared/constants/mediaBackends";
 import type { WindowRoute } from "@shared/constants/routes";
-import type { SourceType } from "@shared/constants/sources";
 import type { Settings } from "@shared/schema/settings";
 import type { DialogOptions, DialogResult } from "@shared/types/dialog";
-import type { LibraryMediaSource } from "@shared/types/library";
+import type {
+    AddSourceResult,
+    LibraryMediaSource,
+} from "@shared/types/library";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
 export type SettingsKey = keyof Settings;
@@ -44,16 +47,17 @@ export type MainIpcHandleEvents = {
     ) => void;
 
     "dialog:open": (options: DialogOptions) => DialogResult;
+    "dialog:pickFolder": () => string | null;
 
     "library:addSource": (
         uri: string,
-        type: SourceType,
+        type: MediaBackend,
         name?: string,
-    ) => LibraryMediaSource | undefined;
+    ) => AddSourceResult;
 
-    "library:getSources": (type?: SourceType) => LibraryMediaSource[];
+    "library:getSources": (type?: MediaBackend) => LibraryMediaSource[];
 
-    "library:removeSource": (uri: string, type?: SourceType) => void;
+    "library:removeSource": (uri: string, type?: MediaBackend) => void;
 
     "dev:getTables": () => string[];
     "dev:getTableSchema": (table: string) => {

@@ -4,11 +4,11 @@ export const sourcesTable = sqliteTable(
     "media_sources",
     {
         id: int().primaryKey({ autoIncrement: true }),
-        type: text().notNull(),
+        backend: text().notNull(),
         uri: text().notNull(),
         displayName: text().notNull(),
     },
-    (table) => [unique().on(table.type, table.uri)],
+    (table) => [unique().on(table.backend, table.uri)],
 );
 
 export type MediaSource = typeof sourcesTable.$inferSelect;
