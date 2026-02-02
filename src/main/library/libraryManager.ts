@@ -61,10 +61,11 @@ class LibraryManager {
             };
         }
 
-        const displayName = name || backendInstance.parseName(uri);
+        const normalizedUri = validationResult.normalizedUri;
+        const displayName = name || backendInstance.parseName(normalizedUri);
         const result = await db
             .insert(sourcesTable)
-            .values({ displayName, uri: uri, backend })
+            .values({ displayName, uri: normalizedUri, backend })
             .onConflictDoNothing()
             .returning();
 

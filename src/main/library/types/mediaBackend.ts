@@ -10,9 +10,11 @@ export abstract class MediaBackend {
 
     /**
      * Validates the URI to ensure it is correct and compatible with the
-     * backend.
+     * backend. Returns the normalized URI on success.
      */
     abstract validateUri(
         uri: string,
-    ): Promise<{ valid: true } | { valid: false; error: string }>;
+    ): Promise<
+        { valid: true; normalizedUri: string } | { valid: false; error: string }
+    >;
 }

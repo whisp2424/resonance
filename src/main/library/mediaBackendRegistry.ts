@@ -1,4 +1,4 @@
-import type { MediaBackend } from "@main/library/mediaBackend";
+import type { MediaBackend } from "@main/library/types/mediaBackend";
 
 export class MediaBackendRegistry {
     private mediaBackends = new Map<string, MediaBackend>();
