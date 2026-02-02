@@ -29,8 +29,10 @@ Processes communicate **only** via typed IPC.
     │   ├── database/       # Database layer (Drizzle ORM)
     │   ├── ipc/            # IPC implementation
     │   ├── library/        # Library management
-    │   │   └── sources/    # Media source implementations
-    │   ├── window/         # Window management logic
+    │   │   ├── backends/   # Media backend implementations
+    │   │   └── types/      # Library-related type definitions
+    │   ├── utils/          # Main process utilities
+    │   └── window/         # Window management logic
     ├── preload/            # Preload scripts (bridge)
     ├── renderer/           # React frontend
     │   ├── assets/         # Static assets
@@ -40,7 +42,6 @@ Processes communicate **only** via typed IPC.
     │   │   │   └── developer/  # Developer settings
     │   │   ├── ui/         # UI primitives (Button, Field, Input, Select, SideBar)
     │   │   └── views/      # View components (Home, Settings, AddSource, etc.)
-    │   ├── constants/      # Frontend constants
     │   ├── contexts/       # React contexts
     │   ├── hooks/          # Custom React hooks
     │   ├── providers/      # React providers
@@ -48,9 +49,21 @@ Processes communicate **only** via typed IPC.
     └── shared/             # Shared across all processes
         ├── constants/      # Cross-process constants (routes, sources)
         ├── schema/         # ArkType schemas (settings validation)
+        ├── sources/        # Media source definitions (currently empty)
         ├── types/          # Cross-process TypeScript types
         └── utils/          # Shared utilities
 ```
+
+### Keeping This Documentation Updated
+
+**When creating, deleting, moving, or renaming files/folders that affect the project structure, you MUST update this File Organization section.**
+
+- **After any structural change**, review the File Organization tree above
+- **Update the tree** to reflect the new structure
+- **Update folder descriptions** if their purpose changes
+- **Add new folders** with appropriate descriptions
+- **Remove deleted folders** from the tree
+- **This is not optional** - future agents rely on this documentation to understand the codebase
 
 ---
 
