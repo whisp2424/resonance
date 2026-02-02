@@ -14,7 +14,7 @@
     "scripts": {
         "prepare": "husky",
         "rebuild": "electron-rebuild -f",
-        "postinstall": "pnpm run rebuild && electron-builder install-app-deps",
+        "postinstall": "electron-builder install-app-deps",
         "dev": "electron-vite dev",
         "start": "electron-vite preview",
         "build": "pnpm run check:node && electron-vite build",
