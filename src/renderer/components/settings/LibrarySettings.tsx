@@ -83,7 +83,7 @@ export function LibrarySettings() {
             const result = await openDialog({
                 type: "question",
                 title: `Remove ${source.displayName}`,
-                description: `Are you sure you want to remove ${source.displayName}? This won't delete your files.`,
+                description: `Are you sure you want to remove ${source.displayName}? This won't delete your files`,
                 buttons: [
                     { label: "Cancel", value: "cancel", variant: "secondary" },
                     { label: "Remove", value: "remove", variant: "primary" },

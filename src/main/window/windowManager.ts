@@ -251,6 +251,9 @@ class WindowManager {
         });
 
         window.on("close", () => {
+            const parentWindow = window.getParentWindow();
+            if (parentWindow && !parentWindow.isDestroyed())
+                parentWindow.focus();
             windowStateManager.updateState(id, {
                 ...window.getNormalBounds(),
                 isMaximized: window.isMaximized(),
@@ -265,11 +268,13 @@ class WindowManager {
             this.emitter.send(window.webContents, "window:onLeaveFullscreen");
         });
 
-        window.on("closed", () => this.removeWindow(id));
+        window.on("closed", () => {
+            this.removeWindow(id);
+        });
 
-        window.webContents.on("will-navigate", (event) =>
-            event.preventDefault(),
-        );
+        window.webContents.on("will-navigate", (event) => {
+            event.preventDefault();
+        });
     }
 }
 
