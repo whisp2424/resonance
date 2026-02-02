@@ -33,7 +33,7 @@ function SideBarButton({ item, isActive, onClick }: SideBarButtonProps) {
                     "rounded-md px-3 py-1 text-sm",
                     isActive
                         ? "bg-black/10 dark:bg-white/10"
-                        : "text-black/50 hover:bg-black/5 dark:text-white/50 dark:hover:bg-white/5",
+                        : "text-neutral-600 hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/5",
                 ),
             )}>
             {Icon && <Icon className="size-4" />}

@@ -29,7 +29,8 @@
         "format": "prettier --write .",
         "fix": "pnpm run lint:fix && pnpm run format",
         "db:generate": "drizzle-kit generate",
-        "db:migrate": "drizzle-kit migrate"
+        "db:migrate": "drizzle-kit migrate",
+        "db:push": "drizzle-kit push"
     },
     "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",

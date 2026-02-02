@@ -33,8 +33,8 @@ export function DatabaseDebug() {
         try {
             const tableList = await electron.invoke("dev:getTables");
             setTables(tableList);
-        } catch (err) {
-            const msg = String(err);
+        } catch (error) {
+            const msg = String(error);
             setError(msg);
             console.error(msg);
         }
@@ -55,8 +55,8 @@ export function DatabaseDebug() {
 
             setTableSchema(schema);
             setResults([]);
-        } catch (err) {
-            const msg = String(err);
+        } catch (error) {
+            const msg = String(error);
             setError(msg);
             console.error(msg);
         }
@@ -70,8 +70,8 @@ export function DatabaseDebug() {
         try {
             const result = await electron.invoke("dev:query", query);
             setResults(result);
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : "Query failed";
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : "Query failed";
             setError(msg);
             setResults([]);
         } finally {
@@ -84,9 +84,9 @@ export function DatabaseDebug() {
             try {
                 await electron.invoke("dev:delete", selectedTable, row);
                 await executeQuery();
-            } catch (err) {
+            } catch (error) {
                 const msg =
-                    err instanceof Error ? err.message : "Delete failed";
+                    error instanceof Error ? error.message : "Delete failed";
                 setError(msg);
             }
         },

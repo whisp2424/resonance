@@ -27,58 +27,29 @@ Processes communicate **only** via typed IPC.
 └── src/
     ├── main/               # Electron main process (Node.js)
     │   ├── database/       # Database layer (Drizzle ORM)
-    │   │   ├── index.ts    # Database initialization
-    │   │   └── schema.ts   # Database schema definitions
     │   ├── ipc/            # IPC implementation
-    │   │   ├── app.ts      # App lifecycle handlers
-    │   │   ├── dev.ts      # Developer mode handlers
-    │   │   ├── dialog.ts   # Dialog handlers
-    │   │   ├── library.ts  # Library management handlers
-    │   │   ├── settings.ts # Settings handlers
-    │   │   ├── system.ts   # System handlers
-    │   │   └── window.ts   # Window management handlers
     │   ├── library/        # Library management
-    │   │   ├── libraryManager.ts       # Core library logic
-    │   │   ├── mediaSourceRegistry.ts  # Source registration
     │   │   └── sources/    # Media source implementations
-    │   │       └── local.ts            # Local file source
     │   ├── window/         # Window management logic
-    │   │   ├── validateBounds.ts       # Window bounds validation
-    │   │   ├── windowManager.ts        # Window manager
-    │   │   └── windowPolicies.ts       # Window behavior policies
-    │   ├── index.ts        # Main process entry point
-    │   ├── menu.ts         # Application menu
-    │   ├── settings.ts     # Settings management logic
-    │   └── windowState.ts  # Window state persistence
     ├── preload/            # Preload scripts (bridge)
-    │   └── index.ts        # Preload script entry point
     ├── renderer/           # React frontend
     │   ├── assets/         # Static assets
     │   ├── components/     # UI components
     │   │   ├── layout/     # Layout components (TitleBar, etc.)
     │   │   ├── settings/   # Settings components
-    │   │   │   └── developer/  # Developer settings (DatabaseDebug, DialogTesting)
+    │   │   │   └── developer/  # Developer settings
     │   │   ├── ui/         # UI primitives (Button, Field, Input, Select, SideBar)
     │   │   └── views/      # View components (Home, Settings, AddSource, etc.)
     │   ├── constants/      # Frontend constants
-    │   ├── contexts/       # React contexts (SettingsContext)
+    │   ├── contexts/       # React contexts
     │   ├── hooks/          # Custom React hooks
-    │   ├── providers/      # React providers (SettingsProvider)
-    │   ├── types/          # Frontend-specific types
-    │   ├── App.tsx         # Root React component
-    │   ├── main.tsx        # Renderer entry point
-    │   └── styles.css      # Tailwind v4 entry point
+    │   ├── providers/      # React providers
+    │   └── types/          # Frontend-specific types
     └── shared/             # Shared across all processes
         ├── constants/      # Cross-process constants (routes, sources)
         ├── schema/         # ArkType schemas (settings validation)
         ├── types/          # Cross-process TypeScript types
-        │   ├── dialog.ts   # Dialog types
-        │   ├── ipc.ts      # IPC channel definitions
-        │   ├── library.ts  # Library types
-        │   └── utils.ts    # Utility types
         └── utils/          # Shared utilities
-            ├── logger.ts   # Shared logging utility
-            └── object.ts   # Object manipulation utilities
 ```
 
 ---
