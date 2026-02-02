@@ -1,7 +1,7 @@
 {
     "version": "6",
     "dialect": "sqlite",
-    "id": "d64bedcc-792b-4e59-8520-949769775997",
+    "id": "8aea7d6f-04e3-49de-9f34-0fa37cf5b3d5",
     "prevId": "00000000-0000-0000-0000-000000000000",
     "tables": {
         "media_sources": {
@@ -14,8 +14,8 @@
                     "notNull": true,
                     "autoincrement": true
                 },
-                "type": {
-                    "name": "type",
+                "backend": {
+                    "name": "backend",
                     "type": "text",
                     "primaryKey": false,
                     "notNull": true,
@@ -37,9 +37,9 @@
                 }
             },
             "indexes": {
-                "media_sources_type_uri_unique": {
-                    "name": "media_sources_type_uri_unique",
-                    "columns": ["type", "uri"],
+                "media_sources_backend_uri_unique": {
+                    "name": "media_sources_backend_uri_unique",
+                    "columns": ["backend", "uri"],
                     "isUnique": true
                 }
             },
