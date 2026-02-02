@@ -1,12 +1,27 @@
 import TitleBar from "@renderer/components/layout/TitleBar";
 import AddSourceView from "@renderer/components/views/AddSourceView";
+import HomeView from "@renderer/components/views/HomeView";
 import MissingSourcesView from "@renderer/components/views/MissingSourcesView";
 import NotFound from "@renderer/components/views/NotFound";
 import SettingsView from "@renderer/components/views/SettingsView";
+import { useLibraryContext } from "@renderer/contexts/LibraryContext";
 import { useAccentColor } from "@renderer/hooks/useAccentColor";
 import { ROUTES } from "@shared/constants/routes";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
+
+function HomeRoute() {
+    const { sources } = useLibraryContext();
+    const [hasLoaded, setHasLoaded] = useState(false);
+
+    useEffect(() => {
+        if (!hasLoaded) queueMicrotask(() => setHasLoaded(true));
+    }, [sources, hasLoaded]);
+
+    if (!hasLoaded) return null;
+    if (sources.length === 0) return <MissingSourcesView />;
+    return <HomeView />;
+}
 
 export default function App() {
     const accentColor = useAccentColor();
@@ -62,7 +77,7 @@ export default function App() {
         <div className="flex h-dvh w-full flex-col">
             <TitleBar />
             <Routes>
-                <Route path={ROUTES.HOME} element={<MissingSourcesView />} />
+                <Route path={ROUTES.HOME} element={<HomeRoute />} />
                 <Route path={ROUTES.SETTINGS} element={<SettingsView />} />
                 <Route path={ROUTES.ADD_SOURCE} element={<AddSourceView />} />
                 <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
