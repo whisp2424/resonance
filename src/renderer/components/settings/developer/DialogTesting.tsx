@@ -11,6 +11,7 @@ import {
 } from "@renderer/components/ui/Select";
 import TextInput from "@renderer/components/ui/TextInput";
 import { useDialog } from "@renderer/hooks/useDialog";
+import { log } from "@shared/utils/logger";
 import { useState } from "react";
 
 export default function DialogTesting() {
@@ -51,7 +52,7 @@ export default function DialogTesting() {
             buttons,
         });
 
-        console.log("Dialog result:", result);
+        log(`dialog result: ${result}`, "debug:dialog", "info");
     };
 
     return (
