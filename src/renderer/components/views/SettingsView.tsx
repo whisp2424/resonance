@@ -60,7 +60,7 @@ export default function SettingsView() {
                 items={sidebarCategories}
                 activeItemId={activeCategory}
                 onActiveItemChange={setLastCategory}
-                className="z-60 border-r border-neutral-300 bg-black/4 bg-linear-to-b p-4 dark:border-neutral-800 dark:bg-white/2"
+                className="no-drag z-60 border-r border-neutral-300 bg-black/4 bg-linear-to-b p-4 dark:border-neutral-800 dark:bg-white/2"
             />
             {ActiveComponent && <ActiveComponent />}
         </div>

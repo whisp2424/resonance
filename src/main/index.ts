@@ -13,6 +13,7 @@ import { registerDatabaseHandlers } from "@main/ipc/dev";
 import { registerDialogHandlers } from "@main/ipc/dialog";
 import { registerLibraryHandlers } from "@main/ipc/library";
 import { registerSettingsHandlers } from "@main/ipc/settings";
+import { registerShortcutHandlers } from "@main/ipc/shortcuts";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
 import { initializeSettings, settingsManager } from "@main/settings";
@@ -92,6 +93,8 @@ const createMainWindow = (): BrowserWindow => {
     const mainWindow = new BrowserWindow({
         ...DEFAULT_OPTIONS,
         ...validatedBounds,
+        minWidth: 800,
+        minHeight: 600,
     });
 
     mainWindow.on("ready-to-show", () => {
@@ -164,6 +167,7 @@ app.whenReady().then(async () => {
     registerSettingsHandlers(ipc);
     registerDatabaseHandlers(ipc);
     registerDialogHandlers(ipc);
+    registerShortcutHandlers(ipc);
 
     const cleanupSystemHandlers = registerSystemHandlers(
         ipc,

@@ -6,6 +6,7 @@ import type {
     AddSourceResult,
     LibraryMediaSource,
 } from "@shared/types/library";
+import type { ShortcutOptions } from "@shared/types/shortcut";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
 export type SettingsKey = keyof Settings;
@@ -71,6 +72,9 @@ export type MainIpcHandleEvents = {
     "dev:getTableCount": (table: string) => number;
     "dev:query": (sql: string) => Record<string, unknown>[];
     "dev:delete": (table: string, where: Record<string, unknown>) => void;
+
+    "shortcut:register": (options: ShortcutOptions) => string;
+    "shortcut:unregister": (accelerator: string) => void;
 };
 
 export type MainIpcListenEvents = {
@@ -86,6 +90,8 @@ export type MainIpcListenEvents = {
     "settings:onError": [message: string];
 
     "library:onSourcesChanged": [];
+
+    "shortcut:onPressed": [options: ShortcutOptions];
 };
 
 export type MainIpcEvents = MainIpcHandleEvents | MainIpcListenEvents;

@@ -51,10 +51,7 @@ export default function SideBar({
     return (
         <div
             className={twMerge(
-                clsx(
-                    "no-drag flex h-full w-64 flex-col gap-1.5 p-2",
-                    className,
-                ),
+                clsx("flex h-full w-64 flex-col gap-1.5 p-2", className),
             )}>
             {items.map((item) => (
                 <SideBarButton

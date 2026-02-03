@@ -115,7 +115,7 @@ export default function AddSourceView() {
                     <span className="px-1.5 opacity-40">(optional)</span>
                 </FieldLabel>
                 <TextInput
-                    placeholder="Music"
+                    placeholder="..."
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     onKeyDown={(e) => {
@@ -129,7 +129,7 @@ export default function AddSourceView() {
                     <TextInput
                         required
                         className="flex-1"
-                        placeholder="C:/Users/..."
+                        placeholder="/home/user/..."
                         value={uri}
                         onChange={(e) => setUri(e.target.value)}
                         onKeyDown={(e) => {

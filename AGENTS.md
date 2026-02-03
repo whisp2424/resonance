@@ -31,6 +31,11 @@ Processes communicate **only** via typed IPC.
     │   ├── library/        # Library management
     │   │   ├── backends/   # Media backend implementations
     │   │   └── types/      # Library-related type definitions
+    │   ├── shortcuts/      # Keyboard shortcut management
+    │   │   ├── index.ts    # Main functional API (register/unregister)
+    │   │   ├── menuManager.ts  # App scope shortcuts (menu accelerators)
+    │   │   ├── windowManager.ts # Window scope shortcuts (before-input-event)
+    │   │   └── types.ts    # Internal types and registry
     │   ├── utils/          # Main process utilities
     │   └── window/         # Window management logic
     ├── preload/            # Preload scripts (bridge)

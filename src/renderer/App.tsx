@@ -6,9 +6,18 @@ import NotFound from "@renderer/components/views/NotFound";
 import SettingsView from "@renderer/components/views/SettingsView";
 import { useLibraryContext } from "@renderer/contexts/LibraryContext";
 import { useAccentColor } from "@renderer/hooks/useAccentColor";
+import { useShortcut } from "@renderer/hooks/useShortcut";
 import { ROUTES } from "@shared/constants/routes";
+import { buildAccelerator } from "@shared/utils/shortcut";
 import { useEffect, useState } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
+
+const BACK_ACCELERATOR = buildAccelerator().key("ArrowLeft").alt().toString();
+const FORWARD_ACCELERATOR = buildAccelerator()
+    .key("ArrowRight")
+    .alt()
+    .toString();
+const SETTINGS_ACCELERATOR = buildAccelerator().key(",").cmdOrCtrl().toString();
 
 function HomeRoute() {
     const { sources } = useLibraryContext();
@@ -58,20 +67,13 @@ export default function App() {
         };
     }, [accentColor]);
 
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.altKey && event.key === "ArrowLeft") {
-                event.preventDefault();
-                navigate(-1);
-            } else if (event.altKey && event.key === "ArrowRight") {
-                event.preventDefault();
-                navigate(1);
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [navigate]);
+    useShortcut(BACK_ACCELERATOR, () => navigate(-1), { windowId: "main" });
+    useShortcut(FORWARD_ACCELERATOR, () => navigate(1), { windowId: "main" });
+    useShortcut(
+        SETTINGS_ACCELERATOR,
+        () => electron.invoke("window:new", "/settings", "settings"),
+        { windowId: "main" },
+    );
 
     return (
         <div className="flex h-dvh w-full flex-col">
