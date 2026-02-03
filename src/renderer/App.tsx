@@ -8,16 +8,12 @@ import { useLibraryContext } from "@renderer/contexts/LibraryContext";
 import { useAccentColor } from "@renderer/hooks/useAccentColor";
 import { useShortcut } from "@renderer/hooks/useShortcut";
 import { ROUTES } from "@shared/constants/routes";
-import { buildAccelerator } from "@shared/utils/shortcut";
 import { useEffect, useState } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
 
-const BACK_ACCELERATOR = buildAccelerator().key("ArrowLeft").alt().toString();
-const FORWARD_ACCELERATOR = buildAccelerator()
-    .key("ArrowRight")
-    .alt()
-    .toString();
-const SETTINGS_ACCELERATOR = buildAccelerator().key(",").cmdOrCtrl().toString();
+const BACK_ACCELERATOR = "Alt+ArrowLeft";
+const FORWARD_ACCELERATOR = "Alt+ArrowRight";
+const SETTINGS_ACCELERATOR = "CmdOrCtrl+,";
 
 function HomeRoute() {
     const { sources } = useLibraryContext();
