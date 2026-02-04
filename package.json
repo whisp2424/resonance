@@ -2,7 +2,11 @@
     "name": "resonance",
     "version": "0.0.1",
     "main": "dist/main/index.js",
-    "author": "whispmoe",
+    "author": {
+        "name": "whisp",
+        "email": "hello@whisp.moe",
+        "url": "https://whisp.moe"
+    },
     "lint-staged": {
         "*.{html,css,js,ts,jsx,tsx,json,md}": [
             "prettier --write"
