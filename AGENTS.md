@@ -16,6 +16,11 @@ Resonance uses a multi-process Electron architecture with **separate codebases**
 
 Processes communicate **only** via typed IPC.
 
+### Terminology
+
+- **Media Backend**: Implementation classes that handle different media source types (e.g., `LocalMediaBackend`)
+- **Media Source**: Database entries representing actual sources with URIs and backend types
+
 ---
 
 ## File Organization
@@ -51,10 +56,9 @@ Processes communicate **only** via typed IPC.
     │   ├── hooks/          # Custom React hooks
     │   ├── providers/      # React providers
     │   └── types/          # Frontend-specific types
-    └── shared/             # Shared across all processes
-        ├── constants/      # Cross-process constants (routes, sources)
+     └── shared/             # Shared across all processes
+        ├── constants/      # Cross-process constants (routes, media backends)
         ├── schema/         # ArkType schemas (settings validation)
-        ├── sources/        # Media source definitions (currently empty)
         ├── types/          # Cross-process TypeScript types
         └── utils/          # Shared utilities
 ```
