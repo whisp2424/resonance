@@ -38,6 +38,9 @@ export type MainIpcHandleEvents = {
     "window:getControls": (id: string) => TitleBarControls;
 
     "system:getAccentColor": () => string;
+    "system:isWindows": () => boolean;
+    "system:isMac": () => boolean;
+    "system:isLinux": () => boolean;
 
     "settings:get": () => Settings;
     "settings:set": (settings: DeepPartial<Settings>) => void;

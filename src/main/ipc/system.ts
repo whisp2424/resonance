@@ -2,6 +2,7 @@ import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 import type { SystemPreferences } from "electron";
 
+import { platform } from "@electron-toolkit/utils";
 import { windowManager } from "@main/window/windowManager";
 
 let lastAccentColor: string | null = null;
@@ -20,6 +21,10 @@ export function registerSystemHandlers(
     ipc.handle("system:getAccentColor", () => {
         return preferences.getAccentColor();
     });
+
+    ipc.handle("system:isWindows", () => platform.isWindows);
+    ipc.handle("system:isMac", () => platform.isMacOS);
+    ipc.handle("system:isLinux", () => platform.isLinux);
 
     preferences.on("accent-color-changed", handleAccentColorChange);
 
