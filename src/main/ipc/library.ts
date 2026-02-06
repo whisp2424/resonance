@@ -12,7 +12,9 @@ export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
     });
 
     ipc.handle("library:getSources", async (_, type) => {
-        return libraryManager.getSources(type);
+        const result = await libraryManager.getSources(type);
+        if (result.success) return result.data;
+        return [];
     });
 
     ipc.handle("library:removeSource", async (_, uri, type) => {

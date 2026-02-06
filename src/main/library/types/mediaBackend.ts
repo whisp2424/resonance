@@ -3,18 +3,16 @@ export abstract class MediaBackend {
     abstract readonly BACKEND_NAME: string;
 
     /**
-     * Parses the URI and generates a readable name for a media source based
-     * from the URI.
+     * Returns a generic name for the media source given a valid URI supported
+     * by the backend.
      */
     abstract parseName(uri: string): string;
 
     /**
-     * Validates the URI to ensure it is correct and compatible with the
-     * backend. Returns the normalized URI on success.
+     * Validates and ensures the given URI to ensure it is compatible with the
+     * media backend.
      */
     abstract validateUri(
         uri: string,
-    ): Promise<
-        { valid: true; normalizedUri: string } | { valid: false; error: string }
-    >;
+    ): Promise<{ valid: true; uri: string } | { valid: false; error: string }>;
 }

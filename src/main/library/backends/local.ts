@@ -15,9 +15,7 @@ export class LocalMediaBackend extends MediaBackend {
 
     async validateUri(
         uri: string,
-    ): Promise<
-        { valid: true; normalizedUri: string } | { valid: false; error: string }
-    > {
+    ): Promise<{ valid: true; uri: string } | { valid: false; error: string }> {
         const normalizedPath = normalizeFilePath(uri);
 
         try {
@@ -25,18 +23,18 @@ export class LocalMediaBackend extends MediaBackend {
             if (!stats.isDirectory())
                 return {
                     valid: false,
-                    error: "The path you provided does not belong to a directory. Ensure the path is correct and try again",
+                    error: "The path you provided does not belong to a directory. Ensure the path is correct and try again.",
                 };
 
             return {
                 valid: true,
-                normalizedUri: normalizedPath,
+                uri: normalizedPath,
             };
         } catch (error) {
             if ((error as NodeJS.ErrnoException).code === "ENOENT")
                 return {
                     valid: false,
-                    error: "The provided directory does not exist. Ensure the path is correct and try again",
+                    error: "The provided directory does not exist. Ensure the path is correct and try again.",
                 };
             return {
                 valid: false,
