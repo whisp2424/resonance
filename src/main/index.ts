@@ -13,11 +13,9 @@ import { registerDatabaseHandlers } from "@main/ipc/dev";
 import { registerDialogHandlers } from "@main/ipc/dialog";
 import { registerLibraryHandlers } from "@main/ipc/library";
 import { registerSettingsHandlers } from "@main/ipc/settings";
-import { registerShortcutHandlers } from "@main/ipc/shortcuts";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
 import { initializeSettings, settingsManager } from "@main/settings";
-import { registerShortcut } from "@main/shortcuts";
 import { validateBounds } from "@main/window/validateBounds";
 import { windowManager } from "@main/window/windowManager";
 import { DEFAULT_OPTIONS } from "@main/window/windowPolicies";
@@ -168,17 +166,6 @@ app.whenReady().then(async () => {
     registerSettingsHandlers(ipc);
     registerDatabaseHandlers(ipc);
     registerDialogHandlers(ipc);
-    registerShortcutHandlers(ipc);
-
-    // Register global app shortcuts
-    registerShortcut({
-        accelerator: "CmdOrCtrl+Q",
-        scope: "app",
-        callback: () => {
-            isQuitting = true;
-            app.quit();
-        },
-    });
 
     const cleanupSystemHandlers = registerSystemHandlers(
         ipc,

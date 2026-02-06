@@ -18,10 +18,8 @@ export default function DialogTesting() {
     const { openDialog } = useDialog();
 
     const [dialogType, setDialogType] = useState<DialogType>("info");
-    const [title, setTitle] = useState("Dialog Title");
-    const [description, setDescription] = useState(
-        "This is a dialog description",
-    );
+    const [title, setTitle] = useState("Title");
+    const [description, setDescription] = useState("Description");
     const [primaryLabel, setPrimaryLabel] = useState("OK");
     const [secondaryLabel, setSecondaryLabel] = useState("Cancel");
     const [showSecondary, setShowSecondary] = useState(false);

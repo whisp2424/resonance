@@ -25,6 +25,8 @@ Processes communicate **only** via typed IPC.
 
 ## File Organization
 
+**Only directories are shown here. Do not list individual files in this tree.**
+
 ```
 .
 ├── build/              # Assets for Electron-builder and the main process
@@ -37,28 +39,24 @@ Processes communicate **only** via typed IPC.
     │   │   ├── backends/   # Media backend implementations
     │   │   └── types/      # Library-related type definitions
     │   ├── shortcuts/      # Keyboard shortcut management
-    │   │   ├── index.ts    # Main functional API (register/unregister)
-    │   │   ├── menuManager.ts  # App scope shortcuts (menu accelerators)
-    │   │   ├── windowManager.ts # Window scope shortcuts (before-input-event)
-    │   │   └── types.ts    # Internal types and registry
     │   ├── utils/          # Main process utilities
     │   └── window/         # Window management logic
     ├── preload/            # Preload scripts (bridge)
     ├── renderer/           # React frontend
     │   ├── assets/         # Static assets
     │   ├── components/     # UI components
-    │   │   ├── layout/     # Layout components (TitleBar, etc.)
+    │   │   ├── layout/     # Layout components
     │   │   ├── settings/   # Settings components
     │   │   │   └── developer/  # Developer settings
-    │   │   ├── ui/         # UI primitives (Button, Field, Input, Select, SideBar)
-    │   │   └── views/      # View components (Home, Settings, AddSource, etc.)
+    │   │   ├── ui/         # UI primitives
+    │   │   └── views/      # View components
     │   ├── contexts/       # React contexts
     │   ├── hooks/          # Custom React hooks
     │   ├── providers/      # React providers
     │   └── types/          # Frontend-specific types
-     └── shared/             # Shared across all processes
-        ├── constants/      # Cross-process constants (routes, media backends)
-        ├── schema/         # ArkType schemas (settings validation)
+    └── shared/             # Shared across all processes
+        ├── constants/      # Cross-process constants
+        ├── schema/         # ArkType schemas
         ├── types/          # Cross-process TypeScript types
         └── utils/          # Shared utilities
 ```

@@ -115,7 +115,7 @@ export default function AddSourceView() {
                     <span className="px-1.5 opacity-40">(optional)</span>
                 </FieldLabel>
                 <TextInput
-                    placeholder="..."
+                    placeholder="My music library"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     onKeyDown={(e) => {
@@ -129,7 +129,7 @@ export default function AddSourceView() {
                     <TextInput
                         required
                         className="flex-1"
-                        placeholder="/home/user/..."
+                        placeholder="/home/user/Music"
                         value={uri}
                         onChange={(e) => setUri(e.target.value)}
                         onKeyDown={(e) => {
@@ -142,14 +142,15 @@ export default function AddSourceView() {
                                 await electron.invoke("dialog:pickFolder");
                             if (folder) setUri(folder);
                         }}>
-                        Browse...
+                        Browse
                     </Button>
                 </div>
                 <FieldError>
                     An URI path pointing to the source is required
                 </FieldError>
             </Field>
-            <div className="flex flex-1 items-end justify-end gap-4">
+            <div className="flex flex-1 items-end justify-between">
+                <Button onClick={() => window.close()}>Cancel</Button>
                 <Button
                     onClick={handleAdd}
                     disabled={!uri.trim() || isSubmitting}>
