@@ -4,7 +4,7 @@ export const settingsSchema = type({
     lastCategory: "string",
     appearance: {
         appTheme: "'system' | 'light' | 'dark'",
-        trayIcon: "'auto' | 'white' | 'dark'",
+        trayIcon: "'auto' | 'light' | 'dark'",
     },
 });
 

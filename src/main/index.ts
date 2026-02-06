@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
 import trayIconDark from "@main/../../build/tray-dark.png?asset";
-import trayIconWhite from "@main/../../build/tray-white.png?asset";
+import trayIconLight from "@main/../../build/tray-light.png?asset";
 import { runMigrations } from "@main/database";
 import { registerAppHandlers } from "@main/ipc/app";
 import { registerDatabaseHandlers } from "@main/ipc/dev";
@@ -15,6 +15,7 @@ import { registerLibraryHandlers } from "@main/ipc/library";
 import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerWindowHandlers } from "@main/ipc/window";
+import { APP_MENU } from "@main/menu";
 import { initializeSettings, settingsManager } from "@main/settings";
 import { validateBounds } from "@main/window/validateBounds";
 import { windowManager } from "@main/window/windowManager";
@@ -39,14 +40,14 @@ let isQuitting = false;
 
 function getTrayIcon(icon?: Settings["appearance"]["trayIcon"]) {
     switch (icon) {
-        case "white":
-            return trayIconWhite;
+        case "light":
+            return trayIconLight;
         case "dark":
             return trayIconDark;
         default:
             // https://github.com/electron/electron/issues/48736
             return nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
-                ? trayIconWhite
+                ? trayIconLight
                 : trayIconDark;
     }
 }
@@ -145,8 +146,13 @@ app.whenReady().then(async () => {
     await initializeSettings();
     await runMigrations();
     await windowStateManager.load();
-    app.setAppUserModelId(product.appId);
+
     const settings = settingsManager.get();
+    const ipc = new IpcListener<MainIpcHandleEvents>();
+
+    app.setAppUserModelId(product.appId);
+    app.applicationMenu = APP_MENU;
+
     nativeTheme.themeSource = settings.appearance.appTheme;
     mainWindow = createMainWindow();
 
@@ -157,8 +163,6 @@ app.whenReady().then(async () => {
         },
         "appearance",
     );
-
-    const ipc = new IpcListener<MainIpcHandleEvents>();
 
     registerWindowHandlers(ipc);
     registerAppHandlers(ipc);
