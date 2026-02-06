@@ -56,8 +56,7 @@ export type MainIpcHandleEvents = {
     ) => AddSourceResult;
 
     "library:getSources": (type?: MediaBackend) => LibraryMediaSource[];
-
-    "library:removeSource": (uri: string, type?: MediaBackend) => void;
+    "library:removeSource": (uri: string, type: MediaBackend) => void;
 
     "dev:getTables": () => string[];
     "dev:getTableSchema": (table: string) => {

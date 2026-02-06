@@ -69,8 +69,7 @@ Processes communicate **only** via typed IPC.
 - **Update the tree** to reflect the new structure
 - **Update folder descriptions** if their purpose changes
 - **Add new folders** with appropriate descriptions
-- **Remove deleted folders** from the tree
-- **This is not optional** - future agents rely on this documentation to understand the codebase
+- **Remove deleted folders** from the tree. **This is not optional** future agents rely on this documentation to understand the codebase
 
 ---
 
@@ -115,7 +114,9 @@ Processes communicate **only** via typed IPC.
 
 ### Functions and Style
 
-- **Named Functions by Default**: Use named functions (`function myFunction() {}`) over arrow functions (`const myFunction = () => {}`) for standalone/declared functions.
+- **Named Functions by Default**:
+    - Use named functions (`function myFunction() {}`) over arrow functions.
+    - (`const myFunction = () => {}`) for standalone/declared functions.
 - **Keep Arrow Functions For**:
     - Inline functions in JSX (e.g., `onClick={() => handleClick()}`)
     - Callbacks passed as arguments (e.g., `array.map(item => item.value)`)

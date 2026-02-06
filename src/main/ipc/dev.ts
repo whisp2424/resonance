@@ -38,7 +38,7 @@ export function registerDatabaseHandlers(
     ipc.handle("dev:getTableCount", async (_, table) => {
         if (!is.dev) {
             throw new Error(
-                "Developer tools are only available during developmentt",
+                "Developer tools are only available during development",
             );
         }
 
