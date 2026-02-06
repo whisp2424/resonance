@@ -3,9 +3,9 @@ import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
 import { settingsManager } from "@main/settings";
 
-export const registerSettingsHandlers = (
+export function registerSettingsHandlers(
     ipc: IpcListener<MainIpcHandleEvents>,
-) => {
+) {
     ipc.handle("settings:get", () => {
         return settingsManager.get();
     });
@@ -17,4 +17,4 @@ export const registerSettingsHandlers = (
     ipc.handle("settings:setPath", async (_event, path, value) => {
         await settingsManager.setPath(path, value);
     });
-};
+}

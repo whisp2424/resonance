@@ -2,11 +2,11 @@ import pc from "picocolors";
 
 export type LogSeverity = "info" | "warning" | "error";
 
-export const log = (
+export function log(
     message: string | Error,
     category: string,
     severity: LogSeverity = "info",
-): void => {
+): void {
     const isRenderer = typeof window !== "undefined";
     const processName = isRenderer ? "renderer" : "main";
 
@@ -42,4 +42,4 @@ export const log = (
             `${color(`${category}(${severity})`)} ` +
             `${pc.dim("~")} ${msg}`,
     );
-};
+}

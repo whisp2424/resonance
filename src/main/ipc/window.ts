@@ -3,9 +3,7 @@ import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
 import { windowManager } from "@main/window/windowManager";
 
-export const registerWindowHandlers = (
-    ipc: IpcListener<MainIpcHandleEvents>,
-) => {
+export function registerWindowHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
     ipc.handle("window:close", (_, id) => {
         windowManager.closeWindow(id);
     });
@@ -50,4 +48,4 @@ export const registerWindowHandlers = (
     ipc.handle("window:getControls", (_, id) => {
         return windowManager.getControls(id);
     });
-};
+}

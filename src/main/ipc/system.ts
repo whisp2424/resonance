@@ -6,16 +6,16 @@ import { windowManager } from "@main/window/windowManager";
 
 let lastAccentColor: string | null = null;
 
-export const registerSystemHandlers = (
+export function registerSystemHandlers(
     ipc: IpcListener<MainIpcHandleEvents>,
     preferences: SystemPreferences,
-) => {
-    const handleAccentColorChange = (_: Electron.Event, newColor: string) => {
+) {
+    function handleAccentColorChange(_: Electron.Event, newColor: string) {
         if (newColor !== lastAccentColor) {
             lastAccentColor = newColor;
             windowManager.emitEvent("system:onAccentColorChanged", newColor);
         }
-    };
+    }
 
     ipc.handle("system:getAccentColor", () => {
         return preferences.getAccentColor();
@@ -29,4 +29,4 @@ export const registerSystemHandlers = (
             handleAccentColorChange,
         );
     };
-};
+}

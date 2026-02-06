@@ -113,13 +113,19 @@ Processes communicate **only** via typed IPC.
 
 ---
 
-### React (v19)
+### Functions and Style
 
-- Use functional components and React 19 hooks.
-- Component names: **PascalCase**
-- Functions and variables: **camelCase**
-- Props must be explicitly typed using `interface` or `type`.
-- Event handlers must be prefixed with `on` (e.g., `onClick`, `onChange`).
+- **Named Functions by Default**: Use named functions (`function myFunction() {}`) over arrow functions (`const myFunction = () => {}`) for standalone/declared functions.
+- **Keep Arrow Functions For**:
+    - Inline functions in JSX (e.g., `onClick={() => handleClick()}`)
+    - Callbacks passed as arguments (e.g., `array.map(item => item.value)`)
+    - One-liners that are clearly meant to be inline
+    - Class methods (if applicable)
+- **Convert to Named Functions When**:
+    - The function is assigned to a variable/constant
+    - The function is reusable or exported
+    - The function has multiple statements
+    - The function would benefit from better stack traces for debugging
 
 ---
 

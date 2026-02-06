@@ -14,10 +14,10 @@ const invoke = <K extends keyof MainIpcHandleEvents>(
     >;
 };
 
-const send = <K extends keyof MainIpcListenEvents>(
+function send<K extends keyof MainIpcListenEvents>(
     channel: K,
     listener: (...args: MainIpcListenEvents[K]) => void,
-): (() => void) => {
+): () => void {
     const wrappedListener = (
         _: Electron.IpcRendererEvent,
         ...args: MainIpcListenEvents[K]
@@ -26,7 +26,7 @@ const send = <K extends keyof MainIpcListenEvents>(
     return () => {
         ipcRenderer.removeListener(channel, wrappedListener);
     };
-};
+}
 
 contextBridge.exposeInMainWorld("electron", {
     invoke,

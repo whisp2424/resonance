@@ -37,7 +37,7 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 
-const getTrayIcon = (icon?: Settings["appearance"]["trayIcon"]) => {
+function getTrayIcon(icon?: Settings["appearance"]["trayIcon"]) {
     switch (icon) {
         case "white":
             return trayIconWhite;
@@ -49,9 +49,9 @@ const getTrayIcon = (icon?: Settings["appearance"]["trayIcon"]) => {
                 ? trayIconWhite
                 : trayIconDark;
     }
-};
+}
 
-const createTray = (trayIcon?: Settings["appearance"]["trayIcon"]): void => {
+function createTray(trayIcon?: Settings["appearance"]["trayIcon"]): void {
     if (tray) return;
 
     tray = new Tray(getTrayIcon(trayIcon));
@@ -77,9 +77,9 @@ const createTray = (trayIcon?: Settings["appearance"]["trayIcon"]): void => {
         const trayIcon = settingsManager.get().appearance.trayIcon;
         tray?.setImage(getTrayIcon(trayIcon));
     });
-};
+}
 
-const createMainWindow = (): BrowserWindow => {
+function createMainWindow(): BrowserWindow {
     const windowState = windowStateManager.getState("main");
 
     const validatedBounds = validateBounds({
@@ -129,7 +129,7 @@ const createMainWindow = (): BrowserWindow => {
     });
 
     return mainWindow;
-};
+}
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();

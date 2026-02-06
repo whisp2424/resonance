@@ -4,9 +4,9 @@ import type { MainIpcHandleEvents } from "@shared/types/ipc";
 import { is } from "@electron-toolkit/utils";
 import { client } from "@main/database";
 
-export const registerDatabaseHandlers = (
+export function registerDatabaseHandlers(
     ipc: IpcListener<MainIpcHandleEvents>,
-) => {
+) {
     ipc.handle("dev:getTables", async () => {
         if (!is.dev) {
             throw new Error(
@@ -78,4 +78,4 @@ export const registerDatabaseHandlers = (
 
         await client.execute(`DELETE FROM ${table} WHERE ${whereClause}`);
     });
-};
+}

@@ -6,9 +6,7 @@ import { BrowserWindow, dialog } from "electron";
 
 import product from "@main/../../build/product.json" with { type: "json" };
 
-export const registerDialogHandlers = (
-    ipc: IpcListener<MainIpcHandleEvents>,
-) => {
+export function registerDialogHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
     ipc.handle(
         "dialog:open",
         async (
@@ -59,4 +57,4 @@ export const registerDialogHandlers = (
             return result.filePaths[0];
         },
     );
-};
+}

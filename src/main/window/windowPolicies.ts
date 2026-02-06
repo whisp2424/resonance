@@ -30,14 +30,16 @@ const createPolicy = (
     options: BrowserWindowConstructorOptions,
     controls: Partial<TitleBarControls> = {},
 ): WindowPolicy => {
-    return (parent) => [
-        {
-            ...DEFAULT_OPTIONS,
-            ...options,
-            ...(parent ? { parent } : {}),
-        },
-        { ...DEFAULT_CONTROLS, ...controls },
-    ];
+    return function (parent) {
+        return [
+            {
+                ...DEFAULT_OPTIONS,
+                ...options,
+                ...(parent ? { parent } : {}),
+            },
+            { ...DEFAULT_CONTROLS, ...controls },
+        ];
+    };
 };
 
 export const WINDOW_POLICIES: Record<

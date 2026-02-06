@@ -75,13 +75,14 @@ const MaximizeButton = memo(function MaximizeButton({
             if (mounted) setIsMaximized(maximized);
         })();
 
-        const updateMaximized = async () => {
+        async function updateMaximized() {
+            if (!windowId) return;
             const maximized = await electron.invoke(
                 "window:isMaximized",
                 windowId,
             );
             if (mounted) setIsMaximized(maximized);
-        };
+        }
 
         const cleanup1 = electron.send("window:onMaximize", updateMaximized);
         const cleanup2 = electron.send("window:onUnmaximize", updateMaximized);
