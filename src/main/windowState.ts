@@ -22,6 +22,14 @@ type WindowStates = Record<string, WindowState>;
 class WindowStateManager {
     private stateCache: WindowStates = {};
 
+    private async write(state: WindowStates): Promise<void> {
+        await writeFile(WINDOW_STATE_FILE, JSON.stringify(state, null, 0), {
+            encoding: "utf-8",
+        });
+
+        this.stateCache = { ...state };
+    }
+
     async load(): Promise<WindowStates> {
         let rawData: string;
 
@@ -47,14 +55,6 @@ class WindowStateManager {
             this.stateCache = {};
             return this.stateCache;
         }
-    }
-
-    async write(state: WindowStates): Promise<void> {
-        await writeFile(WINDOW_STATE_FILE, JSON.stringify(state, null, 0), {
-            encoding: "utf-8",
-        });
-
-        this.stateCache = { ...state };
     }
 
     async updateState(

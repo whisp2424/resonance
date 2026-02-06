@@ -111,7 +111,7 @@ export default function AddSourceView() {
             </div>
             <Field name="displayName">
                 <FieldLabel>
-                    Display name
+                    Name
                     <span className="px-1.5 opacity-40">(optional)</span>
                 </FieldLabel>
                 <TextInput

@@ -67,13 +67,7 @@ class SettingsManager {
     async update(
         partial: DeepPartial<Settings>,
     ): Promise<SettingsKey | undefined> {
-        const merged = settingsSchema(
-            deepMerge(
-                this.get() as unknown as Record<string, unknown>,
-                partial as unknown as Record<string, unknown>,
-            ),
-        );
-
+        const merged = settingsSchema(deepMerge(this.get(), partial));
         if (merged instanceof type.errors) throw new Error(merged.summary);
         return await this.write(merged);
     }
@@ -94,10 +88,6 @@ class SettingsManager {
         return await this.write(updated);
     }
 
-    initialize(): void {
-        this.startWatcher();
-    }
-
     async reset(): Promise<void> {
         this.isWriting = true;
         try {
@@ -112,6 +102,12 @@ class SettingsManager {
         } finally {
             this.isWriting = false;
         }
+    }
+
+    startWatcher(): void {
+        if (this.fileWatcher) return;
+        this.fileWatcher = watch(SETTINGS_FILE, { ignoreInitial: true });
+        this.fileWatcher.on("change", () => this.onExternalChanges());
     }
 
     dispose(): void {
@@ -155,19 +151,12 @@ class SettingsManager {
 
     private emitChanges(settings: Settings, key?: SettingsKey): void {
         for (const entry of this.listeners) {
-            if (entry.key === undefined || entry.key === key) {
+            if (entry.key === undefined || entry.key === key)
                 entry.callback(settings, key);
-            }
         }
     }
 
-    private startWatcher(): void {
-        if (this.fileWatcher) return;
-        this.fileWatcher = watch(SETTINGS_FILE, { ignoreInitial: true });
-        this.fileWatcher.on("change", () => this.handleExternalChanges());
-    }
-
-    private async handleExternalChanges(): Promise<void> {
+    private async onExternalChanges(): Promise<void> {
         if (this.isWriting) return;
 
         try {
@@ -212,7 +201,7 @@ export const settingsManager = new SettingsManager();
 export async function initializeSettings(): Promise<Settings> {
     try {
         const settings = await settingsManager.load();
-        settingsManager.initialize();
+        settingsManager.startWatcher();
         return settings;
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -243,7 +232,7 @@ export async function initializeSettings(): Promise<Settings> {
 
                     if (confirmReset === 1) {
                         await settingsManager.reset();
-                        settingsManager.initialize();
+                        settingsManager.startWatcher();
                         return settingsManager.get();
                     }
 

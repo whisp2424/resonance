@@ -84,13 +84,20 @@ const MaximizeButton = memo(function MaximizeButton({
             if (mounted) setIsMaximized(maximized);
         }
 
-        const cleanup1 = electron.send("window:onMaximize", updateMaximized);
-        const cleanup2 = electron.send("window:onUnmaximize", updateMaximized);
+        const cleanupOnMaximize = electron.send(
+            "window:onMaximize",
+            updateMaximized,
+        );
+
+        const cleanupOnUnmaximize = electron.send(
+            "window:onUnmaximize",
+            updateMaximized,
+        );
 
         return () => {
             mounted = false;
-            cleanup1?.();
-            cleanup2?.();
+            cleanupOnMaximize?.();
+            cleanupOnUnmaximize?.();
         };
     }, [windowId]);
 
@@ -171,11 +178,12 @@ export default function TitleBar() {
         const onEnterFullscreen = () => mounted && setIsFullscreen(true);
         const onLeaveFullscreen = () => mounted && setIsFullscreen(false);
 
-        const cleanup1 = electron.send(
+        const cleanupOnEnterFullscreen = electron.send(
             "window:onEnterFullscreen",
             onEnterFullscreen,
         );
-        const cleanup2 = electron.send(
+
+        const cleanupOnLeaveFullscreen = electron.send(
             "window:onLeaveFullscreen",
             onLeaveFullscreen,
         );
@@ -184,8 +192,8 @@ export default function TitleBar() {
             mounted = false;
             window.removeEventListener("focus", handleFocus);
             window.removeEventListener("blur", handleBlur);
-            cleanup1?.();
-            cleanup2?.();
+            cleanupOnEnterFullscreen?.();
+            cleanupOnLeaveFullscreen?.();
         };
     }, [windowId]);
 

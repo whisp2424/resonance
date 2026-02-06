@@ -1,6 +1,3 @@
-/**
- * Gets a value from an object by a dot-separated path.
- */
 export function getDeep(obj: Record<string, unknown>, path: string): unknown {
     return path.split(".").reduce((acc: unknown, part) => {
         if (acc && typeof acc === "object" && part in acc) {
@@ -10,10 +7,6 @@ export function getDeep(obj: Record<string, unknown>, path: string): unknown {
     }, obj);
 }
 
-/**
- * Sets a value in an object by a dot-separated path.
- * Returns a new object with the value set, preserving the original.
- */
 export function setDeep(
     obj: Record<string, unknown>,
     path: string,
@@ -40,9 +33,6 @@ export function setDeep(
     return newObj;
 }
 
-/**
- * Deep merges two objects.
- */
 export function deepMerge(
     target: Record<string, unknown>,
     source: Record<string, unknown>,
