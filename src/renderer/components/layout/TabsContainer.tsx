@@ -1,28 +1,42 @@
-import type { IconElement } from "@renderer/types/iconElement";
+import type { Tab } from "@renderer/types/tabs";
 
+import { useTabsStore } from "@renderer/state/tabsStore";
 import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
 
 import IconPlus from "~icons/fluent/add-16-regular";
 import IconX from "~icons/fluent/dismiss-16-regular";
-import IconCog from "~icons/lucide/cog";
-import IconLibrary from "~icons/lucide/library-big";
-
-// static mock data for visual display only
-const mockTabs = [
-    { id: "library", icon: IconLibrary, label: "Library" },
-    { id: "settings", icon: IconCog, label: "Settings" },
-] as const;
 
 interface TabProps {
-    icon: IconElement;
-    label: string;
+    tab: Tab;
     isActive: boolean;
+    onActivate: () => void;
+    onClose: () => void;
 }
 
-function Tab({ icon: Icon, label, isActive }: TabProps) {
+function TabComponent({ tab, isActive, onActivate, onClose }: TabProps) {
+    function handleClick(event: React.MouseEvent) {
+        if (event.button === 0) onActivate();
+    }
+
+    function handleAuxClick(event: React.MouseEvent) {
+        if (event.button === 1) {
+            event.preventDefault();
+            onClose();
+        }
+    }
+
+    function handleCloseClick(event: React.MouseEvent) {
+        event.stopPropagation();
+        onClose();
+    }
+
+    const Icon = tab.icon;
+
     return (
         <div
+            onClick={handleClick}
+            onAuxClick={handleAuxClick}
             className={clsx(
                 "no-drag group flex h-full max-w-52 min-w-36 flex-1 items-center justify-between rounded-md px-3 text-sm select-none",
                 isActive
@@ -30,30 +44,33 @@ function Tab({ icon: Icon, label, isActive }: TabProps) {
                     : "bg-neutral-200/30 text-neutral-500 duration-300 hover:bg-neutral-200 hover:text-neutral-800 dark:bg-neutral-800/30 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200",
             )}>
             <div className="mr-3 flex flex-1 items-center justify-start gap-2 overflow-hidden">
-                <Icon className="shrink-0" />
-                <span className="truncate">{label}</span>
+                {Icon && <Icon className="shrink-0" />}
+                <span className="truncate">{tab.title}</span>
             </div>
-            <button
-                tabIndex={-1}
-                onMouseDown={(e) => e.preventDefault()}
-                className={clsx(
-                    "flex size-4.5 shrink-0 items-center justify-center rounded p-0.5 opacity-0 duration-300 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5",
-                    isActive && "opacity-100",
-                )}>
-                <IconX className="size-full" />
-            </button>
+            {tab.closable && (
+                <button
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleCloseClick}
+                    className={clsx(
+                        "flex size-4.5 shrink-0 items-center justify-center rounded p-0.5 opacity-0 duration-300 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5",
+                        isActive && "opacity-100",
+                    )}>
+                    <IconX className="size-full" />
+                </button>
+            )}
         </div>
     );
 }
 
 export default function TabsContainer() {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const { tabs, activeTabId, setActiveTab, removeTab } = useTabsStore();
 
     useEffect(() => {
         const container = scrollRef.current;
         if (!container) return undefined;
 
-        // convert vertical wheel to horizontal scroll
         function handleWheel(event: WheelEvent) {
             if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
                 event.preventDefault();
@@ -82,12 +99,13 @@ export default function TabsContainer() {
                     WebkitMaskImage:
                         "linear-gradient(to right, black calc(100% - 24px), transparent)",
                 }}>
-                {mockTabs.map((tab) => (
-                    <Tab
+                {tabs.map((tab) => (
+                    <TabComponent
                         key={tab.id}
-                        icon={tab.icon}
-                        label={tab.label}
-                        isActive={tab.id === "library"}
+                        tab={tab}
+                        isActive={tab.id === activeTabId}
+                        onActivate={() => setActiveTab(tab.id)}
+                        onClose={() => removeTab(tab.id)}
                     />
                 ))}
                 <button
