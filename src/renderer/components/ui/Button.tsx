@@ -12,7 +12,7 @@ type BaseProps = {
     icon?: IconElement;
     className?: string;
     children?: ReactNode;
-    variant?: "primary" | "secondary";
+    variant?: "primary" | "secondary" | "ghost";
 };
 
 type ButtonAsButton = BaseProps &
@@ -43,6 +43,11 @@ const variants = {
     secondary: [
         clsx(
             "border border-neutral-300/80 bg-linear-to-b from-[#f5f5f5] to-[#e8e8e8] text-neutral-700 shadow-[0_0.5px_1px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] hover:from-[#fafafa] hover:to-[#f0f0f0] hover:shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.95)] active:from-[#e0e0e0] active:to-[#d5d5d5] active:shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] dark:border-0 dark:from-[#3d3d3d] dark:to-[#323232] dark:text-neutral-200 dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] dark:hover:from-[#454545] dark:hover:to-[#3a3a3a] dark:hover:text-neutral-100 dark:hover:shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] dark:active:from-[#353535] dark:active:to-[#2d2d2d] dark:active:shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.2)]",
+        ),
+    ],
+    ghost: [
+        clsx(
+            "bg-transparent text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-neutral-100 dark:active:bg-neutral-700",
         ),
     ],
 };

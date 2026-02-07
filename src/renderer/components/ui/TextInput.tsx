@@ -10,7 +10,7 @@ export default function TextInput({ className, ...props }: TextInputProps) {
         <BaseInput
             type="text"
             className={clsx(
-                "h-8 w-full rounded-lg border border-neutral-300 bg-white px-3 py-1 text-sm text-neutral-800 transition duration-150 ease-out placeholder:text-neutral-400 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-600",
+                "w-full rounded-lg border border-neutral-300 bg-white px-3 py-1 text-sm text-neutral-800 transition duration-150 ease-out placeholder:text-neutral-400 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:placeholder:text-neutral-500 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-600",
                 className,
             )}
             {...props}

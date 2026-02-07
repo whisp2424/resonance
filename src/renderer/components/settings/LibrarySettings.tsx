@@ -121,19 +121,19 @@ export function LibrarySettings() {
                         ))}
                     </div>
                 )}
-                <div className="flex flex-row items-end justify-end">
-                    <Button
-                        variant="primary"
-                        onClick={() => {
-                            electron.invoke(
-                                "window:new",
-                                "/add-source",
-                                "addSource",
-                            );
-                        }}>
-                        Add source
-                    </Button>
-                </div>
+            </div>
+            <div className="flex flex-row items-center justify-start">
+                <Button
+                    variant="primary"
+                    onClick={() => {
+                        electron.invoke(
+                            "window:new",
+                            "/add-source",
+                            "addSource",
+                        );
+                    }}>
+                    Add source
+                </Button>
             </div>
         </SettingsCategory>
     );
