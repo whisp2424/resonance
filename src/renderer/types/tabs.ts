@@ -1,7 +1,10 @@
 import type { IconElement } from "@renderer/types/iconElement";
 import type { ComponentType } from "react";
 
+export type TabKey = unknown[];
+
 export interface TabOptions {
+    key: TabKey;
     title: string;
     icon?: IconElement;
     content: ComponentType;
@@ -9,6 +12,6 @@ export interface TabOptions {
 }
 
 export interface Tab extends TabOptions {
-    id: number;
+    keyHash: string;
     closable: boolean;
 }

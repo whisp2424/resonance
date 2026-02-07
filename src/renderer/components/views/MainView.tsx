@@ -1,27 +1,24 @@
 import NowPlayingView from "@renderer/components/views/NowPlayingView";
 import { useTabsStore } from "@renderer/state/tabsStore";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 import IconMusicNote from "~icons/lucide/music";
 
 export default function MainView() {
-    const { tabs, activeTabId, addTab } = useTabsStore();
-    const initializedRef = useRef(false);
+    const { tabs, activeKeyHash, addTab } = useTabsStore();
 
-    const activeTab = tabs.find((tab) => tab.id === activeTabId);
+    const activeTab = tabs.find((tab) => tab.keyHash === activeKeyHash);
     const TabView = activeTab?.content;
 
     useEffect(() => {
-        if (!initializedRef.current && tabs.length === 0) {
-            initializedRef.current = true;
-            addTab({
-                title: "Now Playing",
-                icon: IconMusicNote,
-                content: NowPlayingView,
-                closable: false,
-            });
-        }
-    }, [addTab, tabs.length]);
+        addTab({
+            key: ["now-playing"],
+            title: "Now Playing",
+            icon: IconMusicNote,
+            content: NowPlayingView,
+            closable: false,
+        });
+    }, [addTab]);
 
     return (
         <div className="flex-1 overflow-hidden">

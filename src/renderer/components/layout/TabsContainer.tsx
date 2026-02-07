@@ -65,7 +65,7 @@ function TabComponent({ tab, isActive, onActivate, onClose }: TabProps) {
 
 export default function TabsContainer() {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { tabs, activeTabId, setActiveTab, removeTab } = useTabsStore();
+    const { tabs, activeKeyHash, setActiveTab, removeTab } = useTabsStore();
 
     useEffect(() => {
         const container = scrollRef.current;
@@ -101,11 +101,11 @@ export default function TabsContainer() {
                 }}>
                 {tabs.map((tab) => (
                     <TabComponent
-                        key={tab.id}
+                        key={tab.keyHash}
                         tab={tab}
-                        isActive={tab.id === activeTabId}
-                        onActivate={() => setActiveTab(tab.id)}
-                        onClose={() => removeTab(tab.id)}
+                        isActive={tab.keyHash === activeKeyHash}
+                        onActivate={() => setActiveTab(tab.keyHash)}
+                        onClose={() => removeTab(tab.keyHash)}
                     />
                 ))}
                 <button

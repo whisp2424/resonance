@@ -46,12 +46,6 @@ export const WINDOW_POLICIES: Record<
     Exclude<Route, "*" | "/">,
     WindowPolicy
 > = {
-    "/settings": createPolicy({
-        minWidth: 800,
-        fullscreenable: false,
-        maximizable: false,
-    }),
-
     "/add-source": createPolicy({
         width: 500,
         height: 500,

@@ -1,7 +1,6 @@
 export const ROUTES = {
     NOT_FOUND: "*",
     HOME: "/",
-    SETTINGS: "/settings",
     ADD_SOURCE: "/add-source",
 } as const;
 

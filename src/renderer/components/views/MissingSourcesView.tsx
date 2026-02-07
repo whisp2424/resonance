@@ -20,13 +20,7 @@ export default function SetupView() {
                     Your library is empty since no media sources have been setup
                     yet, add some media sources in the settings to get started.
                 </p>
-                <Button
-                    icon={IconCog}
-                    onClick={() => {
-                        electron.invoke("window:new", "/settings", "settings");
-                    }}>
-                    Settings
-                </Button>
+                <Button icon={IconCog}>Settings</Button>
             </div>
         </div>
     );
