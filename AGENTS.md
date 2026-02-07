@@ -136,10 +136,10 @@ Processes communicate **only** via typed IPC.
 
 ### Styling (Tailwind CSS v4)
 
-- Prefer utility classes directly in JSX.
+- **ALWAYS use `clsx`** for className strings, never use plain template literals or string concatenation.
 - Conditional classes:
-    - Use `clsx`
-    - Merge with `twMerge`
+    - Use `clsx` to handle all conditional class logic
+    - Merge with `twMerge` when className is exposed as a prop
 - Custom CSS belongs in `src/renderer/styles.css` using `@utility`.
 - **Size utilities**:
     - **AVOID** using `h-* w-*` with the same value
