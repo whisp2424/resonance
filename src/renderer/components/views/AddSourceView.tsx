@@ -1,5 +1,3 @@
-import type { MediaBackend } from "@shared/constants/mediaBackends";
-
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import Button from "@renderer/components/ui/Button";
 import { Field, FieldError, FieldLabel } from "@renderer/components/ui/Field";
@@ -13,22 +11,17 @@ import {
 import TextInput from "@renderer/components/ui/TextInput";
 import { useAddSource } from "@renderer/hooks/library/useSources";
 import { useDialog } from "@renderer/hooks/useDialog";
-import { MEDIA_BACKENDS } from "@shared/constants/mediaBackends";
 import { useState } from "react";
 
 export default function AddSourceView() {
     const addSource = useAddSource();
-    const { openDialog } = useDialog();
-    const [sourceBackend, setSourceBackend] = useState<MediaBackend>(
-        MEDIA_BACKENDS.LOCAL,
-    );
+    const { openDialog, pickFolder } = useDialog();
+    const [sourceBackend, setSourceBackend] = useState<string>("local");
 
     const [displayName, setDisplayName] = useState("");
     const [uri, setUri] = useState("");
 
-    const sourceBackendItems = [
-        { label: "Local", value: MEDIA_BACKENDS.LOCAL },
-    ] as const;
+    const sourceBackendItems = [{ label: "Local", value: "local" }] as const;
 
     const handleAdd = async () => {
         if (!uri.trim()) return;
@@ -92,8 +85,7 @@ export default function AddSourceView() {
                     items={sourceBackendItems}
                     value={sourceBackend}
                     onValueChange={(newValue) => {
-                        if (newValue)
-                            setSourceBackend(newValue as MediaBackend);
+                        if (newValue) setSourceBackend(newValue);
                     }}>
                     <SelectTrigger>
                         <SelectValue />
@@ -136,8 +128,7 @@ export default function AddSourceView() {
                     />
                     <Button
                         onClick={async () => {
-                            const folder =
-                                await electron.invoke("dialog:pickFolder");
+                            const folder = await pickFolder();
                             if (folder) setUri(folder);
                         }}>
                         Browse

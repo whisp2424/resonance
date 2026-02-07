@@ -18,10 +18,8 @@ function send<K extends keyof MainIpcListenEvents>(
     channel: K,
     listener: (...args: MainIpcListenEvents[K]) => void,
 ): () => void {
-    const wrappedListener = (
-        _: Electron.IpcRendererEvent,
-        ...args: MainIpcListenEvents[K]
-    ) => listener(...args);
+    const wrappedListener = (_, ...args: MainIpcListenEvents[K]) =>
+        listener(...args);
     ipcRenderer.on(channel, wrappedListener);
     return () => {
         ipcRenderer.removeListener(channel, wrappedListener);

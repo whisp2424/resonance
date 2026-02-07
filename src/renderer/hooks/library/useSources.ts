@@ -1,8 +1,6 @@
-import type { MediaBackend } from "@shared/constants/mediaBackends";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export function useSources(type?: MediaBackend) {
+export function useSources(type?: string) {
     return useQuery({
         queryKey: ["library", "sources", type],
         queryFn: async () => {
@@ -22,7 +20,7 @@ export function useAddSource() {
             name,
         }: {
             uri: string;
-            backend: MediaBackend;
+            backend: string;
             name?: string;
         }) => {
             const result = await electron.invoke(
@@ -52,7 +50,7 @@ export function useRemoveSource() {
             backend,
         }: {
             uri: string;
-            backend: MediaBackend;
+            backend: string;
         }) => {
             const result = await electron.invoke(
                 "library:removeSource",

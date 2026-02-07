@@ -1,6 +1,11 @@
 import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { DialogOptions, DialogResult } from "@shared/types/dialog";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
+import type {
+    IpcMainInvokeEvent,
+    MessageBoxOptions,
+    OpenDialogOptions,
+} from "electron";
 
 import { BrowserWindow, dialog } from "electron";
 
@@ -10,11 +15,11 @@ export function registerDialogHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
     ipc.handle(
         "dialog:open",
         async (
-            event: Electron.IpcMainInvokeEvent,
+            event: IpcMainInvokeEvent,
             options: DialogOptions,
         ): Promise<DialogResult> => {
             const parentWindow = BrowserWindow.fromWebContents(event.sender);
-            const messageBoxOptions: Electron.MessageBoxOptions = {
+            const messageBoxOptions: MessageBoxOptions = {
                 type: options.type,
                 title: product.name.short,
                 message: options.title,
@@ -43,15 +48,19 @@ export function registerDialogHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
 
     ipc.handle(
         "dialog:pickFolder",
-        async (event: Electron.IpcMainInvokeEvent): Promise<string | null> => {
+        async (
+            event: IpcMainInvokeEvent,
+            title?: string,
+        ): Promise<string | null> => {
             const parentWindow = BrowserWindow.fromWebContents(event.sender);
+            const options: OpenDialogOptions = {
+                properties: ["openDirectory"],
+                title,
+            };
+
             const result = parentWindow
-                ? await dialog.showOpenDialog(parentWindow, {
-                      properties: ["openDirectory"],
-                  })
-                : await dialog.showOpenDialog({
-                      properties: ["openDirectory"],
-                  });
+                ? await dialog.showOpenDialog(parentWindow, options)
+                : await dialog.showOpenDialog(options);
 
             if (result.canceled || result.filePaths.length === 0) return null;
             return result.filePaths[0];

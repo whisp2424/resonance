@@ -1,6 +1,10 @@
 import type { Route, WindowRoute } from "@shared/constants/routes";
 import type { MainIpcListenEvents, TitleBarControls } from "@shared/types/ipc";
-import type { Rectangle } from "electron";
+import type {
+    BrowserWindowConstructorOptions,
+    Rectangle,
+    WebContents,
+} from "electron";
 
 import { join } from "node:path";
 
@@ -56,7 +60,7 @@ class WindowManager {
         return this.windows.get(id)?.window;
     }
 
-    getWindowId(webContents: Electron.WebContents): string | null {
+    getWindowId(webContents: WebContents): string | null {
         for (const [id, info] of this.windows)
             if (info.window.webContents === webContents) return id;
         return null;
@@ -137,7 +141,7 @@ class WindowManager {
         id: string,
         route: WindowRoute,
         parentId?: string,
-        customOptions?: Partial<Electron.BrowserWindowConstructorOptions>,
+        customOptions?: Partial<BrowserWindowConstructorOptions>,
     ): string {
         const existing = this.windows.get(id);
 

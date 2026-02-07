@@ -3,10 +3,9 @@ import path from "node:path";
 
 import { MediaBackend } from "@main/library/types/mediaBackend";
 import { normalizeFilePath } from "@main/utils/path";
-import { MEDIA_BACKENDS } from "@shared/constants/mediaBackends";
 
 export class LocalMediaBackend extends MediaBackend {
-    readonly BACKEND_NAME = MEDIA_BACKENDS.LOCAL;
+    readonly BACKEND_NAME = "local";
 
     parseName(uri: string): string {
         const normalizedPath = normalizeFilePath(uri);

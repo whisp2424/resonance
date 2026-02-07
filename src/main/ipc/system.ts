@@ -11,7 +11,7 @@ export function registerSystemHandlers(
     ipc: IpcListener<MainIpcHandleEvents>,
     preferences: SystemPreferences,
 ) {
-    function handleAccentColorChange(_: Electron.Event, newColor: string) {
+    function handleAccentColorChange(_, newColor: string) {
         if (newColor !== lastAccentColor) {
             lastAccentColor = newColor;
             windowManager.emitEvent("system:onAccentColorChanged", newColor);

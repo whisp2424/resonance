@@ -1,4 +1,3 @@
-import type { MediaBackend } from "@shared/constants/mediaBackends";
 import type { WindowRoute } from "@shared/constants/routes";
 import type { Settings } from "@shared/schema/settings";
 import type { DialogOptions, DialogResult } from "@shared/types/dialog";
@@ -51,19 +50,19 @@ export type MainIpcHandleEvents = {
     ) => void;
 
     "dialog:open": (options: DialogOptions) => DialogResult;
-    "dialog:pickFolder": () => string | null;
+    "dialog:pickFolder": (title?: string) => string | null;
 
-    "library:getSources": (type?: MediaBackend) => LibraryMediaSource[];
+    "library:getSources": (backend?: string) => LibraryMediaSource[];
 
     "library:addSource": (
         uri: string,
-        type: MediaBackend,
+        backend: string,
         name?: string,
     ) => AddSourceResult;
 
     "library:removeSource": (
         uri: string,
-        type: MediaBackend,
+        backend: string,
     ) => RemoveSourceResult;
 
     "dev:getTables": () => string[];

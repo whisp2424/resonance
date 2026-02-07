@@ -1,4 +1,3 @@
-import type { MediaBackend } from "@shared/constants/mediaBackends";
 import type {
     AddSourceResult,
     GetSourcesResult,
@@ -22,9 +21,10 @@ class LibraryManager {
     /**
      * Returns all registered media sources.
      *
-     * If a backend is provided, results will be filtered by that backend.
+     * If a specific media backend name is provided, results will be filtered
+     * by sources that match the given media backend.
      */
-    async getSources(backend?: MediaBackend): Promise<GetSourcesResult> {
+    async getSources(backend?: string): Promise<GetSourcesResult> {
         try {
             const query = db.select().from(sourcesTable).$dynamic();
             if (backend) query.where(eq(sourcesTable.backend, backend));
@@ -32,7 +32,7 @@ class LibraryManager {
             return ok(
                 sources.map((source) => ({
                     ...source,
-                    backend: source.backend as MediaBackend,
+                    backend: source.backend,
                 })),
             );
         } catch {
@@ -48,7 +48,7 @@ class LibraryManager {
      */
     async addSource(
         uri: string,
-        backend: MediaBackend,
+        backend: string,
         name?: string,
     ): Promise<AddSourceResult> {
         const backendInstance = this.backendRegistry.get(backend);
@@ -86,14 +86,14 @@ class LibraryManager {
         return ok({
             source: {
                 ...result[0],
-                backend: result[0].backend as MediaBackend,
+                backend: result[0].backend,
             },
         });
     }
 
     async removeSource(
         uri: string,
-        backend: MediaBackend,
+        backend: string,
     ): Promise<RemoveSourceResult> {
         try {
             const result = await db
