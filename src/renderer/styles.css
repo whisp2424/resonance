@@ -2,7 +2,7 @@
 
 :root {
     --color-accent: #0078d4;
-    --spacing-titlebar-height: 2rem;
+    --spacing-titlebar-height: 2.5rem;
 
     --color-accent-50: color-mix(in oklab, var(--color-accent) 5%, white);
     --color-accent-100: color-mix(in oklab, var(--color-accent) 10%, white);

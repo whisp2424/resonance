@@ -2,7 +2,7 @@ import type { IconElement } from "@renderer/types/iconElement";
 import type { TitleBarControls } from "@shared/types/ipc";
 import type { ButtonHTMLAttributes } from "react";
 
-import Logo from "@renderer/assets/resonance-logo.svg?react";
+import TabsContainer from "@renderer/components/layout/TabsContainer";
 import { clsx } from "clsx";
 import { memo, useCallback, useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
@@ -197,30 +197,30 @@ export default function TitleBar() {
         };
     }, [windowId]);
 
-    if (isFullscreen) return null;
-
     return (
-        <div className="drag fixed z-50 flex h-(--spacing-titlebar-height) w-full flex-row items-center justify-between gap-4 bg-linear-to-t transition duration-300 ease-out">
-            <div className="flex h-full flex-1 flex-row items-center justify-start">
-                {windowId === "main" && (
-                    <Logo className="ml-4 w-34 opacity-30" />
-                )}
-            </div>
-            <div
-                className={twMerge(
-                    clsx(
-                        "flex h-full flex-1 flex-row items-center justify-end",
-                        !isWindowFocused && "text-black/50 dark:text-white/50",
-                    ),
-                )}>
-                {controls.minimize === true && (
-                    <MinimizeButton windowId={windowId} />
-                )}
-                {controls.maximize === true && (
-                    <MaximizeButton windowId={windowId} />
-                )}
-                {controls.close === true && <CloseButton windowId={windowId} />}
-            </div>
+        <div className="drag fixed z-50 flex h-(--spacing-titlebar-height) w-full flex-row items-center justify-end bg-linear-to-t transition duration-300 ease-out">
+            {windowId === "main" && <TabsContainer />}
+            {!isFullscreen && <div className="drag h-full w-8" />}
+            {!isFullscreen && (
+                <div
+                    className={twMerge(
+                        clsx(
+                            "flex h-full flex-row items-center justify-end",
+                            !isWindowFocused &&
+                                "text-black/50 dark:text-white/50",
+                        ),
+                    )}>
+                    {controls.minimize === true && (
+                        <MinimizeButton windowId={windowId} />
+                    )}
+                    {controls.maximize === true && (
+                        <MaximizeButton windowId={windowId} />
+                    )}
+                    {controls.close === true && (
+                        <CloseButton windowId={windowId} />
+                    )}
+                </div>
+            )}
         </div>
     );
 }

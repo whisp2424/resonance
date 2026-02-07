@@ -107,12 +107,10 @@ export function subscribeToSettings() {
             const currentSettings = useSettingsStore.getState().settings;
 
             if (changedKey && currentSettings) {
-                // Merge partial update
                 useSettingsStore.setState({
                     settings: { ...currentSettings, ...settings },
                 });
             } else {
-                // Full settings replacement
                 useSettingsStore.setState({ settings });
             }
         },
