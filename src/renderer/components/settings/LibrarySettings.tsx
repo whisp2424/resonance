@@ -42,6 +42,19 @@ export function LibrarySettings() {
     const { openDialog } = useDialog();
 
     const handleRemove = async (source: LibraryMediaSource) => {
+        const confirm = await openDialog({
+            type: "question",
+            title: `Remove ${source.displayName}`,
+            description: `Are you sure you want to remove ${source.displayName}? This won't delete your files.`,
+            id: "confirm:remove-source",
+            buttons: [
+                { label: "Cancel", value: "cancel", default: true },
+                { label: "Remove", value: "remove", variant: "primary" },
+            ],
+        });
+
+        if (confirm !== "remove") return;
+
         const result = await removeSource.mutateAsync({
             uri: source.uri,
             backend: source.backend,
