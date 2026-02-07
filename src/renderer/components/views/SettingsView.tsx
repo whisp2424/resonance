@@ -6,7 +6,8 @@ import { AppearanceSettings } from "@renderer/components/settings/AppearanceSett
 import { DeveloperSettings } from "@renderer/components/settings/DeveloperSettings";
 import { LibrarySettings } from "@renderer/components/settings/LibrarySettings";
 import SideBar from "@renderer/components/ui/SideBar";
-import { useSetting } from "@renderer/hooks/useSetting";
+import { useSetting } from "@renderer/hooks/settings/useSetting";
+import { useSettingsStore } from "@renderer/state/settingsStore";
 import { useEffect, useState } from "react";
 
 import IconAppearance from "~icons/lucide/brush";
@@ -29,6 +30,7 @@ const SIDEBAR_CATEGORIES: SideBarItem[] = [
 export default function SettingsView() {
     const [isDev, setIsDev] = useState(false);
     const [lastCategory, setLastCategory] = useSetting("lastCategory");
+    const isLoading = useSettingsStore((state) => state.isLoading);
 
     useEffect(() => {
         electron.invoke("app:isDev").then(setIsDev);
@@ -53,6 +55,8 @@ export default function SettingsView() {
             : defaultCategory;
 
     const ActiveComponent = categoryComponents[activeCategory];
+
+    if (isLoading) return null;
 
     return (
         <div className="flex h-full">

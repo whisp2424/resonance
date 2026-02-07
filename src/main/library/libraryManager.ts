@@ -29,7 +29,12 @@ class LibraryManager {
             const query = db.select().from(sourcesTable).$dynamic();
             if (backend) query.where(eq(sourcesTable.backend, backend));
             const sources = await query;
-            return ok(sources);
+            return ok(
+                sources.map((source) => ({
+                    ...source,
+                    backend: source.backend as MediaBackend,
+                })),
+            );
         } catch {
             return error("io_error", "Failed to retrieve media sources");
         }
@@ -78,7 +83,12 @@ class LibraryManager {
             );
         }
 
-        return ok({ source: result[0] });
+        return ok({
+            source: {
+                ...result[0],
+                backend: result[0].backend as MediaBackend,
+            },
+        });
     }
 
     async removeSource(

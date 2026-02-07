@@ -18,7 +18,8 @@ export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
     });
 
     ipc.handle("library:removeSource", async (_, uri, type) => {
-        await libraryManager.removeSource(uri, type);
-        windowManager.emitEvent("library:onSourcesChanged");
+        const result = await libraryManager.removeSource(uri, type);
+        if (result.success) windowManager.emitEvent("library:onSourcesChanged");
+        return result;
     });
 }

@@ -3,64 +3,31 @@ import AddSourceView from "@renderer/components/views/AddSourceView";
 import MainView from "@renderer/components/views/MainView";
 import NotFound from "@renderer/components/views/NotFound";
 import SettingsView from "@renderer/components/views/SettingsView";
-import { useAccentColor } from "@renderer/hooks/useAccentColor";
+import { useOperatingSystem } from "@renderer/hooks/useOperatingSystem";
+import {
+    initializeThemeListeners,
+    useThemeStore,
+} from "@renderer/state/themeStore";
 import { ROUTES } from "@shared/constants/routes";
 import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 
 export default function App() {
-    const accentColor = useAccentColor();
+    const { data: os } = useOperatingSystem();
+    const { initialize: initializeTheme } = useThemeStore();
 
     useEffect(() => {
-        const setOperatingSystem = async () => {
-            const [isWindows, isMac, isLinux] = await Promise.all([
-                electron.invoke("system:isWindows"),
-                electron.invoke("system:isMac"),
-                electron.invoke("system:isLinux"),
-            ]);
-
-            if (isWindows) {
-                document.documentElement.dataset.os = "windows";
-            } else if (isMac) {
-                document.documentElement.dataset.os = "mac";
-            } else if (isLinux) {
-                document.documentElement.dataset.os = "linux";
-            }
-        };
-
-        setOperatingSystem();
-    }, []);
-
-    useEffect(() => {
-        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-        let timeoutId: number | null = null;
-
-        const handleThemeChange = () => {
-            const root = document.documentElement;
-            root.classList.add("theme-transition");
-            if (timeoutId !== null) clearTimeout(timeoutId);
-            timeoutId = window.setTimeout(() => {
-                root.classList.remove("theme-transition");
-                timeoutId = null;
-            }, 100);
-        };
-
-        mediaQuery.addEventListener("change", handleThemeChange);
+        initializeTheme();
+        const unsubscribe = initializeThemeListeners();
 
         return () => {
-            mediaQuery.removeEventListener("change", handleThemeChange);
-            if (timeoutId !== null) clearTimeout(timeoutId);
+            unsubscribe();
         };
-    }, []);
+    }, [initializeTheme]);
 
     useEffect(() => {
-        const root = document.documentElement;
-        root.style.setProperty("--color-accent", accentColor);
-
-        return () => {
-            root.style.removeProperty("--color-accent");
-        };
-    }, [accentColor]);
+        if (os?.name) document.documentElement.dataset.os = os.name;
+    }, [os]);
 
     return (
         <div className="flex h-dvh w-full flex-col">

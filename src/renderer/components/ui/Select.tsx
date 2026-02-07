@@ -1,4 +1,4 @@
-import type * as React from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 import { Select as BaseSelect } from "@base-ui/react/select";
 import clsx from "clsx";
@@ -31,7 +31,7 @@ function SelectValue({
     ...props
 }: Omit<BaseSelect.Value.Props, "className"> & {
     className?: string;
-    placeholder?: React.ReactNode;
+    placeholder?: ReactNode;
 }) {
     return (
         <BaseSelect.Value
@@ -171,7 +171,7 @@ function SelectSeparator({
 function SelectScrollUpButton({
     className,
     ...props
-}: Omit<React.ComponentProps<typeof BaseSelect.ScrollUpArrow>, "className"> & {
+}: Omit<ComponentProps<typeof BaseSelect.ScrollUpArrow>, "className"> & {
     className?: string;
 }) {
     return (
@@ -190,10 +190,9 @@ function SelectScrollUpButton({
 function SelectScrollDownButton({
     className,
     ...props
-}: Omit<
-    React.ComponentProps<typeof BaseSelect.ScrollDownArrow>,
-    "className"
-> & { className?: string }) {
+}: Omit<ComponentProps<typeof BaseSelect.ScrollDownArrow>, "className"> & {
+    className?: string;
+}) {
     return (
         <BaseSelect.ScrollDownArrow
             data-slot="select-scroll-down-button"

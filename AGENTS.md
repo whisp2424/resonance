@@ -50,9 +50,13 @@ Processes communicate **only** via typed IPC.
     │   │   │   └── developer/  # Developer settings
     │   │   ├── ui/         # UI primitives
     │   │   └── views/      # View components
-    │   ├── contexts/       # React contexts
     │   ├── hooks/          # Custom React hooks
+    │   │   ├── library/    # Library-related hooks
+    │   │   ├── settings/   # Settings-related hooks
+    │   │   ├── theme/      # Theme-related hooks
+    │   │   └── *.ts        # Other hooks (dialog, OS, shortcuts)
     │   ├── providers/      # React providers
+    │   ├── state/          # Zustand stores and TanStack Query client
     │   └── types/          # Frontend-specific types
     └── shared/             # Shared across all processes
         ├── constants/      # Cross-process constants
@@ -158,7 +162,111 @@ Processes communicate **only** via typed IPC.
 
 ---
 
+## State Management
+
+Resonance uses two complementary approaches based on data characteristics. Both settings and library data come from the main process (via IPC), but we handle them differently based on their access patterns.
+
+### State Management
+
+Located in `src/renderer/state/`:
+
+**Zustand Stores:**
+
+- **`settingsStore.ts`** – Application settings state (small, frequently read, UI-critical)
+- **`themeStore.ts`** – Theme and accent color state
+
+**TanStack Query:**
+
+- **`queryClient.ts`** – Query client configuration for library data (large, queryable, view-specific)
+
+### Usage Patterns
+
+**Zustand (Immediate State):**
+
+Use for small, configuration-like data that's needed immediately across the app:
+
+```ts
+import { useSettingsStore } from "@renderer/state/settingsStore";
+
+// Reading state - synchronous, no loading states
+const settings = useSettingsStore((state) => state.settings);
+
+// Updating state - optimistic updates with automatic sync
+await useSettingsStore.getState().updateSetting("appearance.theme", "dark");
+```
+
+**TanStack Query (Async Data):**
+
+Use for larger, queryable datasets fetched on-demand:
+
+```ts
+import { useSources, useAddSource } from "@renderer/hooks/library/useSources";
+
+// Reading data - async with loading/error states
+const { data: sources, isLoading } = useSources();
+
+// Mutations with automatic cache invalidation
+const addSource = useAddSource();
+await addSource.mutateAsync({ uri: "/path", backend: "local" });
+```
+
+**Error Handling with Result Types:**
+
+```ts
+import type { AddSourceResult } from "@shared/types/library";
+
+// Mutations return typed Result objects
+const result: AddSourceResult = await addSource.mutateAsync({...});
+
+if (!result.success) {
+  // Handle typed error: "duplicate" | "invalid" | "unknown"
+  console.error(result.error, result.message);
+}
+```
+
+**Key principles:**
+
+- **Zustand**: UI state, themes, settings - small data needed immediately (synchronous access)
+- **TanStack Query**: Library content - large, queryable datasets (cached, async access)
+- **Main Process**: Both settings (JSON) and library (SQLite) are managed by the main process
+- Keep stores small and focused on a single domain
+- Use selectors to prevent unnecessary re-renders
+
+---
+
 ## Common Patterns & Best Practices
+
+### Loading States & UX
+
+**Avoid spinners and loading indicators for fast operations.** Small delays of no content are preferred over showing a spinner for a split second.
+
+**Loading State Guidelines:**
+
+**Avoid loaders for short operations.** Small delays of no content are preferred over showing a spinner for a split second.
+
+1. **Initial Data Load (Queries):**
+    - Show the container structure (border, padding, background) immediately
+    - Render empty space or `null` for content while loading
+    - Do NOT show spinners, progress bars, or "Loading..." text
+    - Example:
+
+        ```tsx
+        const { data: sources, isLoading } = useSources();
+
+        if (isLoading) {
+            return <div className="border p-6">{/* Empty container */}</div>;
+        }
+        ```
+
+2. **Mutations (Add/Update/Remove):**
+    - Disable buttons during the operation (`disabled={mutation.isPending}`)
+    - Do NOT show spinners or loading text
+    - Button text should remain static (e.g., "Remove", not "Removing...")
+    - Handle errors with dialogs or inline messages after completion
+
+**Rationale:** Spinners that flash briefly create visual noise and make the app feel slower than it actually is. Users prefer a brief moment of empty space over jarring loading animations.
+
+---
 
 ### Window Management
 
@@ -174,20 +282,6 @@ Processes communicate **only** via typed IPC.
 - Import format:
     ```ts
     import IconName from "~icons/lucide/icon-name";
-    ```
-
----
-
-### Dev Mode Detection
-
-- Use `is.dev` from `@electron-toolkit/utils`.
-- Import:
-    ```ts
-    import { is } from "@electron-toolkit/utils";
-    ```
-- Example:
-    ```ts
-    if (!is.dev) throw new Error("Developer tools only available in dev mode");
     ```
 
 ---

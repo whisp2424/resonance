@@ -1,5 +1,4 @@
 import type { MediaBackend } from "@shared/constants/mediaBackends";
-import type { AddSourceResult } from "@shared/types/library";
 
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import Button from "@renderer/components/ui/Button";
@@ -12,11 +11,13 @@ import {
     SelectValue,
 } from "@renderer/components/ui/Select";
 import TextInput from "@renderer/components/ui/TextInput";
+import { useAddSource } from "@renderer/hooks/library/useSources";
 import { useDialog } from "@renderer/hooks/useDialog";
 import { MEDIA_BACKENDS } from "@shared/constants/mediaBackends";
 import { useState } from "react";
 
 export default function AddSourceView() {
+    const addSource = useAddSource();
     const { openDialog } = useDialog();
     const [sourceBackend, setSourceBackend] = useState<MediaBackend>(
         MEDIA_BACKENDS.LOCAL,
@@ -24,7 +25,6 @@ export default function AddSourceView() {
 
     const [displayName, setDisplayName] = useState("");
     const [uri, setUri] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const sourceBackendItems = [
         { label: "Local", value: MEDIA_BACKENDS.LOCAL },
@@ -33,23 +33,19 @@ export default function AddSourceView() {
     const handleAdd = async () => {
         if (!uri.trim()) return;
 
-        setIsSubmitting(true);
-        const result: AddSourceResult = await electron.invoke(
-            "library:addSource",
-            uri.trim(),
-            sourceBackend,
-            displayName.trim() || undefined,
-        );
+        const result = await addSource.mutateAsync({
+            uri: uri.trim(),
+            backend: sourceBackend,
+            name: displayName.trim() || undefined,
+        });
 
         if (result.success) {
-            setUri("");
-            setDisplayName("");
-            setIsSubmitting(false);
             window.close();
-        } else {
-            setIsSubmitting(false);
+            return;
+        }
 
-            if (result.error === "duplicate") {
+        switch (result.error) {
+            case "duplicate":
                 await openDialog({
                     type: "warning",
                     title: "Source already exists",
@@ -58,16 +54,19 @@ export default function AddSourceView() {
                         "This media source has already been added to your library",
                     id: "warning:duplicate-source",
                 });
-            } else if (result.error === "invalid") {
+                break;
+            case "invalid":
                 await openDialog({
                     type: "error",
                     title: "Invalid source provided",
                     description:
                         result.message ||
-                        "The URI provided is not valid for the selected media backend, ensure the URI is correct and try again",
+                        "The location provided is not valid for the selected media backend, ensure it is correct and try again",
                     id: "error:invalid-source",
                 });
-            } else {
+                break;
+            case "unknown":
+            default:
                 await openDialog({
                     type: "error",
                     title: "An error occurred trying to add the source",
@@ -76,7 +75,6 @@ export default function AddSourceView() {
                         "An unexpected error occurred. Please try again",
                     id: "error:add-source",
                 });
-            }
         }
     };
 
@@ -124,7 +122,7 @@ export default function AddSourceView() {
                 />
             </Field>
             <Field name="uri">
-                <FieldLabel>URI</FieldLabel>
+                <FieldLabel>Location</FieldLabel>
                 <div className="flex flex-row gap-2">
                     <TextInput
                         required
@@ -146,14 +144,14 @@ export default function AddSourceView() {
                     </Button>
                 </div>
                 <FieldError>
-                    An URI path pointing to the source is required
+                    A location pointing to the source is required
                 </FieldError>
             </Field>
             <div className="flex flex-1 items-end justify-between">
                 <Button onClick={() => window.close()}>Cancel</Button>
                 <Button
                     onClick={handleAdd}
-                    disabled={!uri.trim() || isSubmitting}>
+                    disabled={!uri.trim() || addSource.isPending}>
                     Add
                 </Button>
             </div>

@@ -1,48 +1,27 @@
-import type { Settings } from "@shared/schema/settings";
-import type { SettingsPath } from "@shared/types/ipc";
-import type { DeepPartial, PathValue } from "@shared/types/utils";
+import type { ReactNode } from "react";
 
-import { SettingsContext } from "@renderer/contexts/SettingsContext";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    subscribeToSettings,
+    useSettingsStore,
+} from "@renderer/state/settingsStore";
+import { useEffect } from "react";
 
-export function SettingsProvider({ children }: { children: React.ReactNode }) {
-    const [settings, setSettings] = useState<Settings | null>(null);
+interface SettingsProviderProps {
+    children: ReactNode;
+}
+
+export function SettingsProvider({ children }: SettingsProviderProps) {
+    const { loadSettings } = useSettingsStore();
 
     useEffect(() => {
-        electron.invoke("settings:get").then(setSettings);
+        loadSettings();
 
-        const unsubscribeOnChanged = electron.send(
-            "settings:onChanged",
-            (newSettings) => setSettings(newSettings),
-        );
+        const unsubscribe = subscribeToSettings();
 
-        return () => unsubscribeOnChanged();
-    }, []);
+        return () => {
+            unsubscribe();
+        };
+    }, [loadSettings]);
 
-    const updateSettings = useCallback(
-        async (partial: DeepPartial<Settings>) =>
-            await electron.invoke("settings:set", partial),
-        [],
-    );
-
-    const setSetting = useCallback(
-        async <P extends SettingsPath>(
-            path: P,
-            value: PathValue<Settings, P>,
-        ) => await electron.invoke("settings:setPath", path, value),
-        [],
-    );
-
-    const value = useMemo(
-        () => ({ settings, updateSettings, setSetting }),
-        [settings, updateSettings, setSetting],
-    );
-
-    if (!settings) return null;
-
-    return (
-        <SettingsContext.Provider value={value}>
-            {children}
-        </SettingsContext.Provider>
-    );
+    return <>{children}</>;
 }

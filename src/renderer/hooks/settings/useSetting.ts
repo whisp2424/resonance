@@ -2,12 +2,14 @@ import type { Settings } from "@shared/schema/settings";
 import type { SettingsPath } from "@shared/types/ipc";
 import type { PathValue } from "@shared/types/utils";
 
-import { useSettings } from "@renderer/hooks/useSettings";
+import { useSettingsStore } from "@renderer/state/settingsStore";
 import { getDeep } from "@shared/utils/object";
 import { useCallback } from "react";
 
 export function useSetting<P extends SettingsPath>(path: P) {
-    const [settings, , setSetting] = useSettings();
+    const settings = useSettingsStore((state) => state.settings);
+    const update = useSettingsStore((state) => state.updateSetting);
+
     const value = settings
         ? (getDeep(
               settings as unknown as Record<string, unknown>,
@@ -16,10 +18,10 @@ export function useSetting<P extends SettingsPath>(path: P) {
         : undefined;
 
     const setValue = useCallback(
-        (newValue: PathValue<Settings, P>) => {
-            setSetting(path, newValue);
+        async (newValue: PathValue<Settings, P>) => {
+            await update(path, newValue);
         },
-        [path, setSetting],
+        [path, update],
     );
 
     return [value, setValue] as const;

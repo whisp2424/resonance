@@ -1,8 +1,9 @@
+import type { MediaBackend } from "@shared/constants/mediaBackends";
 import type { Result } from "@shared/types/result";
 
 export interface LibraryMediaSource {
     id: number;
-    backend: string;
+    backend: MediaBackend;
     uri: string;
     displayName: string;
 }

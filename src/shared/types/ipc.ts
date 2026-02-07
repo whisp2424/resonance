@@ -5,6 +5,7 @@ import type { DialogOptions, DialogResult } from "@shared/types/dialog";
 import type {
     AddSourceResult,
     LibraryMediaSource,
+    RemoveSourceResult,
 } from "@shared/types/library";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
@@ -52,14 +53,18 @@ export type MainIpcHandleEvents = {
     "dialog:open": (options: DialogOptions) => DialogResult;
     "dialog:pickFolder": () => string | null;
 
+    "library:getSources": (type?: MediaBackend) => LibraryMediaSource[];
+
     "library:addSource": (
         uri: string,
         type: MediaBackend,
         name?: string,
     ) => AddSourceResult;
 
-    "library:getSources": (type?: MediaBackend) => LibraryMediaSource[];
-    "library:removeSource": (uri: string, type: MediaBackend) => void;
+    "library:removeSource": (
+        uri: string,
+        type: MediaBackend,
+    ) => RemoveSourceResult;
 
     "dev:getTables": () => string[];
     "dev:getTableSchema": (table: string) => {

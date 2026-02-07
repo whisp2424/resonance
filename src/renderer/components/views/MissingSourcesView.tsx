@@ -2,13 +2,14 @@ import CoversBackgroundDark from "@renderer/assets/covers-background-dark.png";
 import CoversBackgroundLight from "@renderer/assets/covers-background-light.png";
 import Logo from "@renderer/assets/resonance-logo.svg?react";
 import Button from "@renderer/components/ui/Button";
-import { useDarkTheme } from "@renderer/hooks/useDarkTheme";
+import { useDarkTheme } from "@renderer/hooks/theme/useDarkTheme";
 
 import IconCog from "~icons/lucide/cog";
 
 export default function SetupView() {
     const isDarkTheme = useDarkTheme();
     const backgroundImage = `url(${isDarkTheme ? CoversBackgroundDark : CoversBackgroundLight})`;
+
     return (
         <div
             className="flex h-full items-center justify-center bg-cover bg-center"

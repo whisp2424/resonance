@@ -6,7 +6,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@renderer/components/ui/Select";
-import { useSetting } from "@renderer/hooks/useSetting";
+import { useSetting } from "@renderer/hooks/settings/useSetting";
 
 export function AppearanceSettings() {
     const themeSelectItems = [
