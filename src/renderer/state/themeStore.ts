@@ -47,7 +47,11 @@ export function initializeThemeListeners() {
     const query = window.matchMedia("(prefers-color-scheme: dark)");
 
     const handleChange = (event: MediaQueryListEvent) => {
+        document.documentElement.classList.add("theme-transition");
         useThemeStore.setState({ isDarkTheme: event.matches });
+        setTimeout(() => {
+            document.documentElement.classList.remove("theme-transition");
+        }, 100);
     };
 
     query.addEventListener("change", handleChange);
