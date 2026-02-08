@@ -66,7 +66,7 @@ function TabComponent({ tab, isActive, onActivate, onClose }: TabProps) {
 
 export default function TabsContainer() {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { tabs, activeKeyHash, setActiveTab, removeTab } = useTabsStore();
+    const { tabs, activeId, setActiveTab, removeTab } = useTabsStore();
 
     useEffect(() => {
         const container = scrollRef.current;
@@ -90,26 +90,22 @@ export default function TabsContainer() {
     }, []);
 
     useShortcut({ code: "KeyW", ctrlOrCmd: true }, () => {
-        if (activeKeyHash) removeTab(activeKeyHash);
+        if (activeId) removeTab(activeId);
     });
 
     useShortcut({ code: "Tab", ctrlOrCmd: true }, () => {
         if (tabs.length === 0) return;
-        const currentIndex = tabs.findIndex(
-            (tab) => tab.keyHash === activeKeyHash,
-        );
+        const currentIndex = tabs.findIndex((tab) => tab.id === activeId);
         const nextIndex = (currentIndex + 1) % tabs.length;
-        setActiveTab(tabs[nextIndex].keyHash);
+        setActiveTab(tabs[nextIndex].id);
     });
 
     useShortcut({ code: "Tab", ctrlOrCmd: true, shift: true }, () => {
         if (tabs.length === 0) return;
-        const currentIndex = tabs.findIndex(
-            (tab) => tab.keyHash === activeKeyHash,
-        );
+        const currentIndex = tabs.findIndex((tab) => tab.id === activeId);
         const prevIndex =
             currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
-        setActiveTab(tabs[prevIndex].keyHash);
+        setActiveTab(tabs[prevIndex].id);
     });
 
     return (
@@ -124,11 +120,11 @@ export default function TabsContainer() {
                 }}>
                 {tabs.map((tab) => (
                     <TabComponent
-                        key={tab.keyHash}
+                        key={tab.id}
                         tab={tab}
-                        isActive={tab.keyHash === activeKeyHash}
-                        onActivate={() => setActiveTab(tab.keyHash)}
-                        onClose={() => removeTab(tab.keyHash)}
+                        isActive={tab.id === activeId}
+                        onActivate={() => setActiveTab(tab.id)}
+                        onClose={() => removeTab(tab.id)}
                     />
                 ))}
                 <button

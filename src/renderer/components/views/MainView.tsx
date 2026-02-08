@@ -1,3 +1,4 @@
+import KeepAlive from "@renderer/components/layout/KeepAlive";
 import NowPlayingView from "@renderer/components/views/NowPlayingView";
 import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useTabsStore } from "@renderer/state/tabsStore";
@@ -9,10 +10,7 @@ import IconCog from "~icons/lucide/cog";
 import IconMusicNote from "~icons/lucide/music";
 
 export default function MainView() {
-    const { tabs, activeKeyHash, addTab } = useTabsStore();
-    const activeTab = tabs.find((tab) => tab.keyHash === activeKeyHash);
-
-    const TabView = activeTab?.content;
+    const { tabs, activeId, addTab } = useTabsStore();
 
     useShortcut({ code: "Comma", ctrlOrCmd: true }, () => {
         addTab({
@@ -34,8 +32,17 @@ export default function MainView() {
     }, [addTab]);
 
     return (
-        <div className="flex-1 overflow-hidden">
-            {TabView ? <TabView /> : null}
+        <div className="relative flex-1 overflow-hidden">
+            {tabs.map((tab) => {
+                const TabContent = tab.content;
+                const isActive = tab.id === activeId;
+
+                return (
+                    <KeepAlive key={tab.id} active={isActive}>
+                        <TabContent />
+                    </KeepAlive>
+                );
+            })}
         </div>
     );
 }

@@ -12,6 +12,6 @@ export interface TabOptions {
 }
 
 export interface Tab extends TabOptions {
-    keyHash: string;
+    id: string;
     closable: boolean;
 }

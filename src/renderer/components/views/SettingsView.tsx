@@ -1,7 +1,6 @@
 import type { SideBarItem } from "@renderer/components/ui/SideBar";
 import type { ComponentType } from "react";
 
-import { AboutSettings } from "@renderer/components/settings/AboutSettings";
 import { AppearanceSettings } from "@renderer/components/settings/AppearanceSettings";
 import { DeveloperSettings } from "@renderer/components/settings/DeveloperSettings";
 import { LibrarySettings } from "@renderer/components/settings/LibrarySettings";
@@ -12,17 +11,14 @@ import { useEffect, useState } from "react";
 
 import IconAppearance from "~icons/lucide/brush";
 import IconCode from "~icons/lucide/code";
-import IconInfo from "~icons/lucide/info";
 import IconLibrary from "~icons/lucide/library-big";
 
 const CATEGORY_COMPONENTS: Record<string, ComponentType> = {
-    about: AboutSettings,
     appearance: AppearanceSettings,
     library: LibrarySettings,
 };
 
 const SIDEBAR_CATEGORIES: SideBarItem[] = [
-    { id: "about", label: "About", icon: IconInfo },
     { id: "appearance", label: "Appearance", icon: IconAppearance },
     { id: "library", label: "Library", icon: IconLibrary },
 ];
@@ -61,7 +57,7 @@ export default function SettingsView() {
     return (
         <>
             <div className="pointer-events-none fixed z-60 h-(--spacing-titlebar-height) w-full border-b border-neutral-200 shadow-xl shadow-neutral-50 dark:border-neutral-800 dark:shadow-neutral-900" />
-            <div className="flex h-full gap-16">
+            <div className="flex h-full gap-12">
                 <div className="flex h-full max-w-[30vw] flex-2 justify-end border-r border-neutral-200/50 bg-linear-to-b px-4 dark:border-neutral-800/50">
                     <SideBar
                         items={sidebarCategories}
@@ -70,7 +66,7 @@ export default function SettingsView() {
                         className="pt-[calc(var(--spacing-titlebar-height)+2rem)]"
                     />
                 </div>
-                <div className="flex h-full flex-3">
+                <div className="flex h-full flex-3 overflow-hidden">
                     {ActiveComponent && <ActiveComponent />}
                 </div>
             </div>

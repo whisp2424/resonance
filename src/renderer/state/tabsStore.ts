@@ -18,35 +18,35 @@ function hashKey(key: TabKey): string {
 
 interface TabsState {
     tabs: Tab[];
-    activeKeyHash: string | null;
+    activeId: string | null;
 }
 
 interface TabsActions {
     addTab: (tab: TabOptions) => string;
-    removeTab: (keyHash: string) => void;
-    setActiveTab: (keyHash: string) => void;
+    removeTab: (id: string) => void;
+    setActiveTab: (id: string) => void;
 }
 
 export type TabsStore = TabsState & TabsActions;
 
 export const useTabsStore = create<TabsStore>((set, get) => ({
     tabs: [],
-    activeKeyHash: null,
+    activeId: null,
 
     addTab: (tabDefinition) => {
         const { tabs } = get();
-        const keyHash = hashKey(tabDefinition.key);
+        const id = hashKey(tabDefinition.key);
 
-        const existingTab = tabs.find((tab) => tab.keyHash === keyHash);
+        const existingTab = tabs.find((tab) => tab.id === id);
 
         if (existingTab) {
-            set({ activeKeyHash: existingTab.keyHash });
-            return existingTab.keyHash;
+            set({ activeId: existingTab.id });
+            return existingTab.id;
         }
 
         const newTab: Tab = {
             key: tabDefinition.key,
-            keyHash,
+            id,
             title: tabDefinition.title,
             icon: tabDefinition.icon,
             content: tabDefinition.content,
@@ -55,34 +55,34 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
 
         set((state) => ({
             tabs: [...state.tabs, newTab],
-            activeKeyHash: keyHash,
+            activeId: id,
         }));
 
-        return keyHash;
+        return id;
     },
 
-    removeTab: (keyHash) => {
-        const { tabs, activeKeyHash } = get();
-        const tabToRemove = tabs.find((tab) => tab.keyHash === keyHash);
+    removeTab: (id) => {
+        const { tabs, activeId } = get();
+        const tabToRemove = tabs.find((tab) => tab.id === id);
 
         if (!tabToRemove || !tabToRemove.closable) return;
 
-        const newTabs = tabs.filter((tab) => tab.keyHash !== keyHash);
-        let newActiveKeyHash = activeKeyHash;
+        const newTabs = tabs.filter((tab) => tab.id !== id);
+        let newActiveId = activeId;
 
-        if (activeKeyHash === keyHash) {
-            const removedIndex = tabs.findIndex((t) => t.keyHash === keyHash);
+        if (activeId === id) {
+            const removedIndex = tabs.findIndex((t) => t.id === id);
             const nextTab = newTabs[removedIndex] ?? newTabs[removedIndex - 1];
-            newActiveKeyHash = nextTab?.keyHash ?? null;
+            newActiveId = nextTab?.id ?? null;
         }
 
         set({
             tabs: newTabs,
-            activeKeyHash: newActiveKeyHash,
+            activeId: newActiveId,
         });
     },
 
-    setActiveTab: (keyHash) => {
-        set({ activeKeyHash: keyHash });
+    setActiveTab: (id) => {
+        set({ activeId: id });
     },
 }));

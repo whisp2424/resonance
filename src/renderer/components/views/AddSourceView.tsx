@@ -1,4 +1,3 @@
-import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import Button from "@renderer/components/ui/Button";
 import { Field, FieldError, FieldLabel } from "@renderer/components/ui/Field";
 import {
@@ -72,7 +71,8 @@ export default function AddSourceView() {
     };
 
     return (
-        <SettingsCategory title="Add media source">
+        <div className="flex h-full flex-1 flex-col gap-6 overflow-y-scroll px-10 pt-(--spacing-titlebar-height) pb-8">
+            <h1 className="text-4xl font-light">Add media source</h1>
             <div className="flex flex-row items-center justify-between gap-8">
                 <div>
                     <h2>Media backend</h2>
@@ -146,6 +146,6 @@ export default function AddSourceView() {
                     Add
                 </Button>
             </div>
-        </SettingsCategory>
+        </div>
     );
 }
