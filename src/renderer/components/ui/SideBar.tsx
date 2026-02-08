@@ -52,7 +52,7 @@ export default function SideBar({
         <div
             className={twMerge(
                 clsx(
-                    "flex w-64 flex-col gap-1.5 overflow-y-scroll px-0.5 pb-4",
+                    "flex w-56 flex-col gap-1.5 overflow-y-scroll px-0.5 pb-4",
                     className,
                 ),
             )}>

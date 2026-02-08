@@ -72,7 +72,7 @@ export default function AddSourceView() {
 
     return (
         <div className="flex h-full flex-1 flex-col gap-6 overflow-y-scroll px-10 pt-(--spacing-titlebar-height) pb-8">
-            <h1 className="text-4xl font-light">Add media source</h1>
+            <h1 className="text-4xl font-light">New source</h1>
             <div className="flex flex-row items-center justify-between gap-8">
                 <div>
                     <h2>Media backend</h2>
@@ -138,7 +138,7 @@ export default function AddSourceView() {
                     A location pointing to the source is required
                 </FieldError>
             </Field>
-            <div className="flex flex-1 items-end justify-between">
+            <div className="flex flex-1 items-end justify-end gap-2">
                 <Button onClick={() => window.close()}>Cancel</Button>
                 <Button
                     onClick={handleAdd}

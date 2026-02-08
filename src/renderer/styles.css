@@ -34,7 +34,6 @@
         scrollbar-width: none;
         user-select: none;
         -webkit-user-select: none;
-        -webkit-user-drag: none;
 
         &::-webkit-scrollbar {
             display: none;
@@ -42,6 +41,10 @@
 
         &::selection {
             @apply dark:bg-accent-700 dark:text-accent-100 text-accent-800 bg-accent-400;
+        }
+
+        &:not([draggable]) {
+            -webkit-user-drag: none;
         }
     }
 

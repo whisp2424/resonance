@@ -16,7 +16,6 @@ function FieldLabel({
 }) {
     return (
         <BaseField.Label
-            nativeLabel={false}
             className={twMerge(clsx("mb-1.5 block text-sm", className))}
             {...props}>
             {children}

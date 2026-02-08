@@ -3,7 +3,7 @@ import type { Tab } from "@renderer/types/tabs";
 import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useTabsStore } from "@renderer/state/tabsStore";
 import { clsx } from "clsx";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import IconPlus from "~icons/fluent/add-16-regular";
 import IconX from "~icons/fluent/dismiss-16-regular";
@@ -13,9 +13,24 @@ interface TabProps {
     isActive: boolean;
     onActivate: () => void;
     onClose: () => void;
+    draggable?: boolean;
+    onDragStart?: (event: React.DragEvent) => void;
+    onDragOver?: (event: React.DragEvent) => void;
+    onDrop?: (event: React.DragEvent) => void;
+    onDragEnd?: () => void;
 }
 
-function TabComponent({ tab, isActive, onActivate, onClose }: TabProps) {
+function TabComponent({
+    tab,
+    isActive,
+    onActivate,
+    onClose,
+    draggable,
+    onDragStart,
+    onDragOver,
+    onDrop,
+    onDragEnd,
+}: TabProps) {
     function handleClick(event: React.MouseEvent) {
         if (event.button === 0) onActivate();
     }
@@ -36,22 +51,26 @@ function TabComponent({ tab, isActive, onActivate, onClose }: TabProps) {
 
     return (
         <div
+            draggable={draggable}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onDragEnd={onDragEnd}
             onClick={handleClick}
             onAuxClick={handleAuxClick}
             className={clsx(
-                "group flex h-full flex-1 items-center justify-between rounded-md border px-3 text-sm select-none",
+                "group flex h-full flex-1 items-center justify-between rounded-md border pr-2 pl-3 text-sm select-none",
                 isActive
                     ? "border-transparent bg-black/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200"
                     : "border-black/10 text-neutral-500 hover:bg-black/5 hover:text-neutral-800 dark:border-white/5 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-neutral-200",
             )}>
-            <div className="mr-3 flex flex-1 items-center justify-start gap-2 overflow-hidden">
-                {Icon && <Icon className="shrink-0" />}
-                <span className="truncate">{tab.title}</span>
+            <div className="pointer-events-none mr-3 flex flex-1 items-center justify-start gap-2 overflow-hidden">
+                {Icon && <Icon className="size-4 shrink-0" />}
+                <span className="-translate-y-px truncate">{tab.title}</span>
             </div>
             {tab.closable && (
                 <button
                     tabIndex={-1}
-                    onMouseDown={(e) => e.preventDefault()}
                     onClick={handleCloseClick}
                     className={clsx(
                         "flex size-4.5 shrink-0 items-center justify-center rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5",
@@ -66,7 +85,10 @@ function TabComponent({ tab, isActive, onActivate, onClose }: TabProps) {
 
 export default function TabsContainer() {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { tabs, activeId, setActiveTab, removeTab } = useTabsStore();
+    const { tabs, activeId, setActiveTab, removeTab, reorderTabs } =
+        useTabsStore();
+    const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     useEffect(() => {
         const container = scrollRef.current;
@@ -109,25 +131,80 @@ export default function TabsContainer() {
         setActiveTab(tabs[prevIndex].id);
     });
 
+    function handleDragStart(
+        event: React.DragEvent,
+        tabId: string,
+        index: number,
+    ) {
+        setDraggedTabId(tabId);
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(index));
+    }
+
+    function handleDragOver(event: React.DragEvent, index: number) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        if (
+            draggedTabId &&
+            tabs.findIndex((t) => t.id === draggedTabId) !== index
+        ) {
+            setDragOverIndex(index);
+        }
+    }
+
+    function handleDrop(event: React.DragEvent, dropIndex: number) {
+        event.preventDefault();
+        const fromIndex = Number.parseInt(
+            event.dataTransfer.getData("text/plain"),
+            10,
+        );
+        if (!Number.isNaN(fromIndex) && fromIndex !== dropIndex) {
+            reorderTabs(fromIndex, dropIndex);
+        }
+        setDraggedTabId(null);
+        setDragOverIndex(null);
+    }
+
+    function handleDragEnd() {
+        setDraggedTabId(null);
+        setDragOverIndex(null);
+    }
+
     return (
         <div className="flex h-full flex-1 overflow-hidden">
             <div
                 ref={scrollRef}
-                onMouseDown={(event) => event.preventDefault()}
                 className="flex h-full flex-1 items-center justify-start gap-1 overflow-x-auto p-1.5"
                 style={{
                     WebkitMaskImage:
                         "linear-gradient(to right, black calc(100% - 24px), transparent)",
                 }}>
                 <div className="no-drag flex h-full items-center justify-start gap-1">
-                    {tabs.map((tab) => (
-                        <TabComponent
-                            key={tab.id}
-                            tab={tab}
-                            isActive={tab.id === activeId}
-                            onActivate={() => setActiveTab(tab.id)}
-                            onClose={() => removeTab(tab.id)}
-                        />
+                    {tabs.map((tab, index) => (
+                        <div key={tab.id} className="flex h-full items-center">
+                            {dragOverIndex === index && draggedTabId && (
+                                <div className="bg-accent-500 absolute h-[50%] w-0.5 shrink-0 -translate-x-0.75 rounded-full" />
+                            )}
+                            <TabComponent
+                                tab={tab}
+                                isActive={tab.id === activeId}
+                                onActivate={() => setActiveTab(tab.id)}
+                                onClose={() => removeTab(tab.id)}
+                                draggable={tab.draggable}
+                                onDragStart={(event) => {
+                                    if (tab.draggable)
+                                        handleDragStart(event, tab.id, index);
+                                }}
+                                onDragOver={(event) => {
+                                    if (tab.draggable)
+                                        handleDragOver(event, index);
+                                }}
+                                onDrop={(event) => {
+                                    if (tab.draggable) handleDrop(event, index);
+                                }}
+                                onDragEnd={handleDragEnd}
+                            />
+                        </div>
                     ))}
                     <button
                         tabIndex={-1}

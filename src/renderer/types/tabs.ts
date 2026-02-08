@@ -9,9 +9,11 @@ export interface TabOptions {
     icon?: IconElement;
     content: ComponentType;
     closable?: boolean;
+    draggable?: boolean;
 }
 
 export interface Tab extends TabOptions {
     id: string;
     closable: boolean;
+    draggable: boolean;
 }

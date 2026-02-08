@@ -25,6 +25,7 @@ interface TabsActions {
     addTab: (tab: TabOptions) => string;
     removeTab: (id: string) => void;
     setActiveTab: (id: string) => void;
+    reorderTabs: (fromIndex: number, toIndex: number) => void;
 }
 
 export type TabsStore = TabsState & TabsActions;
@@ -51,6 +52,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
             icon: tabDefinition.icon,
             content: tabDefinition.content,
             closable: tabDefinition.closable ?? true,
+            draggable: tabDefinition.draggable ?? true,
         };
 
         set((state) => ({
@@ -84,5 +86,16 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
 
     setActiveTab: (id) => {
         set({ activeId: id });
+    },
+
+    reorderTabs: (fromIndex, toIndex) => {
+        set((state) => {
+            const newTabs = [...state.tabs];
+            const [movedTab] = newTabs.splice(fromIndex, 1);
+            if (movedTab) {
+                newTabs.splice(toIndex, 0, movedTab);
+            }
+            return { tabs: newTabs };
+        });
     },
 }));

@@ -28,6 +28,7 @@ export default function MainView() {
             icon: IconMusicNote,
             content: NowPlayingView,
             closable: false,
+            draggable: false,
         });
     }, [addTab]);
 

@@ -198,7 +198,7 @@ export default function TitleBar() {
     }, [windowId]);
 
     return (
-        <div className="drag fixed z-50 flex h-(--spacing-titlebar-height) w-full flex-row items-center justify-end bg-neutral-50/20 bg-linear-to-t backdrop-blur-sm transition duration-300 ease-out dark:bg-neutral-900/60">
+        <div className="drag fixed z-50 flex h-(--spacing-titlebar-height) w-full flex-row items-center justify-end bg-neutral-50/40 bg-linear-to-t backdrop-blur-sm transition duration-300 ease-out dark:bg-neutral-900/40">
             {windowId === "main" && <TabsContainer />}
             {!isFullscreen && <div className="drag h-full w-8" />}
             {!isFullscreen && (
