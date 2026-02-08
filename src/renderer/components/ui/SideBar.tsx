@@ -36,8 +36,8 @@ function SideBarButton({ item, isActive, onClick }: SideBarButtonProps) {
                         : "text-neutral-600 hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/5",
                 ),
             )}>
-            {Icon && <Icon className="size-4" />}
-            <span>{item.label}</span>
+            {Icon && <Icon className="size-4 shrink-0" />}
+            <span className="truncate">{item.label}</span>
         </button>
     );
 }

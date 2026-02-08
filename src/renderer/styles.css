@@ -59,13 +59,16 @@
     body {
         overflow: hidden;
         font-family: system-ui, sans-serif;
+        min-height: 100vh;
 
         @media (prefers-color-scheme: light) {
             color: theme(--color-black);
             background: linear-gradient(
                 to bottom,
-                theme(--color-neutral-50),
-                theme(--color-neutral-100)
+                theme(--color-neutral-50) 0,
+                theme(--color-neutral-50) var(--spacing-titlebar-height),
+                theme(--color-neutral-50) var(--spacing-titlebar-height),
+                theme(--color-neutral-100) 100%
             );
         }
 
@@ -73,8 +76,10 @@
             color: theme(--color-white);
             background: linear-gradient(
                 to bottom,
-                theme(--color-neutral-900),
-                theme(--color-neutral-950)
+                theme(--color-neutral-900) 0,
+                theme(--color-neutral-900) var(--spacing-titlebar-height),
+                theme(--color-neutral-900) var(--spacing-titlebar-height),
+                theme(--color-neutral-950) 100%
             );
         }
     }

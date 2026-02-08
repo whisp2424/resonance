@@ -39,10 +39,10 @@ function TabComponent({ tab, isActive, onActivate, onClose }: TabProps) {
             onClick={handleClick}
             onAuxClick={handleAuxClick}
             className={clsx(
-                "no-drag group flex h-full max-w-52 min-w-36 flex-1 items-center justify-between rounded-md px-3 text-sm select-none",
+                "group flex h-full flex-1 items-center justify-between rounded-md border px-3 text-sm select-none",
                 isActive
-                    ? "bg-black/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200"
-                    : "text-neutral-500 duration-300 hover:bg-black/10 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-neutral-200",
+                    ? "border-transparent bg-black/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200"
+                    : "border-black/10 text-neutral-500 hover:bg-black/5 hover:text-neutral-800 dark:border-white/5 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-neutral-200",
             )}>
             <div className="mr-3 flex flex-1 items-center justify-start gap-2 overflow-hidden">
                 {Icon && <Icon className="shrink-0" />}
@@ -54,7 +54,7 @@ function TabComponent({ tab, isActive, onActivate, onClose }: TabProps) {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={handleCloseClick}
                     className={clsx(
-                        "flex size-4.5 shrink-0 items-center justify-center rounded p-0.5 opacity-0 duration-300 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5",
+                        "flex size-4.5 shrink-0 items-center justify-center rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5",
                         isActive && "opacity-100",
                     )}>
                     <IconX className="size-full" />
@@ -105,6 +105,7 @@ export default function TabsContainer() {
         const currentIndex = tabs.findIndex((tab) => tab.id === activeId);
         const prevIndex =
             currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
+
         setActiveTab(tabs[prevIndex].id);
     });
 
@@ -118,21 +119,23 @@ export default function TabsContainer() {
                     WebkitMaskImage:
                         "linear-gradient(to right, black calc(100% - 24px), transparent)",
                 }}>
-                {tabs.map((tab) => (
-                    <TabComponent
-                        key={tab.id}
-                        tab={tab}
-                        isActive={tab.id === activeId}
-                        onActivate={() => setActiveTab(tab.id)}
-                        onClose={() => removeTab(tab.id)}
-                    />
-                ))}
-                <button
-                    tabIndex={-1}
-                    onMouseDown={(e) => e.preventDefault()}
-                    className="no-drag flex h-full w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 duration-300 hover:bg-black/10 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-neutral-200">
-                    <IconPlus className="size-4" />
-                </button>
+                <div className="no-drag flex h-full items-center justify-start gap-1">
+                    {tabs.map((tab) => (
+                        <TabComponent
+                            key={tab.id}
+                            tab={tab}
+                            isActive={tab.id === activeId}
+                            onActivate={() => setActiveTab(tab.id)}
+                            onClose={() => removeTab(tab.id)}
+                        />
+                    ))}
+                    <button
+                        tabIndex={-1}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="flex aspect-square h-full shrink-0 items-center justify-center rounded-md border-black/10 text-neutral-500 hover:border hover:bg-black/5 hover:text-neutral-800 dark:border-white/5 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-neutral-200">
+                        <IconPlus className="size-4" />
+                    </button>
+                </div>
             </div>
         </div>
     );
