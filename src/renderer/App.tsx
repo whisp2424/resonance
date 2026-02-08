@@ -2,7 +2,6 @@ import TitleBar from "@renderer/components/layout/TitleBar";
 import AddSourceView from "@renderer/components/views/AddSourceView";
 import MainView from "@renderer/components/views/MainView";
 import NotFound from "@renderer/components/views/NotFound";
-import SettingsView from "@renderer/components/views/SettingsView";
 import { useOperatingSystem } from "@renderer/hooks/useOperatingSystem";
 import {
     initializeThemeListeners,
@@ -34,7 +33,6 @@ export default function App() {
             <TitleBar />
             <Routes>
                 <Route path={ROUTES.HOME} element={<MainView />} />
-                <Route path={ROUTES.SETTINGS} element={<SettingsView />} />
                 <Route path={ROUTES.ADD_SOURCE} element={<AddSourceView />} />
                 <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
             </Routes>

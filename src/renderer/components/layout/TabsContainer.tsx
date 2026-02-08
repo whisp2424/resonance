@@ -1,5 +1,6 @@
 import type { Tab } from "@renderer/types/tabs";
 
+import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useTabsStore } from "@renderer/state/tabsStore";
 import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
@@ -40,8 +41,8 @@ function TabComponent({ tab, isActive, onActivate, onClose }: TabProps) {
             className={clsx(
                 "no-drag group flex h-full max-w-52 min-w-36 flex-1 items-center justify-between rounded-md px-3 text-sm select-none",
                 isActive
-                    ? "bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200"
-                    : "bg-neutral-200/30 text-neutral-500 duration-300 hover:bg-neutral-200 hover:text-neutral-800 dark:bg-neutral-800/30 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200",
+                    ? "bg-black/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200"
+                    : "text-neutral-500 duration-300 hover:bg-black/10 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-neutral-200",
             )}>
             <div className="mr-3 flex flex-1 items-center justify-start gap-2 overflow-hidden">
                 {Icon && <Icon className="shrink-0" />}
@@ -88,12 +89,34 @@ export default function TabsContainer() {
         };
     }, []);
 
+    useShortcut({ code: "KeyW", ctrlOrCmd: true }, () => {
+        if (activeKeyHash) removeTab(activeKeyHash);
+    });
+
+    useShortcut({ code: "Tab", ctrlOrCmd: true }, () => {
+        if (tabs.length === 0) return;
+        const currentIndex = tabs.findIndex(
+            (tab) => tab.keyHash === activeKeyHash,
+        );
+        const nextIndex = (currentIndex + 1) % tabs.length;
+        setActiveTab(tabs[nextIndex].keyHash);
+    });
+
+    useShortcut({ code: "Tab", ctrlOrCmd: true, shift: true }, () => {
+        if (tabs.length === 0) return;
+        const currentIndex = tabs.findIndex(
+            (tab) => tab.keyHash === activeKeyHash,
+        );
+        const prevIndex =
+            currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
+        setActiveTab(tabs[prevIndex].keyHash);
+    });
+
     return (
         <div className="flex h-full flex-1 overflow-hidden">
             <div
-                tabIndex={-1}
-                onMouseDown={(e) => e.preventDefault()}
                 ref={scrollRef}
+                onMouseDown={(event) => event.preventDefault()}
                 className="flex h-full flex-1 items-center justify-start gap-1 overflow-x-auto p-1.5"
                 style={{
                     WebkitMaskImage:
@@ -111,7 +134,7 @@ export default function TabsContainer() {
                 <button
                     tabIndex={-1}
                     onMouseDown={(e) => e.preventDefault()}
-                    className="no-drag flex h-full w-8 shrink-0 items-center justify-center rounded-md bg-neutral-200/30 text-neutral-500 duration-300 hover:bg-neutral-200 hover:text-neutral-800 dark:bg-neutral-800/30 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200">
+                    className="no-drag flex h-full w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 duration-300 hover:bg-black/10 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-neutral-200">
                     <IconPlus className="size-4" />
                 </button>
             </div>

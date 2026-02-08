@@ -57,6 +57,7 @@
     }
 
     body {
+        overflow: hidden;
         font-family: system-ui, sans-serif;
 
         @media (prefers-color-scheme: light) {

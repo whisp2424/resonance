@@ -1,14 +1,27 @@
 import NowPlayingView from "@renderer/components/views/NowPlayingView";
+import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useTabsStore } from "@renderer/state/tabsStore";
 import { useEffect } from "react";
 
+import SettingsView from "./SettingsView";
+
+import IconCog from "~icons/lucide/cog";
 import IconMusicNote from "~icons/lucide/music";
 
 export default function MainView() {
     const { tabs, activeKeyHash, addTab } = useTabsStore();
-
     const activeTab = tabs.find((tab) => tab.keyHash === activeKeyHash);
+
     const TabView = activeTab?.content;
+
+    useShortcut({ code: "Comma", ctrlOrCmd: true }, () => {
+        addTab({
+            key: ["settings"],
+            title: "Settings",
+            icon: IconCog,
+            content: SettingsView,
+        });
+    });
 
     useEffect(() => {
         addTab({

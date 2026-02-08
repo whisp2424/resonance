@@ -59,14 +59,21 @@ export default function SettingsView() {
     if (isLoading) return null;
 
     return (
-        <div className="flex h-full">
-            <SideBar
-                items={sidebarCategories}
-                activeItemId={activeCategory}
-                onActiveItemChange={setLastCategory}
-                className="no-drag z-60 border-r border-neutral-300 bg-black/4 bg-linear-to-b p-4 dark:border-neutral-800 dark:bg-white/2"
-            />
-            {ActiveComponent && <ActiveComponent />}
-        </div>
+        <>
+            <div className="pointer-events-none fixed z-60 h-(--spacing-titlebar-height) w-full border-b border-neutral-200 shadow-xl shadow-neutral-50 dark:border-neutral-800 dark:shadow-neutral-900" />
+            <div className="flex h-full gap-16">
+                <div className="flex h-full max-w-[30vw] flex-2 justify-end border-r border-neutral-200/50 bg-linear-to-b px-4 dark:border-neutral-800/50">
+                    <SideBar
+                        items={sidebarCategories}
+                        activeItemId={activeCategory}
+                        onActiveItemChange={setLastCategory}
+                        className="pt-[calc(var(--spacing-titlebar-height)+2rem)]"
+                    />
+                </div>
+                <div className="flex h-full flex-3">
+                    {ActiveComponent && <ActiveComponent />}
+                </div>
+            </div>
+        </>
     );
 }
