@@ -1,4 +1,5 @@
 import type { Tab } from "@renderer/types/tabs";
+import type { DragEvent, MouseEvent } from "react";
 
 import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useTabsStore } from "@renderer/state/tabsStore";
@@ -14,9 +15,9 @@ interface TabProps {
     onActivate: () => void;
     onClose: () => void;
     draggable?: boolean;
-    onDragStart?: (event: React.DragEvent) => void;
-    onDragOver?: (event: React.DragEvent) => void;
-    onDrop?: (event: React.DragEvent) => void;
+    onDragStart?: (event: DragEvent) => void;
+    onDragOver?: (event: DragEvent) => void;
+    onDrop?: (event: DragEvent) => void;
     onDragEnd?: () => void;
 }
 
@@ -31,18 +32,18 @@ function TabComponent({
     onDrop,
     onDragEnd,
 }: TabProps) {
-    function handleClick(event: React.MouseEvent) {
+    function handleClick(event: MouseEvent) {
         if (event.button === 0) onActivate();
     }
 
-    function handleAuxClick(event: React.MouseEvent) {
+    function handleAuxClick(event: MouseEvent) {
         if (event.button === 1) {
             event.preventDefault();
             onClose();
         }
     }
 
-    function handleCloseClick(event: React.MouseEvent) {
+    function handleCloseClick(event: MouseEvent) {
         event.stopPropagation();
         onClose();
     }
@@ -85,15 +86,17 @@ function TabComponent({
 
 export default function TabsContainer() {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { tabs, activeId, setActiveTab, removeTab, reorderTabs } =
+    const { tabs, activeId, setActiveTab, removeTab, reorderTabs, restoreTab } =
         useTabsStore();
-    const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
-    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+    const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
+    const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+    const tabRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
     useEffect(() => {
         const container = scrollRef.current;
         if (!container) return undefined;
 
+        // vertical scroll converts into horizontal scrolling
         function handleWheel(event: WheelEvent) {
             if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
                 event.preventDefault();
@@ -102,14 +105,24 @@ export default function TabsContainer() {
             }
         }
 
-        container.addEventListener("wheel", handleWheel, {
-            passive: false,
-        });
+        container.addEventListener("wheel", handleWheel);
 
         return () => {
             container.removeEventListener("wheel", handleWheel);
         };
     }, []);
+
+    useEffect(() => {
+        if (!activeId) return;
+        const activeTabElement = tabRefs.current.get(activeId);
+        if (activeTabElement) {
+            activeTabElement.scrollIntoView({
+                behavior: "smooth",
+                inline: "nearest",
+                block: "nearest",
+            });
+        }
+    }, [activeId]);
 
     useShortcut({ code: "KeyW", ctrlOrCmd: true }, () => {
         if (activeId) removeTab(activeId);
@@ -127,62 +140,68 @@ export default function TabsContainer() {
         const currentIndex = tabs.findIndex((tab) => tab.id === activeId);
         const prevIndex =
             currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
-
         setActiveTab(tabs[prevIndex].id);
     });
 
-    function handleDragStart(
-        event: React.DragEvent,
-        tabId: string,
-        index: number,
-    ) {
-        setDraggedTabId(tabId);
+    useShortcut({ code: "KeyT", ctrlOrCmd: true, shift: true }, () => {
+        restoreTab();
+    });
+
+    function handleDragStart(event: DragEvent, tabId: string, index: number) {
+        setDraggingTabId(tabId);
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", String(index));
     }
 
-    function handleDragOver(event: React.DragEvent, index: number) {
+    function handleDragOver(event: DragEvent, index: number) {
         event.preventDefault();
         event.dataTransfer.dropEffect = "move";
         if (
-            draggedTabId &&
-            tabs.findIndex((t) => t.id === draggedTabId) !== index
+            draggingTabId &&
+            tabs.findIndex((tab) => tab.id === draggingTabId) !== index
         ) {
-            setDragOverIndex(index);
+            setDropTargetIndex(index);
         }
     }
 
-    function handleDrop(event: React.DragEvent, dropIndex: number) {
+    function handleDrop(event: DragEvent, dropIndex: number) {
         event.preventDefault();
         const fromIndex = Number.parseInt(
             event.dataTransfer.getData("text/plain"),
             10,
         );
-        if (!Number.isNaN(fromIndex) && fromIndex !== dropIndex) {
+
+        if (!Number.isNaN(fromIndex) && fromIndex !== dropIndex)
             reorderTabs(fromIndex, dropIndex);
-        }
-        setDraggedTabId(null);
-        setDragOverIndex(null);
+
+        setDraggingTabId(null);
+        setDropTargetIndex(null);
     }
 
     function handleDragEnd() {
-        setDraggedTabId(null);
-        setDragOverIndex(null);
+        setDraggingTabId(null);
+        setDropTargetIndex(null);
     }
 
     return (
         <div className="flex h-full flex-1 overflow-hidden">
             <div
                 ref={scrollRef}
-                className="flex h-full flex-1 items-center justify-start gap-1 overflow-x-auto p-1.5"
+                className="flex h-full flex-1 scroll-px-6 items-center justify-start gap-1 overflow-x-auto p-1.5"
                 style={{
                     WebkitMaskImage:
                         "linear-gradient(to right, black calc(100% - 24px), transparent)",
                 }}>
                 <div className="no-drag flex h-full items-center justify-start gap-1">
                     {tabs.map((tab, index) => (
-                        <div key={tab.id} className="flex h-full items-center">
-                            {dragOverIndex === index && draggedTabId && (
+                        <div
+                            key={tab.id}
+                            ref={(element) => {
+                                if (element)
+                                    tabRefs.current.set(tab.id, element);
+                            }}
+                            className="flex h-full items-center">
+                            {dropTargetIndex === index && draggingTabId && (
                                 <div className="bg-accent-500 absolute h-[50%] w-0.5 shrink-0 -translate-x-0.75 rounded-full" />
                             )}
                             <TabComponent
@@ -212,6 +231,7 @@ export default function TabsContainer() {
                         className="flex aspect-square h-full shrink-0 items-center justify-center rounded-md border-black/10 text-neutral-500 hover:border hover:bg-black/5 hover:text-neutral-800 dark:border-white/5 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-neutral-200">
                         <IconPlus className="size-4" />
                     </button>
+                    <div className="h-full w-2" />
                 </div>
             </div>
         </div>

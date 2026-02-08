@@ -112,7 +112,9 @@ Processes communicate **only** via typed IPC.
 - **NEVER** use `../` or `./` when an alias exists.
 - **Order**: Enforced by ESLint (Types → Builtins → External → Internal).
 - **Node Protocol**: Always use `node:` prefix
-  Example: `import path from "node:path"`
+  Example: `import path from "node:"`
+- **No Namespace Imports**: Avoid namespace imports like `import * as React from 'react'` or `React.useState`.
+    - Prefer named imports: `import { useState } from 'react'`
 
 ---
 

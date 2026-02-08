@@ -10,6 +10,7 @@ export interface TabOptions {
     content: ComponentType;
     closable?: boolean;
     draggable?: boolean;
+    activate?: boolean;
 }
 
 export interface Tab extends TabOptions {

@@ -19,13 +19,15 @@ function hashKey(key: TabKey): string {
 interface TabsState {
     tabs: Tab[];
     activeId: string | null;
+    tabsHistory: { tab: Tab; index: number }[];
 }
 
 interface TabsActions {
     addTab: (tab: TabOptions) => string;
     removeTab: (id: string) => void;
-    setActiveTab: (id: string) => void;
+    restoreTab: () => void;
     reorderTabs: (fromIndex: number, toIndex: number) => void;
+    setActiveTab: (id: string) => void;
 }
 
 export type TabsStore = TabsState & TabsActions;
@@ -33,47 +35,47 @@ export type TabsStore = TabsState & TabsActions;
 export const useTabsStore = create<TabsStore>((set, get) => ({
     tabs: [],
     activeId: null,
+    tabsHistory: [],
 
-    addTab: (tabDefinition) => {
+    addTab: (options) => {
         const { tabs } = get();
-        const id = hashKey(tabDefinition.key);
-
+        const id = hashKey(options.key);
         const existingTab = tabs.find((tab) => tab.id === id);
 
         if (existingTab) {
-            set({ activeId: existingTab.id });
+            if (options.activate !== false) set({ activeId: existingTab.id });
             return existingTab.id;
         }
 
         const newTab: Tab = {
-            key: tabDefinition.key,
+            key: options.key,
             id,
-            title: tabDefinition.title,
-            icon: tabDefinition.icon,
-            content: tabDefinition.content,
-            closable: tabDefinition.closable ?? true,
-            draggable: tabDefinition.draggable ?? true,
+            title: options.title,
+            icon: options.icon,
+            content: options.content,
+            closable: options.closable ?? true,
+            draggable: options.draggable ?? true,
         };
 
         set((state) => ({
             tabs: [...state.tabs, newTab],
-            activeId: id,
+            activeId: options.activate !== false ? id : state.activeId,
         }));
 
         return id;
     },
 
     removeTab: (id) => {
-        const { tabs, activeId } = get();
+        const { tabs, activeId, tabsHistory: closedTabs } = get();
         const tabToRemove = tabs.find((tab) => tab.id === id);
 
         if (!tabToRemove || !tabToRemove.closable) return;
 
+        const removedIndex = tabs.findIndex((t) => t.id === id);
         const newTabs = tabs.filter((tab) => tab.id !== id);
         let newActiveId = activeId;
 
         if (activeId === id) {
-            const removedIndex = tabs.findIndex((t) => t.id === id);
             const nextTab = newTabs[removedIndex] ?? newTabs[removedIndex - 1];
             newActiveId = nextTab?.id ?? null;
         }
@@ -81,21 +83,66 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
         set({
             tabs: newTabs,
             activeId: newActiveId,
+            tabsHistory: [
+                ...closedTabs,
+                { tab: tabToRemove, index: removedIndex },
+            ],
         });
     },
 
-    setActiveTab: (id) => {
-        set({ activeId: id });
+    restoreTab: () => {
+        const { tabs, tabsHistory: closedTabs, activeId } = get();
+        if (closedTabs.length === 0) return;
+
+        const lastClosed = closedTabs[closedTabs.length - 1];
+        if (!lastClosed) return;
+
+        const { tab: tabToRestore, index: originalIndex } = lastClosed;
+        const id = tabToRestore.id;
+
+        // if tab already exists, remove it from history and restore the
+        // previous tab
+        const existingTab = tabs.find((tab) => tab.id === id);
+        if (existingTab) {
+            const newHistory = closedTabs.slice(0, -1);
+            const previousEntry = newHistory[newHistory.length - 1];
+
+            if (previousEntry) {
+                const previousTab = tabs.find(
+                    (tab) => tab.id === previousEntry.tab.id,
+                );
+
+                set({
+                    activeId: previousTab ? previousTab.id : activeId,
+                    tabsHistory: newHistory,
+                });
+            } else {
+                set({ tabsHistory: newHistory });
+            }
+            return;
+        }
+
+        const insertIndex = Math.min(originalIndex, tabs.length);
+        const newTabs = [...tabs];
+        newTabs.splice(insertIndex, 0, tabToRestore);
+
+        set({
+            tabs: newTabs,
+            activeId: id,
+            tabsHistory: closedTabs.slice(0, -1),
+        });
     },
 
     reorderTabs: (fromIndex, toIndex) => {
         set((state) => {
             const newTabs = [...state.tabs];
             const [movedTab] = newTabs.splice(fromIndex, 1);
-            if (movedTab) {
-                newTabs.splice(toIndex, 0, movedTab);
-            }
+            if (movedTab) newTabs.splice(toIndex, 0, movedTab);
             return { tabs: newTabs };
         });
+    },
+
+    setActiveTab: (id) => {
+        set({ activeId: id });
     },
 }));
