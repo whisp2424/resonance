@@ -17,7 +17,7 @@ export function AppearanceSettings() {
 
     const trayIconSelectItems = [
         { label: "Auto", value: "auto" },
-        { label: "White", value: "white" },
+        { label: "Light", value: "light" },
         { label: "Dark", value: "dark" },
     ] as const;
 
