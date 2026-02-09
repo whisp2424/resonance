@@ -12,9 +12,9 @@ import IconX from "~icons/fluent/dismiss-16-regular";
 interface TabProps {
     tab: Tab;
     isActive: boolean;
+    showClose: boolean;
     onActivate: () => void;
     onClose: () => void;
-    draggable?: boolean;
     onDragStart?: (event: DragEvent) => void;
     onDragOver?: (event: DragEvent) => void;
     onDrop?: (event: DragEvent) => void;
@@ -24,9 +24,9 @@ interface TabProps {
 function TabComponent({
     tab,
     isActive,
+    showClose,
     onActivate,
     onClose,
-    draggable,
     onDragStart,
     onDragOver,
     onDrop,
@@ -52,7 +52,7 @@ function TabComponent({
 
     return (
         <div
-            draggable={draggable}
+            draggable
             onDragStart={onDragStart}
             onDragOver={onDragOver}
             onDrop={onDrop}
@@ -69,7 +69,7 @@ function TabComponent({
                 {Icon && <Icon className="size-4 shrink-0" />}
                 <span className="-translate-y-px truncate">{tab.title}</span>
             </div>
-            {tab.closable && (
+            {showClose && (
                 <button
                     tabIndex={-1}
                     onClick={handleCloseClick}
@@ -86,7 +86,7 @@ function TabComponent({
 
 export default function TabsContainer() {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { tabs, activeId, setActiveTab, removeTab, reorderTabs, restoreTab } =
+    const { tabs, activeId, setActiveTab, removeTab, moveTab, restoreTab } =
         useTabsStore();
     const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
     const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
@@ -172,7 +172,7 @@ export default function TabsContainer() {
         );
 
         if (!Number.isNaN(fromIndex) && fromIndex !== dropIndex)
-            reorderTabs(fromIndex, dropIndex);
+            moveTab(fromIndex, dropIndex);
 
         setDraggingTabId(null);
         setDropTargetIndex(null);
@@ -207,19 +207,17 @@ export default function TabsContainer() {
                             <TabComponent
                                 tab={tab}
                                 isActive={tab.id === activeId}
+                                showClose={tabs.length > 1}
                                 onActivate={() => setActiveTab(tab.id)}
                                 onClose={() => removeTab(tab.id)}
-                                draggable={tab.draggable}
                                 onDragStart={(event) => {
-                                    if (tab.draggable)
-                                        handleDragStart(event, tab.id, index);
+                                    handleDragStart(event, tab.id, index);
                                 }}
                                 onDragOver={(event) => {
-                                    if (tab.draggable)
-                                        handleDragOver(event, index);
+                                    handleDragOver(event, index);
                                 }}
                                 onDrop={(event) => {
-                                    if (tab.draggable) handleDrop(event, index);
+                                    handleDrop(event, index);
                                 }}
                                 onDragEnd={handleDragEnd}
                             />

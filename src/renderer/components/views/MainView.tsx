@@ -1,36 +1,33 @@
 import KeepAlive from "@renderer/components/layout/KeepAlive";
-import NowPlayingView from "@renderer/components/views/NowPlayingView";
 import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useTabsStore } from "@renderer/state/tabsStore";
+import { initializeTabRegistry } from "@renderer/tabs/definitions";
 import { useEffect } from "react";
 
-import SettingsView from "./SettingsView";
-
-import IconCog from "~icons/lucide/cog";
-import IconMusicNote from "~icons/lucide/music";
-
 export default function MainView() {
-    const { tabs, activeId, addTab } = useTabsStore();
+    const { tabs, activeId, newRestorableTab, restoreTabs } = useTabsStore();
 
     useShortcut({ code: "Comma", ctrlOrCmd: true }, () => {
-        addTab({
-            key: ["settings"],
-            title: "Settings",
-            icon: IconCog,
-            content: SettingsView,
-        });
+        newRestorableTab("settings", {});
     });
 
     useEffect(() => {
-        addTab({
-            key: ["now-playing"],
-            title: "Now Playing",
-            icon: IconMusicNote,
-            content: NowPlayingView,
-            closable: false,
-            draggable: false,
-        });
-    }, [addTab]);
+        let isMounted = true;
+
+        (async function init() {
+            initializeTabRegistry();
+            await restoreTabs();
+            if (!isMounted) return;
+
+            const { tabs } = useTabsStore.getState();
+
+            if (tabs.length === 0) newRestorableTab("now-playing", {});
+        })();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [restoreTabs, newRestorableTab]);
 
     return (
         <div className="relative flex-1 overflow-hidden">
