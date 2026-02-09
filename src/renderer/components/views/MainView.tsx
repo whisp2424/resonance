@@ -1,4 +1,5 @@
 import KeepAlive from "@renderer/components/layout/KeepAlive";
+import StatusBar from "@renderer/components/layout/StatusBar";
 import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useTabsStore } from "@renderer/state/tabsStore";
 import { initializeTabRegistry } from "@renderer/tabs/definitions";
@@ -30,17 +31,20 @@ export default function MainView() {
     }, [restoreTabs, newRestorableTab]);
 
     return (
-        <div className="relative flex-1 overflow-hidden">
-            {tabs.map((tab) => {
-                const TabContent = tab.content;
-                const isActive = tab.id === activeId;
+        <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="relative flex-1 overflow-hidden">
+                {tabs.map((tab) => {
+                    const TabContent = tab.content;
+                    const isActive = tab.id === activeId;
 
-                return (
-                    <KeepAlive key={tab.id} active={isActive}>
-                        <TabContent />
-                    </KeepAlive>
-                );
-            })}
+                    return (
+                        <KeepAlive key={tab.id} active={isActive}>
+                            <TabContent />
+                        </KeepAlive>
+                    );
+                })}
+            </div>
+            <StatusBar />
         </div>
     );
 }
