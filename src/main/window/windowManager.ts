@@ -276,8 +276,8 @@ class WindowManager {
             this.removeWindow(id);
         });
 
-        window.webContents.on("will-navigate", (event) => {
-            event.preventDefault();
+        window.webContents.on("will-navigate", (e) => {
+            e.preventDefault();
         });
     }
 }

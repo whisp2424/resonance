@@ -36,13 +36,13 @@ export function registerWindowHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
         windowManager.setTitle(id, title);
     });
 
-    ipc.handle("window:new", (event, route, id) => {
-        const parentId = windowManager.getWindowId(event.sender);
+    ipc.handle("window:new", (e, route, id) => {
+        const parentId = windowManager.getWindowId(e.sender);
         return windowManager.createWindow(id, route, parentId ?? undefined);
     });
 
-    ipc.handle("window:getId", (event) => {
-        return windowManager.getWindowId(event.sender);
+    ipc.handle("window:getId", (e) => {
+        return windowManager.getWindowId(e.sender);
     });
 
     ipc.handle("window:getControls", (_, id) => {

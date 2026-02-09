@@ -10,7 +10,7 @@ type ShortcutConfig = {
 
 export function useShortcut(
     config: ShortcutConfig,
-    handler: (event: KeyboardEvent) => void,
+    handler: (e: KeyboardEvent) => void,
 ) {
     const { code, ctrlOrCmd = false, shift = false, alt = false } = config;
     const handlerRef = useRef(handler);
@@ -20,16 +20,16 @@ export function useShortcut(
     }, [handler]);
 
     useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.code.toLowerCase() !== code.toLowerCase()) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.code.toLowerCase() !== code.toLowerCase()) return;
 
-            const isMod = isMac() ? event.metaKey : event.ctrlKey;
+            const isMod = isMac() ? e.metaKey : e.ctrlKey;
             if (!!ctrlOrCmd !== isMod) return;
-            if (!!alt !== event.altKey) return;
-            if (!!shift !== event.shiftKey) return;
+            if (!!alt !== e.altKey) return;
+            if (!!shift !== e.shiftKey) return;
 
-            event.preventDefault();
-            handlerRef.current(event);
+            e.preventDefault();
+            handlerRef.current(e);
         };
 
         window.addEventListener("keydown", onKeyDown);

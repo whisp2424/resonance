@@ -6,16 +6,16 @@ import { app } from "electron";
 import writeFile from "write-file-atomic";
 
 export const windowStateSchema = type({
-    "x?": "number",
-    "y?": "number",
-    "width?": "number",
-    "height?": "number",
-    "isMaximized?": "boolean",
+    x: "number?",
+    y: "number?",
+    width: "number?",
+    height: "number?",
+    isMaximized: "boolean?",
 });
 
 export type WindowState = typeof windowStateSchema.infer;
 
-const WINDOW_STATE_FILE = join(app.getPath("userData"), "window-state.json");
+const WINDOW_STATE_FILE = join(app.getPath("userData"), "windows.json");
 
 type WindowStates = Record<string, WindowState>;
 
