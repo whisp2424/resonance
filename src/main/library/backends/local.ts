@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { MediaBackend } from "@main/library/types/mediaBackend";
 import { normalizeFilePath } from "@main/utils/path";
+import { getErrorMessage } from "@shared/utils/logger";
 
 export class LocalMediaBackend extends MediaBackend {
     readonly BACKEND_NAME = "local";
@@ -29,15 +30,16 @@ export class LocalMediaBackend extends MediaBackend {
                 valid: true,
                 uri: normalizedPath,
             };
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === "ENOENT")
+        } catch (err) {
+            if ((err as NodeJS.ErrnoException).code === "ENOENT") {
                 return {
                     valid: false,
                     error: "The provided directory does not exist. Ensure the path is correct and try again.",
                 };
+            }
             return {
                 valid: false,
-                error: `An error occurred while trying to access the given path: ${error instanceof Error ? error.message : String(error)}`,
+                error: `An error occurred while trying to access the given path: ${getErrorMessage(err)}`,
             };
         }
     }

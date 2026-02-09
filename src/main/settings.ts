@@ -8,6 +8,7 @@ import { join } from "node:path";
 
 import { windowManager } from "@main/window/windowManager";
 import { DEFAULT_SETTINGS, settingsSchema } from "@shared/schema/settings";
+import { getErrorMessage } from "@shared/utils/logger";
 import { deepMerge, setDeep } from "@shared/utils/object";
 import { type } from "arktype";
 import { watch } from "chokidar";
@@ -47,14 +48,13 @@ class SettingsManager {
             if (result instanceof type.errors) throw new Error(result.summary);
             this.settingsCache = result;
             return this.settingsCache;
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        } catch (err) {
+            if ((err as NodeJS.ErrnoException).code === "ENOENT") {
                 await this.write(DEFAULT_SETTINGS);
                 this.settingsCache = DEFAULT_SETTINGS;
                 return this.settingsCache;
             }
-            if (error instanceof SyntaxError) throw new Error(error.message);
-            throw error;
+            throw err;
         }
     }
 
@@ -186,11 +186,11 @@ class SettingsManager {
 
             this.emitChanges(this.settingsCache, changedKey);
             windowManager.emitEvent("settings:onChanged", this.settingsCache);
-        } catch (error) {
+        } catch (err) {
             const msg =
-                error instanceof SyntaxError
+                err instanceof SyntaxError
                     ? "External settings file is invalid JSON"
-                    : error;
+                    : err;
             windowManager.emitEvent("settings:onError", msg);
         }
     }
@@ -203,8 +203,8 @@ export async function initializeSettings(): Promise<Settings> {
         const settings = await settingsManager.load();
         settingsManager.startWatcher();
         return settings;
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+    } catch (err) {
+        const message = getErrorMessage(err);
 
         let result = dialog.showMessageBoxSync({
             type: "error",

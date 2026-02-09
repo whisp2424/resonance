@@ -2,7 +2,7 @@ import type { Settings } from "@shared/schema/settings";
 import type { SettingsPath } from "@shared/types/ipc";
 import type { DeepPartial, PathValue } from "@shared/types/utils";
 
-import { log } from "@shared/utils/logger";
+import { getErrorMessage, log } from "@shared/utils/logger";
 import { deepMerge, setDeep } from "@shared/utils/object";
 import { create } from "zustand";
 
@@ -42,11 +42,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
         try {
             const settings = await electron.invoke("settings:get");
             set({ settings, isLoading: false });
-        } catch (error) {
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : "Failed to load settings";
+        } catch (err) {
+            const errorMessage = getErrorMessage(err);
 
             set({
                 error: errorMessage,
@@ -66,14 +63,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
 
         try {
             await electron.invoke("settings:setPath", path, value);
-        } catch (error) {
-            log(
-                error instanceof Error
-                    ? error.message
-                    : "Failed to update setting",
-                "settingsStore",
-                "error",
-            );
+        } catch (err) {
+            log(getErrorMessage(err), "settingsStore", "error");
             set({ settings: currentSettings });
         }
     },
@@ -87,14 +78,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
 
         try {
             await electron.invoke("settings:set", partial);
-        } catch (error) {
-            log(
-                error instanceof Error
-                    ? error.message
-                    : "Failed to update settings",
-                "settingsStore",
-                "error",
-            );
+        } catch (err) {
+            log(getErrorMessage(err), "settingsStore", "error");
             set({ settings: currentSettings });
         }
     },
