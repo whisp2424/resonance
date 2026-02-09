@@ -43,7 +43,7 @@ export default function AddSourceView() {
                     title: "Source already exists",
                     description:
                         result.message ||
-                        "This media source has already been added to your library",
+                        "This media source has already been added to your library.",
                     id: "warning:duplicate-source",
                 });
                 break;
@@ -53,7 +53,7 @@ export default function AddSourceView() {
                     title: "Invalid source provided",
                     description:
                         result.message ||
-                        "The location provided is not valid for the selected media backend, ensure it is correct and try again",
+                        "The location provided is not valid for the selected media backend, ensure it is correct and try again.",
                     id: "error:invalid-source",
                 });
                 break;
@@ -64,15 +64,15 @@ export default function AddSourceView() {
                     title: "An error occurred trying to add the source",
                     description:
                         result.message ||
-                        "An unexpected error occurred. Please try again",
+                        "An unexpected error occurred. Please try again.",
                     id: "error:add-source",
                 });
         }
     };
 
     return (
-        <div className="flex h-full flex-1 flex-col gap-6 overflow-y-scroll px-10 pt-(--spacing-titlebar-height) pb-8">
-            <h1 className="text-4xl font-light">New source</h1>
+        <div className="flex h-full flex-1 flex-col gap-6 overflow-y-scroll px-10 py-8">
+            <h1 className="text-4xl font-light">New media source</h1>
             <div className="flex flex-row items-center justify-between gap-8">
                 <div>
                     <h2>Media backend</h2>
@@ -138,9 +138,10 @@ export default function AddSourceView() {
                     A location pointing to the source is required
                 </FieldError>
             </Field>
-            <div className="flex flex-1 items-end justify-end gap-2">
+            <div className="flex flex-1 items-end justify-between gap-2">
                 <Button onClick={() => window.close()}>Cancel</Button>
                 <Button
+                    variant="primary"
                     onClick={handleAdd}
                     disabled={!uri.trim() || addSource.isPending}>
                     Add

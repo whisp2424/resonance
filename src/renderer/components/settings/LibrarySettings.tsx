@@ -103,15 +103,15 @@ export function LibrarySettings() {
                 {isLoading ? (
                     <div className="flex items-center justify-center py-8"></div>
                 ) : error ? (
-                    <p className="py-8 pb-4 text-center text-sm opacity-50">
+                    <p className="py-8 text-center text-sm opacity-50">
                         {error.message}
                     </p>
                 ) : !sources || sources.length === 0 ? (
-                    <p className="pt-8 pb-4 text-center text-sm opacity-50">
+                    <p className="py-8 text-center text-sm opacity-50">
                         No media sources have been added yet!
                     </p>
                 ) : (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-6">
                         {sources.map((source) => (
                             <SourceItem
                                 key={`${source.backend}:${source.uri}`}

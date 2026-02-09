@@ -63,7 +63,7 @@ export default function SettingsView() {
                         items={sidebarCategories}
                         activeItemId={activeCategory}
                         onActiveItemChange={setLastCategory}
-                        className="pt-[calc(var(--spacing-titlebar-height)+1.5rem)]"
+                        className="pt-[calc(var(--spacing-titlebar-height)+2rem)]"
                     />
                 </div>
                 <div className="flex h-full flex-3 overflow-hidden">
