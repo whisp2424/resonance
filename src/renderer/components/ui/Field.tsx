@@ -52,7 +52,7 @@ function FieldError({
         <BaseField.Error
             className={twMerge(
                 clsx(
-                    "mt-1.5 text-sm text-red-600 dark:text-red-400",
+                    "mt-1.5 text-xs text-red-500 dark:text-red-400",
                     className,
                 ),
             )}

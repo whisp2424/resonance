@@ -1,4 +1,4 @@
-import TitleBar from "@renderer/components/layout/TitleBar";
+import TitleBar from "@renderer/components/layout/titlebar";
 import AddSourceView from "@renderer/components/views/AddSourceView";
 import MainView from "@renderer/components/views/MainView";
 import NotFound from "@renderer/components/views/NotFound";

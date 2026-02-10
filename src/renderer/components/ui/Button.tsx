@@ -59,7 +59,7 @@ export default function Button({
     ...rest
 }: ButtonProps) {
     const className = clsx(
-        "relative inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-1 text-sm transition duration-150 ease-out disabled:pointer-events-none disabled:opacity-50",
+        "relative inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-1 text-sm transition duration-150 ease-out disabled:pointer-events-none disabled:opacity-60",
         variants[variant],
         rest.className ?? "",
     );

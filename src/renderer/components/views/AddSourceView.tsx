@@ -10,6 +10,7 @@ import {
 import TextInput from "@renderer/components/ui/TextInput";
 import { useAddSource } from "@renderer/hooks/library/useSources";
 import { useDialog } from "@renderer/hooks/useDialog";
+import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useState } from "react";
 
 export default function AddSourceView() {
@@ -21,6 +22,8 @@ export default function AddSourceView() {
     const [uri, setUri] = useState("");
 
     const sourceBackendItems = [{ label: "Local", value: "local" }] as const;
+
+    useShortcut({ code: "Escape" }, () => window.close());
 
     const handleAdd = async () => {
         if (!uri.trim()) return;
@@ -71,13 +74,14 @@ export default function AddSourceView() {
     };
 
     return (
-        <div className="flex h-full flex-1 flex-col gap-6 overflow-y-scroll px-10 py-8">
+        <div className="mt-(--spacing-titlebar-height) flex flex-1 flex-col justify-between gap-8 overflow-y-scroll px-12 pb-8">
             <h1 className="text-4xl font-light">New media source</h1>
             <div className="flex flex-row items-center justify-between gap-8">
                 <div>
                     <h2>Media backend</h2>
                     <p className="text-sm opacity-50">
-                        Pick a media backend to use for this source
+                        The backend you choose determines how media is imported,
+                        scanned, and played.
                     </p>
                 </div>
                 <Select
@@ -99,46 +103,47 @@ export default function AddSourceView() {
                     </SelectContent>
                 </Select>
             </div>
-            <Field name="displayName">
-                <FieldLabel>
-                    Name
-                    <span className="px-1.5 opacity-40">(optional)</span>
-                </FieldLabel>
-                <TextInput
-                    placeholder="My music library"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") handleAdd();
-                    }}
-                />
-            </Field>
-            <Field name="uri">
-                <FieldLabel>Location</FieldLabel>
-                <div className="flex flex-row gap-2">
+            <div className="flex flex-1 gap-4">
+                <Field name="displayName" className="flex-2">
+                    <FieldLabel>
+                        Display name
+                        <span className="px-1.5 opacity-40">(optional)</span>
+                    </FieldLabel>
                     <TextInput
-                        required
-                        className="flex-1"
-                        placeholder="/home/user/Music"
-                        value={uri}
-                        onChange={(e) => setUri(e.target.value)}
+                        placeholder="my music library!"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === "Enter") handleAdd();
                         }}
                     />
-                    <Button
-                        onClick={async () => {
-                            const folder = await pickFolder();
-                            if (folder) setUri(folder);
-                        }}>
-                        Browse
-                    </Button>
-                </div>
-                <FieldError>
-                    A location pointing to the source is required
-                </FieldError>
-            </Field>
-            <div className="flex flex-1 items-end justify-between gap-2">
+                </Field>
+                <Field name="uri" className="flex-3">
+                    <FieldLabel>Location</FieldLabel>
+                    <div className="flex flex-row gap-2">
+                        <TextInput
+                            required
+                            placeholder="/home/user/Music"
+                            value={uri}
+                            onChange={(e) => setUri(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") handleAdd();
+                            }}
+                        />
+                        <Button
+                            onClick={async () => {
+                                const folder = await pickFolder();
+                                if (folder) setUri(folder);
+                            }}>
+                            Browse
+                        </Button>
+                    </div>
+                    <FieldError>
+                        A location pointing to the source is required
+                    </FieldError>
+                </Field>
+            </div>
+            <div className="flex flex-1 flex-row items-end justify-end gap-2">
                 <Button onClick={() => window.close()}>Cancel</Button>
                 <Button
                     variant="primary"

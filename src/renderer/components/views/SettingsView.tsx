@@ -56,7 +56,7 @@ export default function SettingsView() {
 
     return (
         <>
-            <div className="pointer-events-none fixed z-60 h-(--spacing-titlebar-height) w-full border-b border-neutral-300 dark:border-neutral-800" />
+            <div className="pointer-events-none fixed h-(--spacing-titlebar-height) w-full translate-y-px border-b border-neutral-300 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900" />
             <div className="flex h-full gap-12">
                 <div className="flex h-full max-w-[30vw] flex-2 justify-end border-r border-neutral-300 bg-black/4 bg-linear-to-b px-4 dark:border-neutral-800 dark:bg-white/2">
                     <SideBar

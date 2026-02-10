@@ -136,7 +136,7 @@ function SelectItem({
         <BaseSelect.Item
             data-slot="select-item"
             className={twMerge(
-                "relative flex w-full cursor-default items-center gap-4 py-1 pr-8 pl-4 text-sm outline-hidden select-none hover:bg-neutral-200 focus-visible:bg-neutral-200 data-disabled:pointer-events-none data-disabled:opacity-50 dark:hover:bg-neutral-800 dark:focus-visible:bg-neutral-800 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+                "relative flex w-full cursor-default items-center gap-4 py-1 pr-8 pl-4 text-sm outline-hidden select-none hover:bg-neutral-200 focus-visible:bg-neutral-200 data-disabled:pointer-events-none data-disabled:opacity-60 dark:hover:bg-neutral-800 dark:focus-visible:bg-neutral-800 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
                 className,
             )}
             {...props}>

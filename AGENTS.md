@@ -46,6 +46,7 @@ Processes communicate **only** via typed IPC.
     │   ├── assets/         # Static assets
     │   ├── components/     # UI components
     │   │   ├── layout/     # Layout components
+    │   │   │   └── titlebar/   # TitleBar component and related hooks
     │   │   ├── settings/   # Settings components
     │   │   │   └── developer/  # Developer settings
     │   │   ├── ui/         # UI primitives
