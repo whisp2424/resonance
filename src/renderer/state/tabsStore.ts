@@ -241,6 +241,8 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
 
             // validate and restore each persisted tab
             for (const data of persistedData.tabs) {
+                if (!data.id?.trim()) continue;
+
                 const type = tabRegistry.get(data.type);
                 if (!type || !type.persistable) continue;
 
@@ -288,16 +290,16 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
             if (restoredTabs.length > 0) {
                 set((state) => {
                     const newTabs = [...state.tabs, ...restoredTabs];
-                    const isValid =
-                        persistedData.activeId &&
+                    const hasValidActiveId =
+                        persistedData.activeId?.trim() &&
                         newTabs.some(
                             (tab) => tab.id === persistedData.activeId,
                         );
                     return {
                         tabs: newTabs,
-                        activeId: isValid
+                        activeId: hasValidActiveId
                             ? persistedData.activeId
-                            : state.activeId,
+                            : newTabs[0].id,
                     };
                 });
             }
