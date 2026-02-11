@@ -150,10 +150,6 @@ export function useTitlebarAnimation(isFullscreen: boolean) {
         if (isFullscreen && isActive) startHideTimer();
     }, [isFullscreen, isActive, startHideTimer]);
 
-    const handleMouseMove = useCallback(() => {
-        if (isFullscreen && isActive) startHideTimer();
-    }, [isFullscreen, isActive, startHideTimer]);
-
     const triggerVisibility = useCallback(() => {
         if (!isFullscreen) return;
         clearHideTimer();
@@ -170,7 +166,6 @@ export function useTitlebarAnimation(isFullscreen: boolean) {
         fullHeight,
         handleMouseEnter,
         handleMouseLeave,
-        handleMouseMove,
         triggerVisibility,
     };
 }

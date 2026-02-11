@@ -16,7 +16,6 @@ export default function TitleBar() {
         fullHeight,
         handleMouseEnter,
         handleMouseLeave,
-        handleMouseMove,
         triggerVisibility,
     } = useTitlebarAnimation(isFullscreen);
 
@@ -44,8 +43,7 @@ export default function TitleBar() {
                 )}
                 style={{ height: `${fullHeight}px` }}
                 onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                onMouseMove={handleMouseMove}>
+                onMouseLeave={handleMouseLeave}>
                 {windowId === "main" && <TabsContainer />}
                 {!isFullscreen && <div className="drag h-full w-8" />}
                 {!isFullscreen && (
