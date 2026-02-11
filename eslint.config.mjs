@@ -24,6 +24,10 @@ export default defineConfig(
         rules: {
             "no-empty": ["warn", { allowEmptyCatch: true }],
             "@typescript-eslint/consistent-type-imports": "error",
+            "@typescript-eslint/no-unused-vars": [
+                "error",
+                { argsIgnorePattern: "^_" },
+            ],
             "import/consistent-type-specifier-style": ["error"],
             "import/enforce-node-protocol-usage": ["error", "always"],
             "import/no-duplicates": ["error"],

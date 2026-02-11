@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
+
 import clsx from "clsx";
 
 interface StatusBarProps {
     className?: string;
-    children?: React.ReactNode;
+    children?: ReactNode;
 }
 
 export default function StatusBar({ className, children }: StatusBarProps) {
