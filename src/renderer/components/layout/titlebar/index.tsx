@@ -35,10 +35,7 @@ export default function TitleBar() {
         <>
             <div
                 className={clsx(
-                    "drag fixed z-50 flex w-full flex-row items-center justify-end",
-                    "bg-neutral-50/50 bg-linear-to-t backdrop-blur-md",
-                    "transition-transform duration-300 ease-out",
-                    "dark:bg-neutral-900/50",
+                    "drag fixed z-50 flex w-full flex-row items-center justify-end transition-transform duration-300 ease-out",
                     isFullscreen && !isActive && "-translate-y-full",
                 )}
                 style={{ height: `${fullHeight}px` }}
