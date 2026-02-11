@@ -313,6 +313,18 @@ if (!result.success) {
 - Using type casting to silence type errors
 - Duplicating types instead of sharing them via `src/shared`
 - Using `h-* w-*` instead of `size-*` in Tailwind
+- Manually checking `instanceof Error` to get error messages
+    - **Use `getErrorMessage()`** from `@shared/utils/logger` instead:
+
+        ```ts
+        import { getErrorMessage } from "@shared/utils/logger";
+
+        // DON'T do this:
+        const message = err instanceof Error ? err.message : String(err);
+
+        // DO this:
+        const message = getErrorMessage(err);
+        ```
 
 ---
 

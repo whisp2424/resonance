@@ -23,12 +23,13 @@ import { validateBounds } from "@main/window/validateBounds";
 import { windowManager } from "@main/window/windowManager";
 import { DEFAULT_OPTIONS } from "@main/window/windowPolicies";
 import { windowStateManager } from "@main/windowState";
-import { log } from "@shared/utils/logger";
+import { getErrorMessage, log } from "@shared/utils/logger";
 import {
     BrowserWindow,
     Menu,
     Tray,
     app,
+    dialog,
     nativeTheme,
     shell,
     systemPreferences,
@@ -143,49 +144,60 @@ app.on("second-instance", () => {
 });
 
 app.whenReady().then(async () => {
-    await initializeSettings();
-    await runMigrations();
-    await windowStateManager.load();
-    await tabStateManager.load();
+    try {
+        await initializeSettings();
+        await runMigrations();
+        await windowStateManager.load();
+        await tabStateManager.load();
 
-    const settings = settingsManager.get();
-    const ipc = new IpcListener<MainIpcHandleEvents>();
+        const settings = settingsManager.get();
+        const ipc = new IpcListener<MainIpcHandleEvents>();
 
-    app.setAppUserModelId(product.appId);
-    app.applicationMenu = APP_MENU;
+        app.setAppUserModelId(product.appId);
+        app.applicationMenu = APP_MENU;
 
-    nativeTheme.themeSource = settings.appearance.appTheme;
-    mainWindow = createMainWindow();
+        nativeTheme.themeSource = settings.appearance.appTheme;
+        mainWindow = createMainWindow();
 
-    const unsubscribeAppearanceSettings = settingsManager.onChanged(
-        (settings) => {
-            nativeTheme.themeSource = settings.appearance.appTheme;
-            tray?.setImage(getTrayIcon(settings.appearance.trayIcon));
-        },
-        "appearance",
-    );
+        const unsubscribeAppearanceSettings = settingsManager.onChanged(
+            (settings) => {
+                nativeTheme.themeSource = settings.appearance.appTheme;
+                tray?.setImage(getTrayIcon(settings.appearance.trayIcon));
+            },
+            "appearance",
+        );
 
-    registerWindowHandlers(ipc);
-    registerAppHandlers(ipc);
-    registerLibraryHandlers(ipc);
-    registerSettingsHandlers(ipc);
-    registerTabStateHandlers(ipc);
-    registerDatabaseHandlers(ipc);
-    registerDialogHandlers(ipc);
+        registerWindowHandlers(ipc);
+        registerAppHandlers(ipc);
+        registerLibraryHandlers(ipc);
+        registerSettingsHandlers(ipc);
+        registerTabStateHandlers(ipc);
+        registerDatabaseHandlers(ipc);
+        registerDialogHandlers(ipc);
 
-    const cleanupSystemHandlers = registerSystemHandlers(
-        ipc,
-        systemPreferences,
-    );
+        const cleanupSystemHandlers = registerSystemHandlers(
+            ipc,
+            systemPreferences,
+        );
 
-    app.on("will-quit", async () => {
-        log("goodbye!", "main");
-        unsubscribeAppearanceSettings();
-        cleanupSystemHandlers();
-        ipc.dispose();
-    });
+        app.on("will-quit", async () => {
+            log("goodbye!", "main");
+            unsubscribeAppearanceSettings();
+            cleanupSystemHandlers();
+            ipc.dispose();
+        });
 
-    app.on("window-all-closed", () => {
+        app.on("window-all-closed", () => {
+            app.quit();
+        });
+    } catch (err) {
+        log(getErrorMessage(err), "main", "error");
+        dialog.showErrorBox(
+            "An error occurred",
+            "An unknown error has occurred during startup:\n" +
+                `${getErrorMessage(err)}\n` +
+                "The app will now quit.",
+        );
         app.quit();
-    });
+    }
 });

@@ -2,6 +2,7 @@ import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
 import { createClient } from "@libsql/client";
+import { getErrorMessage, log } from "@shared/utils/logger";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { app } from "electron";
@@ -22,5 +23,10 @@ export async function runMigrations(): Promise<void> {
         ? join(process.cwd(), "drizzle")
         : join(process.resourcesPath, "drizzle");
 
-    await migrate(db, { migrationsFolder });
+    try {
+        await migrate(db, { migrationsFolder });
+    } catch (err) {
+        log(`migration failed: ${getErrorMessage(err)}`, "database", "error");
+        if (!is.dev) throw err;
+    }
 }
