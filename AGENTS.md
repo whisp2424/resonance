@@ -36,9 +36,6 @@ Processes communicate **only** via typed IPC.
     │   ├── database/       # Database layer (Drizzle ORM)
     │   ├── ipc/            # IPC implementation
     │   ├── library/        # Library management
-    │   │   ├── backends/   # Media backend implementations
-    │   │   └── types/      # Library-related type definitions
-    │   ├── shortcuts/      # Keyboard shortcut management
     │   ├── utils/          # Main process utilities
     │   └── window/         # Window management logic
     ├── preload/            # Preload scripts (bridge)
@@ -58,7 +55,9 @@ Processes communicate **only** via typed IPC.
     │   │   └── *.ts        # Other hooks (dialog, OS, shortcuts)
     │   ├── providers/      # React providers
     │   ├── state/          # Zustand stores and TanStack Query client
-    │   └── types/          # Frontend-specific types
+    │   ├── tabs/           # Tab system definitions and registry
+    │   ├── types/          # Frontend-specific types
+    │   └── utils/          # Renderer utilities
     └── shared/             # Shared across all processes
         ├── constants/      # Cross-process constants
         ├── schema/         # ArkType schemas
@@ -176,6 +175,7 @@ Located in `src/renderer/state/`:
 **Zustand Stores:**
 
 - **`settingsStore.ts`** – Application settings state (small, frequently read, UI-critical)
+- **`tabsStore.ts`** – Tab state management
 - **`themeStore.ts`** – Theme and accent color state
 
 **TanStack Query:**

@@ -1,7 +1,7 @@
 import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
-import { library } from "@main/library/libraryManager";
+import { library } from "@main/library";
 import { windowManager } from "@main/window/windowManager";
 
 export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
