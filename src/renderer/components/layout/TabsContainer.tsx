@@ -1,8 +1,8 @@
 import type { Tab } from "@renderer/types/tabs";
 import type { DragEvent, MouseEvent } from "react";
 
-import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useTabsStore } from "@renderer/state/tabsStore";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { clsx } from "clsx";
 import { useEffect, useRef, useState } from "react";
 
@@ -124,18 +124,18 @@ export default function TabsContainer() {
         }
     }, [activeId]);
 
-    useShortcut({ code: "KeyW", ctrlOrCmd: true }, () => {
+    useHotkey("Mod+W", () => {
         if (activeId) removeTab(activeId);
     });
 
-    useShortcut({ code: "Tab", ctrlOrCmd: true }, () => {
+    useHotkey("Mod+Tab", () => {
         if (tabs.length === 0) return;
         const currentIndex = tabs.findIndex((tab) => tab.id === activeId);
         const nextIndex = (currentIndex + 1) % tabs.length;
         setActiveTab(tabs[nextIndex].id);
     });
 
-    useShortcut({ code: "Tab", ctrlOrCmd: true, shift: true }, () => {
+    useHotkey("Mod+Shift+Tab", () => {
         if (tabs.length === 0) return;
         const currentIndex = tabs.findIndex((tab) => tab.id === activeId);
         const prevIndex =
@@ -143,7 +143,7 @@ export default function TabsContainer() {
         setActiveTab(tabs[prevIndex].id);
     });
 
-    useShortcut({ code: "KeyT", ctrlOrCmd: true, shift: true }, () => {
+    useHotkey("Mod+Shift+T", () => {
         restoreTab();
     });
 

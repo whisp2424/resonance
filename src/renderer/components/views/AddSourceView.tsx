@@ -4,7 +4,7 @@ import { Field, FieldLabel } from "@renderer/components/ui/Field";
 import TextInput from "@renderer/components/ui/TextInput";
 import { useAddSource } from "@renderer/hooks/library/useSources";
 import { useDialog } from "@renderer/hooks/useDialog";
-import { useShortcut } from "@renderer/hooks/useShortcut";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { useForm } from "react-hook-form";
 
 interface AddSourceFormData {
@@ -30,7 +30,7 @@ export default function AddSourceView() {
         },
     });
 
-    useShortcut({ code: "Escape" }, () => window.close());
+    useHotkey("Escape", () => window.close());
 
     const onSubmit = async (data: AddSourceFormData) => {
         const path = data.path.trim();

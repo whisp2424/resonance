@@ -1,6 +1,6 @@
 import TabsContainer from "@renderer/components/layout/TabsContainer";
-import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useWindowState } from "@renderer/hooks/useWindowState";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -19,17 +19,10 @@ export default function TitleBar() {
         triggerVisibility,
     } = useTitlebarAnimation(isFullscreen);
 
-    useShortcut({ code: "Tab", ctrlOrCmd: true }, triggerVisibility);
-    useShortcut(
-        { code: "Tab", ctrlOrCmd: true, shift: true },
-        triggerVisibility,
-    );
-
-    useShortcut({ code: "KeyW", ctrlOrCmd: true }, triggerVisibility);
-    useShortcut(
-        { code: "KeyT", ctrlOrCmd: true, shift: true },
-        triggerVisibility,
-    );
+    useHotkey("Mod+Tab", triggerVisibility);
+    useHotkey("Mod+Shift+Tab", triggerVisibility);
+    useHotkey("Mod+W", triggerVisibility);
+    useHotkey("Mod+Shift+T", triggerVisibility);
 
     return (
         <>

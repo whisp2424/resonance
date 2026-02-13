@@ -1,14 +1,14 @@
 import KeepAlive from "@renderer/components/layout/KeepAlive";
 import StatusBar from "@renderer/components/layout/StatusBar";
-import { useShortcut } from "@renderer/hooks/useShortcut";
 import { useTabsStore } from "@renderer/state/tabsStore";
 import { initializeTabRegistry } from "@renderer/tabs/definitions";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { useEffect } from "react";
 
 export default function MainView() {
     const { tabs, activeId, newRestorableTab, restoreTabs } = useTabsStore();
 
-    useShortcut({ code: "Comma", ctrlOrCmd: true }, () => {
+    useHotkey("Mod+,", () => {
         newRestorableTab("settings", {});
     });
 
