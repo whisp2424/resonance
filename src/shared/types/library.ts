@@ -2,16 +2,15 @@ import type { Result } from "@shared/types/result";
 
 export interface LibraryMediaSource {
     id: number;
-    backend: string;
-    uri: string;
+    path: string;
     displayName: string;
 }
 
 export type AddSourceResult = Result<
     { source: LibraryMediaSource },
-    "duplicate" | "invalid" | "unknown"
+    "duplicate_source" | "invalid_source" | "unknown"
 >;
 
-export type RemoveSourceResult = Result<void, "not_found" | "io_error">;
+export type RemoveSourceResult = Result<true, "not_found" | "unknown">;
 
-export type GetSourcesResult = Result<LibraryMediaSource[], "io_error">;
+export type GetSourcesResult = Result<LibraryMediaSource[], "unknown">;

@@ -47,8 +47,8 @@ export const WINDOW_POLICIES: Record<
     WindowPolicy
 > = {
     "/add-source": createPolicy({
-        width: 700,
-        height: 400,
+        width: 650,
+        height: 350,
         minWidth: undefined,
         minHeight: undefined,
         fullscreenable: false,

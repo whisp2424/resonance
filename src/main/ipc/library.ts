@@ -1,24 +1,24 @@
 import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
-import { libraryManager } from "@main/library/libraryManager";
+import { library } from "@main/library/libraryManager";
 import { windowManager } from "@main/window/windowManager";
 
 export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
-    ipc.handle("library:addSource", async (_, uri, backend, name) => {
-        const result = await libraryManager.addSource(uri, backend, name);
+    ipc.handle("library:addSource", async (_, path, name) => {
+        const result = await library.addSource(path, name);
         if (result.success) windowManager.emitEvent("library:onSourcesChanged");
         return result;
     });
 
-    ipc.handle("library:getSources", async (_, backend) => {
-        const result = await libraryManager.getSources(backend);
+    ipc.handle("library:getSources", async () => {
+        const result = await library.getSources();
         if (result.success) return result.data;
         return [];
     });
 
-    ipc.handle("library:removeSource", async (_, uri, backend) => {
-        const result = await libraryManager.removeSource(uri, backend);
+    ipc.handle("library:removeSource", async (_, path) => {
+        const result = await library.removeSource(path);
         if (result.success) windowManager.emitEvent("library:onSourcesChanged");
         return result;
     });

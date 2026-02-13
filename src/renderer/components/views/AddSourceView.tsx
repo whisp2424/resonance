@@ -1,22 +1,14 @@
 import { Form } from "@base-ui/react/form";
 import Button from "@renderer/components/ui/Button";
 import { Field, FieldLabel } from "@renderer/components/ui/Field";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@renderer/components/ui/Select";
 import TextInput from "@renderer/components/ui/TextInput";
 import { useAddSource } from "@renderer/hooks/library/useSources";
 import { useDialog } from "@renderer/hooks/useDialog";
 import { useShortcut } from "@renderer/hooks/useShortcut";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 
 interface AddSourceFormData {
-    uri: string;
-    backend: string;
+    path: string;
     displayName?: string;
 }
 
@@ -27,38 +19,33 @@ export default function AddSourceView() {
     const {
         register,
         handleSubmit,
-        control,
         setValue,
         setError,
         clearErrors,
         formState: { errors },
     } = useForm<AddSourceFormData>({
         defaultValues: {
-            backend: "local",
-            uri: "",
+            path: "",
             displayName: "",
         },
     });
 
-    const sourceBackendItems = [{ label: "Local", value: "local" }] as const;
-
     useShortcut({ code: "Escape" }, () => window.close());
 
     const onSubmit = async (data: AddSourceFormData) => {
-        const uri = data.uri.trim();
+        const path = data.path.trim();
 
-        if (!uri) {
-            setError("uri", {
+        if (!path) {
+            setError("path", {
                 type: "manual",
-                message: "A location pointing to the source is required",
+                message: "A valid path is required",
             });
             return;
         }
 
         const result = await addSource.mutateAsync({
-            uri,
-            backend: data.backend,
-            name: data.displayName?.trim() || undefined,
+            path,
+            name: data.displayName?.trim(),
         });
 
         if (result.success) {
@@ -67,27 +54,27 @@ export default function AddSourceView() {
         }
 
         switch (result.error) {
-            case "duplicate":
-                setError("uri", {
+            case "duplicate_source":
+                setError("path", {
                     type: "manual",
                     message:
                         result.message ||
                         "This media source has already been added to your library",
                 });
                 break;
-            case "invalid":
-                setError("uri", {
+            case "invalid_source":
+                setError("path", {
                     type: "manual",
-                    message:
-                        result.message ||
-                        "The location provided is not valid for the selected media backend",
+                    message: result.message || "The provided path is not valid",
                 });
                 break;
             case "unknown":
             default:
-                setError("uri", {
+                setError("path", {
                     type: "manual",
-                    message: result.message || "An unexpected error occurred",
+                    message:
+                        result.message ||
+                        "Something went wrong, please try again",
                 });
         }
     };
@@ -95,8 +82,8 @@ export default function AddSourceView() {
     const handleBrowseClick = async () => {
         const folder = await pickFolder();
         if (folder) {
-            setValue("uri", folder);
-            clearErrors("uri");
+            setValue("path", folder);
+            clearErrors("path");
         }
     };
 
@@ -104,44 +91,13 @@ export default function AddSourceView() {
         <Form
             className="mt-(--spacing-titlebar-height) flex flex-1 flex-col justify-between gap-8 overflow-y-scroll px-12 pb-8"
             onSubmit={handleSubmit(onSubmit)}>
-            <h1 className="text-4xl font-light">New media source</h1>
-            <Field
-                name="backend"
-                className="flex flex-row items-center justify-between gap-8">
-                <div>
-                    <FieldLabel className="text-lg">Media backend</FieldLabel>
-                    <p className="text-sm opacity-50">
-                        The backend you choose determines how media is imported,
-                        scanned, and played.
-                    </p>
-                </div>
-                <Controller
-                    name="backend"
-                    control={control}
-                    render={({ field }) => (
-                        <Select
-                            value={field.value}
-                            onValueChange={field.onChange}>
-                            <SelectTrigger>
-                                <SelectValue>
-                                    {sourceBackendItems.find(
-                                        (item) => item.value === field.value,
-                                    )?.label || field.value}
-                                </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                                {sourceBackendItems.map((item) => (
-                                    <SelectItem
-                                        key={item.value}
-                                        value={item.value}>
-                                        {item.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-            </Field>
+            <div>
+                <h1 className="text-4xl font-light">New media source</h1>
+                <p className="mt-4 text-sm opacity-60">
+                    Pick a folder to import your music from. Resonance will
+                    watch this folder for updates and new files.
+                </p>
+            </div>
             <div className="flex flex-1 gap-4">
                 <Field name="displayName" className="flex-2">
                     <FieldLabel>
@@ -153,14 +109,14 @@ export default function AddSourceView() {
                         placeholder="my music library!"
                     />
                 </Field>
-                <Field name="uri" className="flex-3">
+                <Field name="path" className="flex-3">
                     <FieldLabel>Location</FieldLabel>
                     <div className="flex flex-row gap-2">
                         <TextInput
-                            {...register("uri", {
+                            {...register("path", {
                                 onChange: () => {
-                                    if (errors.uri) {
-                                        clearErrors("uri");
+                                    if (errors.path) {
+                                        clearErrors("path");
                                     }
                                 },
                             })}
@@ -170,9 +126,9 @@ export default function AddSourceView() {
                             Browse
                         </Button>
                     </div>
-                    {errors.uri && (
+                    {errors.path && (
                         <div className="mt-1.5 text-xs text-red-500 dark:text-red-400">
-                            {errors.uri.message}
+                            {errors.path.message}
                         </div>
                     )}
                 </Field>

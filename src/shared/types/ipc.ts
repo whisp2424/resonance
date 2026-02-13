@@ -53,18 +53,11 @@ export type MainIpcHandleEvents = {
     "dialog:open": (options: DialogOptions) => DialogResult;
     "dialog:pickFolder": (title?: string) => string | null;
 
-    "library:getSources": (backend?: string) => LibraryMediaSource[];
+    "library:getSources": () => LibraryMediaSource[];
 
-    "library:addSource": (
-        uri: string,
-        backend: string,
-        name?: string,
-    ) => AddSourceResult;
+    "library:addSource": (uri: string, name?: string) => AddSourceResult;
 
-    "library:removeSource": (
-        uri: string,
-        backend: string,
-    ) => RemoveSourceResult;
+    "library:removeSource": (uri: string) => RemoveSourceResult;
 
     "dev:getTables": () => string[];
     "dev:getTableSchema": (table: string) => {

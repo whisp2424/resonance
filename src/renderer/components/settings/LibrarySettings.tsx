@@ -24,11 +24,8 @@ function SourceItem({ source, onRemove }: SourceItemProps) {
                 <div className="flex flex-col">
                     <h2 className="flex items-center gap-1.5">
                         {source.displayName}
-                        <div className="translate-y-px text-xs opacity-50">
-                            ({source.backend})
-                        </div>
                     </h2>
-                    <span className="text-xs opacity-50">{source.uri}</span>
+                    <span className="text-xs opacity-50">{source.path}</span>
                 </div>
             </div>
             <Button onClick={onRemove}>Remove</Button>
@@ -56,8 +53,7 @@ export function LibrarySettings() {
         if (confirm !== "remove") return;
 
         const result = await removeSource.mutateAsync({
-            uri: source.uri,
-            backend: source.backend,
+            path: source.path,
         });
 
         if (!result.success) {
@@ -72,7 +68,7 @@ export function LibrarySettings() {
                         id: "error:source-not-found",
                     });
                     break;
-                case "io_error":
+                case "unknown":
                 default:
                     await openDialog({
                         type: "error",
@@ -114,7 +110,7 @@ export function LibrarySettings() {
                     <div className="flex flex-col gap-6">
                         {sources.map((source) => (
                             <SourceItem
-                                key={`${source.backend}:${source.uri}`}
+                                key={source.path}
                                 source={source}
                                 onRemove={() => handleRemove(source)}
                             />

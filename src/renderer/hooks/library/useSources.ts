@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export function useSources(type?: string) {
+export function useSources() {
     return useQuery({
-        queryKey: ["library", "sources", type],
+        queryKey: ["library", "sources"],
         queryFn: async () => {
-            const sources = await electron.invoke("library:getSources", type);
+            const sources = await electron.invoke("library:getSources");
             return sources;
         },
     });
@@ -14,19 +14,10 @@ export function useAddSource() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({
-            uri,
-            backend,
-            name,
-        }: {
-            uri: string;
-            backend: string;
-            name?: string;
-        }) => {
+        mutationFn: async ({ path, name }: { path: string; name?: string }) => {
             const result = await electron.invoke(
                 "library:addSource",
-                uri,
-                backend,
+                path,
                 name,
             );
 
@@ -45,18 +36,8 @@ export function useRemoveSource() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({
-            uri,
-            backend,
-        }: {
-            uri: string;
-            backend: string;
-        }) => {
-            const result = await electron.invoke(
-                "library:removeSource",
-                uri,
-                backend,
-            );
+        mutationFn: async ({ path }: { path: string }) => {
+            const result = await electron.invoke("library:removeSource", path);
 
             return result;
         },
