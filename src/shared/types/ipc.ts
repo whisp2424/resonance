@@ -6,6 +6,7 @@ import type {
     LibraryMediaSource,
     RemoveSourceResult,
 } from "@shared/types/library";
+import type { TabDescriptor } from "@shared/types/tabs";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
 export type SettingsKey = keyof Settings;
@@ -70,6 +71,9 @@ export type MainIpcHandleEvents = {
     "dev:getTableCount": (table: string) => number;
     "dev:query": (sql: string) => Record<string, unknown>[];
     "dev:delete": (table: string, where: Record<string, unknown>) => void;
+
+    "tabs:get": () => { tabs: TabDescriptor[]; activeId: string | null } | null;
+    "tabs:set": (tabs: TabDescriptor[], activeId: string | null) => void;
 };
 
 export type MainIpcListenEvents = {

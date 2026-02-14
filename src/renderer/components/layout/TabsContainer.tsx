@@ -1,7 +1,8 @@
-import type { Tab } from "@renderer/lib/types/tabs";
+import type { TabDescriptor } from "@shared/types/tabs";
 import type { DragEvent, MouseEvent } from "react";
 
 import { useTabsStore } from "@renderer/lib/state/tabsStore";
+import { tabTypeRegistry } from "@renderer/lib/tabRegistry";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { clsx } from "clsx";
 import { useEffect, useRef, useState } from "react";
@@ -10,7 +11,7 @@ import IconPlus from "~icons/fluent/add-16-regular";
 import IconX from "~icons/fluent/dismiss-16-regular";
 
 interface TabProps {
-    tab: Tab;
+    tab: TabDescriptor;
     isActive: boolean;
     showClose: boolean;
     onActivate: () => void;
@@ -32,6 +33,11 @@ function TabComponent({
     onDrop,
     onDragEnd,
 }: TabProps) {
+    const config = tabTypeRegistry[tab.type];
+    if (!config) return null;
+
+    const Icon = config.icon;
+
     function handleClick(event: MouseEvent) {
         if (event.button === 0) onActivate();
     }
@@ -64,9 +70,7 @@ function TabComponent({
                     : "border-black/10 text-neutral-500 hover:bg-black/5 hover:text-neutral-800 dark:border-white/5 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-neutral-200",
             )}>
             <div className="pointer-events-none mr-3 flex flex-1 items-center justify-start gap-2 overflow-hidden">
-                {tab.icon && (
-                    <span className="size-4 shrink-0">{tab.icon}</span>
-                )}
+                {Icon && <Icon className="size-4 shrink-0" />}
                 <span className="-translate-y-px truncate">{tab.title}</span>
             </div>
             {showClose && (
@@ -86,7 +90,7 @@ function TabComponent({
 
 export default function TabsContainer() {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { tabs, activeId, setActiveTab, removeTab, moveTab } = useTabsStore();
+    const { tabs, activeId, activateTab, closeTab, moveTab } = useTabsStore();
     const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
     const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
     const tabRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -124,14 +128,19 @@ export default function TabsContainer() {
     }, [activeId]);
 
     useHotkey("Mod+W", () => {
-        if (activeId) removeTab(activeId);
+        if (activeId) closeTab(activeId);
+    });
+
+    useHotkey("Mod+Shift+T", () => {
+        const { restoreLastTab } = useTabsStore.getState();
+        restoreLastTab();
     });
 
     useHotkey("Mod+Tab", () => {
         if (tabs.length === 0) return;
         const currentIndex = tabs.findIndex((tab) => tab.id === activeId);
         const nextIndex = (currentIndex + 1) % tabs.length;
-        setActiveTab(tabs[nextIndex].id);
+        activateTab(tabs[nextIndex].id);
     });
 
     useHotkey("Mod+Shift+Tab", () => {
@@ -139,7 +148,17 @@ export default function TabsContainer() {
         const currentIndex = tabs.findIndex((tab) => tab.id === activeId);
         const prevIndex =
             currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
-        setActiveTab(tabs[prevIndex].id);
+        activateTab(tabs[prevIndex].id);
+    });
+
+    useHotkey("Mod+,", () => {
+        const { openTab } = useTabsStore.getState();
+        openTab("settings");
+    });
+
+    useHotkey("Mod+T", () => {
+        const { openTab } = useTabsStore.getState();
+        openTab("empty");
     });
 
     function handleDragStart(event: DragEvent, tabId: string, index: number) {
@@ -203,8 +222,8 @@ export default function TabsContainer() {
                                 tab={tab}
                                 isActive={tab.id === activeId}
                                 showClose={tabs.length > 1}
-                                onActivate={() => setActiveTab(tab.id)}
-                                onClose={() => removeTab(tab.id)}
+                                onActivate={() => activateTab(tab.id)}
+                                onClose={() => closeTab(tab.id)}
                                 onDragStart={(event) => {
                                     handleDragStart(event, tab.id, index);
                                 }}
