@@ -25,7 +25,7 @@ export function useAddSource() {
         },
 
         onSuccess: () => {
-            void queryClient.invalidateQueries({
+            queryClient.invalidateQueries({
                 queryKey: ["library", "sources"],
             });
         },
@@ -43,7 +43,7 @@ export function useRemoveSource() {
         },
 
         onSuccess: () => {
-            void queryClient.invalidateQueries({
+            queryClient.invalidateQueries({
                 queryKey: ["library", "sources"],
             });
         },

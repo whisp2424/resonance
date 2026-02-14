@@ -23,7 +23,7 @@ class WindowStateManager {
     private stateCache: WindowStates = {};
 
     private async write(state: WindowStates): Promise<void> {
-        await writeFile(WINDOW_STATE_FILE, JSON.stringify(state, null, 0), {
+        await writeFile(WINDOW_STATE_FILE, JSON.stringify(state), {
             encoding: "utf-8",
         });
 
