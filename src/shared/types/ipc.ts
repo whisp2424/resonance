@@ -1,6 +1,5 @@
 import type { WindowRoute } from "@shared/constants/routes";
 import type { Settings } from "@shared/schema/settings";
-import type { TabState } from "@shared/schema/tabState";
 import type { DialogOptions, DialogResult } from "@shared/types/dialog";
 import type {
     AddSourceResult,
@@ -71,9 +70,6 @@ export type MainIpcHandleEvents = {
     "dev:getTableCount": (table: string) => number;
     "dev:query": (sql: string) => Record<string, unknown>[];
     "dev:delete": (table: string, where: Record<string, unknown>) => void;
-
-    "tabState:get": () => TabState | null;
-    "tabState:save": (state: TabState) => void;
 };
 
 export type MainIpcListenEvents = {

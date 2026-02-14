@@ -6,7 +6,7 @@ import { DeveloperSettings } from "@renderer/components/settings/DeveloperSettin
 import { LibrarySettings } from "@renderer/components/settings/LibrarySettings";
 import SideBar from "@renderer/components/ui/SideBar";
 import { useSetting } from "@renderer/hooks/settings/useSetting";
-import { useSettingsStore } from "@renderer/state/settingsStore";
+import { useSettingsStore } from "@renderer/lib/state/settingsStore";
 import { useEffect, useState } from "react";
 
 import IconAppearance from "~icons/lucide/brush";
@@ -19,8 +19,16 @@ const CATEGORY_COMPONENTS: Record<string, ComponentType> = {
 };
 
 const SIDEBAR_CATEGORIES: SideBarItem[] = [
-    { id: "appearance", label: "Appearance", icon: IconAppearance },
-    { id: "library", label: "Library", icon: IconLibrary },
+    {
+        id: "appearance",
+        label: "Appearance",
+        icon: <IconAppearance className="size-full" />,
+    },
+    {
+        id: "library",
+        label: "Library",
+        icon: <IconLibrary className="size-full" />,
+    },
 ];
 
 export default function SettingsView() {
@@ -39,7 +47,11 @@ export default function SettingsView() {
     const sidebarCategories = isDev
         ? [
               ...SIDEBAR_CATEGORIES,
-              { id: "dev", label: "Developer", icon: IconCode },
+              {
+                  id: "dev",
+                  label: "Developer",
+                  icon: <IconCode className="size-full" />,
+              },
           ]
         : SIDEBAR_CATEGORIES;
 

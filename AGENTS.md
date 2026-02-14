@@ -44,6 +44,7 @@ Processes communicate **only** via typed IPC.
     │   ├── components/     # UI components
     │   │   ├── layout/     # Layout components
     │   │   │   └── titlebar/   # TitleBar component and related hooks
+    │   │   ├── providers/  # React providers
     │   │   ├── settings/   # Settings components
     │   │   │   └── developer/  # Developer settings
     │   │   ├── ui/         # UI primitives
@@ -53,11 +54,10 @@ Processes communicate **only** via typed IPC.
     │   │   ├── settings/   # Settings-related hooks
     │   │   ├── theme/      # Theme-related hooks
     │   │   └── *.ts        # Other hooks (dialog, OS, shortcuts)
-    │   ├── providers/      # React providers
-    │   ├── state/          # Zustand stores and TanStack Query client
-    │   ├── tabs/           # Tab system definitions and registry
-    │   ├── types/          # Frontend-specific types
-    │   └── utils/          # Renderer utilities
+    │   └── lib/            # Library code (state, types, utils)
+    │       ├── state/      # Zustand stores and TanStack Query client
+    │       ├── types/      # Frontend-specific types
+    │       └── utils/      # Renderer utilities
     └── shared/             # Shared across all processes
         ├── constants/      # Cross-process constants
         ├── schema/         # ArkType schemas
@@ -170,7 +170,7 @@ Resonance uses two complementary approaches based on data characteristics. Both 
 
 ### State Management
 
-Located in `src/renderer/state/`:
+Located in `src/renderer/lib/state/`:
 
 **Zustand Stores:**
 
@@ -189,7 +189,7 @@ Located in `src/renderer/state/`:
 Use for small, configuration-like data that's needed immediately across the app:
 
 ```ts
-import { useSettingsStore } from "@renderer/state/settingsStore";
+import { useSettingsStore } from "@renderer/lib/state/settingsStore";
 
 // Reading state - synchronous, no loading states
 const settings = useSettingsStore((state) => state.settings);

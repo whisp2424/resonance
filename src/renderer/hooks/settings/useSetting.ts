@@ -2,7 +2,7 @@ import type { Settings } from "@shared/schema/settings";
 import type { SettingsPath } from "@shared/types/ipc";
 import type { PathValue } from "@shared/types/utils";
 
-import { useSettingsStore } from "@renderer/state/settingsStore";
+import { useSettingsStore } from "@renderer/lib/state/settingsStore";
 import { getDeep } from "@shared/utils/object";
 import { useCallback } from "react";
 

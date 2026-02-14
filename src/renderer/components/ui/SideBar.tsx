@@ -1,4 +1,4 @@
-import type { IconElement } from "@renderer/types/iconElement";
+import type { ReactNode } from "react";
 
 import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -6,7 +6,7 @@ import { twMerge } from "tailwind-merge";
 export interface SideBarItem {
     id: string;
     label: string;
-    icon?: IconElement;
+    icon?: ReactNode;
 }
 
 interface SideBarProps {
@@ -23,7 +23,6 @@ interface SideBarButtonProps {
 }
 
 function SideBarButton({ item, isActive, onClick }: SideBarButtonProps) {
-    const Icon = item.icon;
     return (
         <button
             onClick={onClick}
@@ -36,7 +35,7 @@ function SideBarButton({ item, isActive, onClick }: SideBarButtonProps) {
                         : "text-neutral-600 hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/5",
                 ),
             )}>
-            {Icon && <Icon className="size-4 shrink-0" />}
+            {item.icon && <span className="size-4 shrink-0">{item.icon}</span>}
             <span className="truncate">{item.label}</span>
         </button>
     );

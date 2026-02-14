@@ -14,11 +14,9 @@ import { registerDialogHandlers } from "@main/ipc/dialog";
 import { registerLibraryHandlers } from "@main/ipc/library";
 import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
-import { registerTabStateHandlers } from "@main/ipc/tabState";
 import { registerWindowHandlers } from "@main/ipc/window";
 import { APP_MENU } from "@main/menu";
 import { initializeSettings, settingsManager } from "@main/settings";
-import { tabStateManager } from "@main/tabState";
 import { validateBounds } from "@main/window/validateBounds";
 import { windowManager } from "@main/window/windowManager";
 import { DEFAULT_OPTIONS } from "@main/window/windowPolicies";
@@ -148,7 +146,6 @@ app.whenReady().then(async () => {
         await initializeSettings();
         await runMigrations();
         await windowStateManager.load();
-        await tabStateManager.load();
 
         const settings = settingsManager.get();
         const ipc = new IpcListener<MainIpcHandleEvents>();
@@ -171,7 +168,6 @@ app.whenReady().then(async () => {
         registerAppHandlers(ipc);
         registerLibraryHandlers(ipc);
         registerSettingsHandlers(ipc);
-        registerTabStateHandlers(ipc);
         registerDatabaseHandlers(ipc);
         registerDialogHandlers(ipc);
 

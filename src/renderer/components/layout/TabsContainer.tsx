@@ -1,7 +1,7 @@
-import type { Tab } from "@renderer/types/tabs";
+import type { Tab } from "@renderer/lib/types/tabs";
 import type { DragEvent, MouseEvent } from "react";
 
-import { useTabsStore } from "@renderer/state/tabsStore";
+import { useTabsStore } from "@renderer/lib/state/tabsStore";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { clsx } from "clsx";
 import { useEffect, useRef, useState } from "react";
@@ -48,8 +48,6 @@ function TabComponent({
         onClose();
     }
 
-    const Icon = tab.icon;
-
     return (
         <div
             draggable
@@ -66,7 +64,9 @@ function TabComponent({
                     : "border-black/10 text-neutral-500 hover:bg-black/5 hover:text-neutral-800 dark:border-white/5 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-neutral-200",
             )}>
             <div className="pointer-events-none mr-3 flex flex-1 items-center justify-start gap-2 overflow-hidden">
-                {Icon && <Icon className="size-4 shrink-0" />}
+                {tab.icon && (
+                    <span className="size-4 shrink-0">{tab.icon}</span>
+                )}
                 <span className="-translate-y-px truncate">{tab.title}</span>
             </div>
             {showClose && (
@@ -86,8 +86,7 @@ function TabComponent({
 
 export default function TabsContainer() {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { tabs, activeId, setActiveTab, removeTab, moveTab, restoreTab } =
-        useTabsStore();
+    const { tabs, activeId, setActiveTab, removeTab, moveTab } = useTabsStore();
     const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
     const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
     const tabRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -141,10 +140,6 @@ export default function TabsContainer() {
         const prevIndex =
             currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
         setActiveTab(tabs[prevIndex].id);
-    });
-
-    useHotkey("Mod+Shift+T", () => {
-        restoreTab();
     });
 
     function handleDragStart(event: DragEvent, tabId: string, index: number) {

@@ -6,7 +6,7 @@ import { useOperatingSystem } from "@renderer/hooks/useOperatingSystem";
 import {
     initializeThemeListeners,
     useThemeStore,
-} from "@renderer/state/themeStore";
+} from "@renderer/lib/state/themeStore";
 import { ROUTES } from "@shared/constants/routes";
 import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";

@@ -1,4 +1,3 @@
-import type { IconElement } from "@renderer/types/iconElement";
 import type {
     AnchorHTMLAttributes,
     ButtonHTMLAttributes,
@@ -9,7 +8,7 @@ import clsx from "clsx";
 import { Link } from "react-router-dom";
 
 type BaseProps = {
-    icon?: IconElement;
+    icon?: ReactNode;
     className?: string;
     children?: ReactNode;
     variant?: "primary" | "secondary" | "ghost";
@@ -54,7 +53,7 @@ const variants = {
 
 export default function Button({
     children,
-    icon: Icon,
+    icon,
     variant = "secondary",
     ...rest
 }: ButtonProps) {
@@ -69,7 +68,11 @@ export default function Button({
             const { ...anchorProps } = rest;
             return (
                 <a {...anchorProps} className={className}>
-                    {Icon && <Icon className="size-4 translate-y-[0.05em]" />}
+                    {icon && (
+                        <span className="size-4 translate-y-[0.05em]">
+                            {icon}
+                        </span>
+                    )}
                     {children}
                 </a>
             );
@@ -83,7 +86,11 @@ export default function Button({
                     className={className}
                     to={to}
                     replace={replace}>
-                    {Icon && <Icon className="size-4 translate-y-[0.05em]" />}
+                    {icon && (
+                        <span className="size-4 translate-y-[0.05em]">
+                            {icon}
+                        </span>
+                    )}
                     {children}
                 </Link>
             );
@@ -93,7 +100,9 @@ export default function Button({
     const { ...buttonProps } = rest as ButtonAsButton;
     return (
         <button {...buttonProps} className={className}>
-            {Icon && <Icon className="size-4 translate-y-[0.05em]" />}
+            {icon && (
+                <span className="size-4 translate-y-[0.05em]">{icon}</span>
+            )}
             {children}
         </button>
     );

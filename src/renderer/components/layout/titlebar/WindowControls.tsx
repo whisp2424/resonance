@@ -43,17 +43,26 @@ export function WindowControls({
     return (
         <>
             {controls.minimize === true && (
-                <TitleBarButton icon={IconMinimize} onClick={handleMinimize} />
+                <TitleBarButton
+                    icon={<IconMinimize className="size-full" />}
+                    onClick={handleMinimize}
+                />
             )}
             {controls.maximize === true && (
                 <TitleBarButton
-                    icon={isMaximized ? IconRestore : IconMaximize}
+                    icon={
+                        isMaximized ? (
+                            <IconRestore className="size-full" />
+                        ) : (
+                            <IconMaximize className="size-full" />
+                        )
+                    }
                     onClick={handleMaximize}
                 />
             )}
             {controls.close === true && (
                 <TitleBarButton
-                    icon={IconX}
+                    icon={<IconX className="size-full" />}
                     className="hover:bg-red-500! hover:text-white"
                     onClick={handleClose}
                 />

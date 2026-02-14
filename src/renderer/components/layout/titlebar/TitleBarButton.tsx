@@ -1,16 +1,15 @@
-import type { IconElement } from "@renderer/types/iconElement";
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { clsx } from "clsx";
 import { memo } from "react";
 import { twMerge } from "tailwind-merge";
 
 interface TitleBarButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-    icon: IconElement;
+    icon: ReactNode;
 }
 
 export const TitleBarButton = memo(function TitleBarButton({
-    icon: Icon,
+    icon,
     className,
     onClick,
 }: TitleBarButtonProps) {
@@ -25,7 +24,7 @@ export const TitleBarButton = memo(function TitleBarButton({
                 ),
             )}
             onClick={onClick}>
-            <Icon className="size-4 scale-105" />
+            <span className="size-4 scale-105">{icon}</span>
         </button>
     );
 });
