@@ -36,9 +36,8 @@ export function useRemoveSource() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ path }: { path: string }) => {
-            const result = await electron.invoke("library:removeSource", path);
-
+        mutationFn: async ({ id }: { id: number }) => {
+            const result = await electron.invoke("library:removeSource", id);
             return result;
         },
 

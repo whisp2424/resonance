@@ -53,7 +53,7 @@ export function LibrarySettings() {
         if (confirm !== "remove") return;
 
         const result = await removeSource.mutateAsync({
-            path: source.path,
+            id: source.id,
         });
 
         if (!result.success) {
@@ -110,7 +110,7 @@ export function LibrarySettings() {
                     <div className="flex flex-col gap-6">
                         {sources.map((source) => (
                             <SourceItem
-                                key={source.path}
+                                key={source.id}
                                 source={source}
                                 onRemove={() => handleRemove(source)}
                             />

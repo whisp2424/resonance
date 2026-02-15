@@ -205,7 +205,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
         const config = tabTypeRegistry[type];
 
         if (!config) {
-            log(`Unknown tab type: ${type}`, "tabs", "warning");
+            log(`unknown tab type: ${type}`, "tabs", "warning");
             return;
         }
 
@@ -315,7 +315,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
         const config = tabTypeRegistry[type];
 
         if (!config) {
-            log(`Unknown tab type: ${type}`, "tabs", "warning");
+            log(`unknown tab type: ${type}`, "tabs", "warning");
             return;
         }
 

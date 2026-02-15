@@ -70,16 +70,16 @@ class LibraryManager {
         }
     }
 
-    async removeSource(sourcePath: string): Promise<RemoveSourceResult> {
+    async removeSource(sourceId: number): Promise<RemoveSourceResult> {
         try {
             const result = await db
                 .delete(sourcesTable)
-                .where(eq(sourcesTable.path, sourcePath));
+                .where(eq(sourcesTable.id, sourceId));
 
             if (result.rowsAffected === 0) {
                 return error(
                     "not_found",
-                    `Media source ${sourcePath} not found`,
+                    `Media source with ID ${sourceId} not found`,
                 );
             }
 

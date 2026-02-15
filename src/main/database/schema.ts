@@ -78,7 +78,7 @@ export const tracksTable = sqliteTable(
         title: text().notNull(),
         trackNumber: int(),
         duration: int(),
-        trackKey: text().notNull(),
+        relativePath: text().notNull(),
         fileFormat: text(),
         bitrate: int(),
         sampleRate: int(),
@@ -86,7 +86,7 @@ export const tracksTable = sqliteTable(
         playCount: int().notNull().default(0),
     },
     (table) => [
-        unique().on(table.sourceId, table.trackKey),
+        unique().on(table.sourceId, table.relativePath),
         index("idx_tracks_source").on(table.sourceId),
         index("idx_tracks_album").on(table.albumId),
         index("idx_tracks_disc").on(table.discId),

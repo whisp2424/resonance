@@ -57,7 +57,7 @@ export type MainIpcHandleEvents = {
 
     "library:addSource": (uri: string, name?: string) => AddSourceResult;
 
-    "library:removeSource": (uri: string) => RemoveSourceResult;
+    "library:removeSource": (sourceId: number) => RemoveSourceResult;
 
     "dev:getTables": () => string[];
     "dev:getTableSchema": (table: string) => {
