@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { db } from "@main/database";
 import { sourcesTable } from "@main/database/schema";
+import { scanner } from "@main/library/scanner";
 import { validatePath } from "@main/utils/path";
 import { error, ok } from "@shared/types/result";
 import { eq } from "drizzle-orm";
@@ -64,9 +65,9 @@ class LibraryManager {
                 );
             }
 
-            return ok({
-                source: result[0],
-            });
+            const source = result[0];
+            scanner.scan(source.id);
+            return ok({ source });
         } catch {
             return error(
                 "unknown",
