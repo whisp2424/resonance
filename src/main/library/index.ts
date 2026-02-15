@@ -1,8 +1,5 @@
-import type {
-    AddSourceResult,
-    GetSourcesResult,
-    RemoveSourceResult,
-} from "@shared/types/library";
+import type { LibraryMediaSource } from "@shared/types/library";
+import type { Result } from "@shared/types/result";
 
 import path from "node:path";
 
@@ -11,6 +8,14 @@ import { sourcesTable } from "@main/database/schema";
 import { validatePath } from "@main/utils/path";
 import { error, ok } from "@shared/types/result";
 import { eq } from "drizzle-orm";
+
+type AddSourceResult = Result<
+    { source: LibraryMediaSource },
+    "duplicate_source" | "invalid_source" | "unknown"
+>;
+
+type RemoveSourceResult = Result<true, "not_found" | "unknown">;
+type GetSourcesResult = Result<LibraryMediaSource[], "unknown">;
 
 class LibraryManager {
     async getSources(): Promise<GetSourcesResult> {
@@ -79,7 +84,7 @@ class LibraryManager {
             if (result.rowsAffected === 0) {
                 return error(
                     "not_found",
-                    `Media source with ID ${sourceId} not found`,
+                    `Source ID ${sourceId} does not exist`,
                 );
             }
 
