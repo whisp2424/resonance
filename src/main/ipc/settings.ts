@@ -1,7 +1,7 @@
 import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
-import { settingsManager } from "@main/settings";
+import { settingsManager } from "@main/settingsManager";
 
 export function registerSettingsHandlers(
     ipc: IpcListener<MainIpcHandleEvents>,

@@ -1,7 +1,7 @@
 import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
-import { tabsManager } from "@main/tabs";
+import { tabsManager } from "@main/tabsManager";
 
 export function registerTabHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
     ipc.handle("tabs:get", () => {
