@@ -8,7 +8,7 @@ import {
 } from "@renderer/hooks/library/useSources";
 import { useDialog } from "@renderer/hooks/useDialog";
 import { useIpcListener } from "@renderer/hooks/useIpcListener";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import TimeAgo from "timeago-react";
 
 import IconFolder from "~icons/lucide/folder";
@@ -18,6 +18,7 @@ interface SourceItemProps {
     onRemove: () => void;
     isScanning: boolean;
     progress: { processed: number; total: number } | null;
+    scanStatusLoaded: boolean;
 }
 
 function SourceItem({
@@ -25,7 +26,10 @@ function SourceItem({
     onRemove,
     isScanning,
     progress,
+    scanStatusLoaded,
 }: SourceItemProps) {
+    const isButtonDisabled = !scanStatusLoaded || isScanning;
+
     return (
         <div className="flex items-center justify-between pl-1">
             <div className="flex flex-row items-center gap-4">
@@ -48,7 +52,7 @@ function SourceItem({
                 </div>
             </div>
             <div className="flex flex-col items-center justify-start gap-1.5">
-                <Button onClick={onRemove} disabled={isScanning}>
+                <Button onClick={onRemove} disabled={isButtonDisabled}>
                     Remove
                 </Button>
                 <button
@@ -56,7 +60,7 @@ function SourceItem({
                     onClick={() => {
                         electron.invoke("library:scanSource", source.id);
                     }}
-                    disabled={isScanning}>
+                    disabled={isButtonDisabled}>
                     {isScanning ? "Scanning..." : "Scan Now"}
                 </button>
             </div>
@@ -72,6 +76,28 @@ export function LibrarySettings() {
     const [activeScans, setActiveScans] = useState<
         Map<number, { processed: number; total: number }>
     >(new Map());
+    const [scanStatusLoaded, setScanStatusLoaded] = useState(false);
+
+    useEffect(() => {
+        let mounted = true;
+
+        async function fetchProgress() {
+            if (!mounted) return;
+            const progress = await electron.invoke("library:getScanProgress");
+            if (mounted) {
+                setActiveScans(progress);
+                setScanStatusLoaded(true);
+            }
+        }
+
+        fetchProgress();
+        const interval = setInterval(fetchProgress, 500);
+
+        return () => {
+            mounted = false;
+            clearInterval(interval);
+        };
+    }, []);
 
     useIpcListener(
         "library:onScanStart",
@@ -79,17 +105,6 @@ export function LibrarySettings() {
             setActiveScans((prev) => {
                 const next = new Map(prev);
                 next.set(sourceId, { processed: 0, total: 0 });
-                return next;
-            });
-        }, []),
-    );
-
-    useIpcListener(
-        "library:onScanProgress",
-        useCallback((sourceId: number, processed: number, total: number) => {
-            setActiveScans((prev) => {
-                const next = new Map(prev);
-                next.set(sourceId, { processed, total });
                 return next;
             });
         }, []),
@@ -185,6 +200,7 @@ export function LibrarySettings() {
                                     onRemove={() => handleRemove(source)}
                                     isScanning={!!scanProgress}
                                     progress={scanProgress ?? null}
+                                    scanStatusLoaded={scanStatusLoaded}
                                 />
                             );
                         })}

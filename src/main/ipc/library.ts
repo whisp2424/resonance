@@ -28,4 +28,8 @@ export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
         const result = await scanner.scan(sourceId);
         return result;
     });
+
+    ipc.handle("library:getScanProgress", async () => {
+        return scanner.getProgress();
+    });
 }

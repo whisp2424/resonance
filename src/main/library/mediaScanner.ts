@@ -28,6 +28,8 @@ interface SourceState {
     diff: MediaDiff;
     errors: string[];
     running: boolean;
+    processed: number;
+    total: number;
 }
 
 function newDiff(): MediaDiff {
@@ -103,8 +105,6 @@ export class MediaScanner {
     }
 
     async scan(sourceId: number): Promise<ScanSourceResult> {
-        windowManager.emitEvent("library:onScanStart", sourceId);
-
         const dbSources = await db
             .select()
             .from(sourcesTable)
@@ -123,6 +123,25 @@ export class MediaScanner {
             pc.dim(`scanning ${source.displayName} (${source.path})...`),
             "MediaScanner",
         );
+
+        let state = this.sourceState.get(sourceId);
+
+        if (!state) {
+            state = {
+                diff: newDiff(),
+                errors: [],
+                running: true,
+                processed: 0,
+                total: 0,
+            };
+            this.sourceState.set(sourceId, state);
+        } else {
+            state.running = true;
+            state.processed = 0;
+            state.total = 0;
+        }
+
+        windowManager.emitEvent("library:onScanStart", sourceId);
 
         const diffResult = await this.generateDiff(source);
         if (!diffResult.success) {
@@ -143,6 +162,8 @@ export class MediaScanner {
                 pc.dim(`${pc.italic(source.displayName)} is up-to-date`),
                 "MediaScanner",
             );
+
+            state.running = false;
             windowManager.emitEvent("library:onScanEnd", sourceId);
             return ok({ success: true, errors: [] });
         }
@@ -155,29 +176,13 @@ export class MediaScanner {
             "MediaScanner",
         );
 
-        let state = this.sourceState.get(sourceId);
-
-        if (!state) {
-            state = { diff: newDiff(), errors: [], running: false };
-            this.sourceState.set(sourceId, state);
-        }
-
         mergeDiff(state.diff, diff);
-
-        if (state.running) {
-            log(
-                pc.dim(
-                    `a scan is already running for ${pc.italic(source.displayName)}, changes will be pushed to the existing queue`,
-                ),
-                "MediaScanner",
-            );
-            return ok({ success: true, errors: state.errors });
-        }
-
-        state.running = true;
+        state.total = diffSummary.total;
 
         const job = this.scansQueue.add(async () => {
+            const currentState = state;
             const totalFiles = diffSummary.total;
+
             let processedFiles = 0;
             let lastProgressTimestamp = Date.now();
 
@@ -185,6 +190,7 @@ export class MediaScanner {
                 const now = Date.now();
                 if (now - lastProgressTimestamp >= 500) {
                     lastProgressTimestamp = now;
+                    currentState.processed = processedFiles;
                     windowManager.emitEvent(
                         "library:onScanProgress",
                         sourceId,
@@ -203,17 +209,17 @@ export class MediaScanner {
 
             try {
                 while (
-                    state.diff.added.size ||
-                    state.diff.updated.size ||
-                    state.diff.removed.size
+                    currentState.diff.added.size ||
+                    currentState.diff.updated.size ||
+                    currentState.diff.removed.size
                 ) {
                     const currentDiff = {
-                        added: Array.from(state.diff.added),
-                        updated: Array.from(state.diff.updated),
-                        removed: Array.from(state.diff.removed),
+                        added: Array.from(currentState.diff.added),
+                        updated: Array.from(currentState.diff.updated),
+                        removed: Array.from(currentState.diff.removed),
                     };
 
-                    state.diff = newDiff();
+                    currentState.diff = newDiff();
 
                     for (
                         let i = 0;
@@ -224,12 +230,15 @@ export class MediaScanner {
                             i,
                             i + BATCH_SIZE,
                         );
+
                         for (const file of batch) {
                             log(`${pc.green("+")} ${file}`, "MediaScanner");
                             // TODO: actual importing logic
                             processedFiles++;
                             emitProgress();
                         }
+
+                        await new Promise((resolve) => setImmediate(resolve));
                     }
 
                     for (
@@ -241,12 +250,15 @@ export class MediaScanner {
                             i,
                             i + BATCH_SIZE,
                         );
+
                         for (const file of batch) {
                             log(`${pc.cyan("~")} ${file}`, "MediaScanner");
                             // TODO: actual importing logic
                             processedFiles++;
                             emitProgress();
                         }
+
+                        await new Promise((resolve) => setImmediate(resolve));
                     }
 
                     for (
@@ -258,18 +270,23 @@ export class MediaScanner {
                             i,
                             i + BATCH_SIZE,
                         );
+
                         for (const file of batch) {
                             log(`${pc.red("-")} ${file}`, "MediaScanner");
                             // TODO: delete track from DB
                             processedFiles++;
                             emitProgress();
                         }
+
+                        await new Promise((resolve) => setImmediate(resolve));
                     }
                 }
             } catch (err) {
-                state.errors.push(getErrorMessage(err));
+                currentState.errors.push(getErrorMessage(err));
             } finally {
-                state.running = false;
+                currentState.running = false;
+                currentState.processed = 0;
+                currentState.total = 0;
                 await db
                     .update(sourcesTable)
                     .set({ lastUpdated: Date.now() })
@@ -280,6 +297,18 @@ export class MediaScanner {
 
         await job;
         return ok({ success: true, errors: state.errors });
+    }
+
+    getProgress(): Map<number, { processed: number; total: number }> {
+        const result = new Map<number, { processed: number; total: number }>();
+        for (const [sourceId, state] of this.sourceState) {
+            if (state.running)
+                result.set(sourceId, {
+                    processed: state.processed,
+                    total: state.total,
+                });
+        }
+        return result;
     }
 }
 
