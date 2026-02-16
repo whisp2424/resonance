@@ -2,7 +2,7 @@ import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
 import { library } from "@main/library";
-import { scanner } from "@main/library/scanner";
+import { scanner } from "@main/library/mediaScanner";
 import { windowManager } from "@main/window/windowManager";
 
 export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {

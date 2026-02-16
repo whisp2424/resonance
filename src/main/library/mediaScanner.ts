@@ -140,7 +140,7 @@ export class MediaScanner {
         }
 
         log(
-            pc.dim(`${pc.italic(source.displayName)} summary: `) +
+            pc.dim(`${source.displayName} summary: `) +
                 `${pc.green(diffSummary.added)} new, ` +
                 `${pc.cyan(diffSummary.updated)} updated, ` +
                 `${pc.red(diffSummary.removed)} removed`,
