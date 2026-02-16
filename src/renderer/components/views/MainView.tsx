@@ -1,5 +1,4 @@
 import KeepAlive from "@renderer/components/layout/KeepAlive";
-import StatusBar from "@renderer/components/layout/StatusBar";
 import { useTabsStore } from "@renderer/lib/state/tabsStore";
 import { tabTypeRegistry } from "@renderer/lib/tabRegistry";
 
@@ -21,7 +20,6 @@ export default function MainView() {
                     );
                 })}
             </div>
-            <StatusBar />
         </div>
     );
 }
