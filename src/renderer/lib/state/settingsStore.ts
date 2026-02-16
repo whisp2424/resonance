@@ -2,8 +2,10 @@ import type { Settings } from "@shared/schema/settings";
 import type { SettingsPath } from "@shared/types/ipc";
 import type { DeepPartial, PathValue } from "@shared/types/utils";
 
+import { useIpcListener } from "@renderer/hooks/useIpcListener";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { deepMerge, setDeep } from "@shared/utils/object";
+import { useCallback } from "react";
 import { create } from "zustand";
 
 interface SettingsState {
@@ -15,17 +17,11 @@ interface SettingsState {
 interface SettingsActions {
     loadSettings: () => Promise<void>;
 
-    /**
-     * Update an individual setting by its path (e.g., `appearance.theme`)
-     */
     updateSetting: <P extends SettingsPath>(
         path: P,
         value: PathValue<Settings, P>,
     ) => Promise<void>;
 
-    /*
-     * Update multiple settings at once
-     */
     updateSettings: (partial: DeepPartial<Settings>) => Promise<void>;
 }
 
@@ -85,10 +81,10 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     },
 }));
 
-export function subscribeToSettings() {
-    const unsubscribeChanged = electron.send(
+export function useSettingsListeners(): void {
+    useIpcListener(
         "settings:onChanged",
-        (settings, changedKey) => {
+        useCallback((settings, changedKey) => {
             const currentSettings = useSettingsStore.getState().settings;
 
             if (changedKey && currentSettings) {
@@ -98,15 +94,13 @@ export function subscribeToSettings() {
             } else {
                 useSettingsStore.setState({ settings });
             }
-        },
+        }, []),
     );
 
-    const unsubscribeError = electron.send("settings:onError", (message) => {
-        useSettingsStore.setState({ error: message });
-    });
-
-    return () => {
-        unsubscribeChanged();
-        unsubscribeError();
-    };
+    useIpcListener(
+        "settings:onError",
+        useCallback((message) => {
+            useSettingsStore.setState({ error: message });
+        }, []),
+    );
 }

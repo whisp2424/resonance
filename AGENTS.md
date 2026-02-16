@@ -53,7 +53,7 @@ Processes communicate **only** via typed IPC.
     │   │   ├── library/    # Library-related hooks
     │   │   ├── settings/   # Settings-related hooks
     │   │   ├── theme/      # Theme-related hooks
-    │   │   └── *.ts        # Other hooks (dialog, OS, shortcuts)
+    │   │   └── *.ts        # Top-level hooks (useIpcListener, etc.)
     │   └── lib/            # Library code (state, types, utils)
     │       ├── state/      # Zustand stores and TanStack Query client
     │       ├── types/      # Frontend-specific types
@@ -238,6 +238,53 @@ if (!result.success) {
 ---
 
 ## Common Patterns & Best Practices
+
+### IPC Event Listening
+
+**Always use `useIpcListener` for listening to IPC events from the main process.** This hook provides type safety and automatic cleanup.
+
+**DON'T manually subscribe/unsubscribe in useEffect:**
+
+```tsx
+// AVOID: Manual subscription is error-prone and verbose
+useEffect(() => {
+    let isMounted = true;
+
+    const unsub = electron.send("library:onScanStart", (sourceId) => {
+        if (isMounted) {
+            setActiveScans((prev) => /* ... */);
+        }
+    });
+
+    return () => {
+        isMounted = false;
+        unsub();
+    };
+}, []);
+```
+
+**DO use the useIpcListener hook:**
+
+```tsx
+import { useIpcListener } from "@renderer/hooks/useIpcListener";
+
+// The hook automatically handles cleanup on unmount
+useIpcListener(
+    "library:onScanStart",
+    useCallback((sourceId: number) => {
+        setActiveScans((prev) => /* ... */);
+    }, []),
+);
+```
+
+**Key points:**
+
+- The hook is fully typed - TypeScript will validate channel names and callback arguments
+- Always wrap the listener in `useCallback` to prevent unnecessary re-subscriptions
+- Multiple listeners? Just call `useIpcListener` multiple times - it's clean and declarative
+- For global listeners that run throughout the app lifetime, create a custom hook like `useSettingsListeners()` or `useThemeListeners()` in the store file and call it from your provider/component
+
+---
 
 ### Loading States & UX
 

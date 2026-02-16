@@ -92,6 +92,14 @@ export type MainIpcListenEvents = {
     "settings:onError": [message: string];
 
     "library:onSourcesChanged": [];
+
+    "library:onScanStart": [sourceId: number];
+    "library:onScanProgress": [
+        sourceId: number,
+        processed: number,
+        total: number,
+    ];
+    "library:onScanEnd": [sourceId: number];
 };
 
 export type MainIpcEvents = MainIpcHandleEvents | MainIpcListenEvents;

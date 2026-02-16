@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 import { db } from "@main/database";
 import { sourcesTable, tracksTable } from "@main/database/schema";
+import { windowManager } from "@main/window/windowManager";
 import { error, ok } from "@shared/types/result";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { eq } from "drizzle-orm";
@@ -15,6 +16,7 @@ import pc from "picocolors";
 import { glob } from "tinyglobby";
 
 const GLOB_PATTERN = "**/*.{mp3,flac,m4a,wav,ogg,opus}";
+const BATCH_SIZE = 50;
 
 interface MediaDiff {
     added: Set<string>;
@@ -101,6 +103,8 @@ export class MediaScanner {
     }
 
     async scan(sourceId: number): Promise<ScanSourceResult> {
+        windowManager.emitEvent("library:onScanStart", sourceId);
+
         const dbSources = await db
             .select()
             .from(sourcesTable)
@@ -108,6 +112,7 @@ export class MediaScanner {
 
         const source = dbSources[0];
         if (!source) {
+            windowManager.emitEvent("library:onScanEnd", sourceId);
             return error(
                 "invalid_source",
                 `Source ID ${sourceId} does not exist`,
@@ -120,8 +125,10 @@ export class MediaScanner {
         );
 
         const diffResult = await this.generateDiff(source);
-        if (!diffResult.success)
+        if (!diffResult.success) {
+            windowManager.emitEvent("library:onScanEnd", sourceId);
             return error(diffResult.error, diffResult.message);
+        }
 
         const diff = diffResult.data;
         const diffSummary = {
@@ -136,6 +143,7 @@ export class MediaScanner {
                 pc.dim(`${pc.italic(source.displayName)} is up-to-date`),
                 "MediaScanner",
             );
+            windowManager.emitEvent("library:onScanEnd", sourceId);
             return ok({ success: true, errors: [] });
         }
 
@@ -167,7 +175,32 @@ export class MediaScanner {
         }
 
         state.running = true;
+
         const job = this.scansQueue.add(async () => {
+            const totalFiles = diffSummary.total;
+            let processedFiles = 0;
+            let lastProgressTimestamp = Date.now();
+
+            function emitProgress() {
+                const now = Date.now();
+                if (now - lastProgressTimestamp >= 500) {
+                    lastProgressTimestamp = now;
+                    windowManager.emitEvent(
+                        "library:onScanProgress",
+                        sourceId,
+                        processedFiles,
+                        totalFiles,
+                    );
+                }
+            }
+
+            windowManager.emitEvent(
+                "library:onScanProgress",
+                sourceId,
+                0,
+                totalFiles,
+            );
+
             try {
                 while (
                     state.diff.added.size ||
@@ -175,32 +208,73 @@ export class MediaScanner {
                     state.diff.removed.size
                 ) {
                     const currentDiff = {
-                        added: new Set(state.diff.added),
-                        updated: new Set(state.diff.updated),
-                        removed: new Set(state.diff.removed),
+                        added: Array.from(state.diff.added),
+                        updated: Array.from(state.diff.updated),
+                        removed: Array.from(state.diff.removed),
                     };
 
                     state.diff = newDiff();
 
-                    for (const file of currentDiff.added) {
-                        log(`${pc.green("+")} ${file}`, "MediaScanner");
-                        // TODO: call reconcileFile(sourceId, file)
+                    for (
+                        let i = 0;
+                        i < currentDiff.added.length;
+                        i += BATCH_SIZE
+                    ) {
+                        const batch = currentDiff.added.slice(
+                            i,
+                            i + BATCH_SIZE,
+                        );
+                        for (const file of batch) {
+                            log(`${pc.green("+")} ${file}`, "MediaScanner");
+                            // TODO: actual importing logic
+                            processedFiles++;
+                            emitProgress();
+                        }
                     }
 
-                    for (const file of currentDiff.updated) {
-                        log(`${pc.cyan("~")} ${file}`, "MediaScanner");
-                        // TODO: call reconcileFile(sourceId, file)
+                    for (
+                        let i = 0;
+                        i < currentDiff.updated.length;
+                        i += BATCH_SIZE
+                    ) {
+                        const batch = currentDiff.updated.slice(
+                            i,
+                            i + BATCH_SIZE,
+                        );
+                        for (const file of batch) {
+                            log(`${pc.cyan("~")} ${file}`, "MediaScanner");
+                            // TODO: actual importing logic
+                            processedFiles++;
+                            emitProgress();
+                        }
                     }
 
-                    for (const file of currentDiff.removed) {
-                        log(`${pc.red("-")} ${file}`, "MediaScanner");
-                        // TODO: delete track from DB
+                    for (
+                        let i = 0;
+                        i < currentDiff.removed.length;
+                        i += BATCH_SIZE
+                    ) {
+                        const batch = currentDiff.removed.slice(
+                            i,
+                            i + BATCH_SIZE,
+                        );
+                        for (const file of batch) {
+                            log(`${pc.red("-")} ${file}`, "MediaScanner");
+                            // TODO: delete track from DB
+                            processedFiles++;
+                            emitProgress();
+                        }
                     }
                 }
             } catch (err) {
                 state.errors.push(getErrorMessage(err));
             } finally {
                 state.running = false;
+                await db
+                    .update(sourcesTable)
+                    .set({ lastUpdated: Date.now() })
+                    .where(eq(sourcesTable.id, sourceId));
+                windowManager.emitEvent("library:onScanEnd", sourceId);
             }
         });
 

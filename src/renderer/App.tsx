@@ -4,7 +4,7 @@ import MainView from "@renderer/components/views/MainView";
 import { useOperatingSystem } from "@renderer/hooks/useOperatingSystem";
 import { useTabsStore } from "@renderer/lib/state/tabsStore";
 import {
-    initializeThemeListeners,
+    useThemeListeners,
     useThemeStore,
 } from "@renderer/lib/state/themeStore";
 import { ROUTES } from "@shared/constants/routes";
@@ -19,12 +19,9 @@ export default function App() {
     useEffect(() => {
         restoreTabs();
         initializeTheme();
-        const unsubscribe = initializeThemeListeners();
-
-        return () => {
-            unsubscribe();
-        };
     }, [initializeTheme, restoreTabs]);
+
+    useThemeListeners();
 
     useEffect(() => {
         if (os?.name) document.documentElement.dataset.os = os.name;

@@ -1,3 +1,5 @@
+import { useIpcListener } from "@renderer/hooks/useIpcListener";
+import { useCallback, useEffect } from "react";
 import { create } from "zustand";
 
 interface ThemeState {
@@ -34,30 +36,31 @@ export const useThemeStore = create<ThemeState & ThemeActions>((set) => ({
     },
 }));
 
-export function initializeThemeListeners() {
-    const unsubscribeAccent = electron.send(
+export function useThemeListeners(): void {
+    useIpcListener(
         "system:onAccentColorChanged",
-        (color) => {
+        useCallback((color) => {
             const accentColor = `#${stripAlpha(color)}`;
             useThemeStore.setState({ accentColor });
             applyAccentColor(accentColor);
-        },
+        }, []),
     );
 
-    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    useEffect(() => {
+        const query = window.matchMedia("(prefers-color-scheme: dark)");
 
-    const handleChange = (event: MediaQueryListEvent) => {
-        document.documentElement.classList.add("theme-transition");
-        useThemeStore.setState({ isDarkTheme: event.matches });
-        setTimeout(() => {
-            document.documentElement.classList.remove("theme-transition");
-        }, 100);
-    };
+        const handleChange = (event: MediaQueryListEvent) => {
+            document.documentElement.classList.add("theme-transition");
+            useThemeStore.setState({ isDarkTheme: event.matches });
+            setTimeout(() => {
+                document.documentElement.classList.remove("theme-transition");
+            }, 100);
+        };
 
-    query.addEventListener("change", handleChange);
+        query.addEventListener("change", handleChange);
 
-    return () => {
-        unsubscribeAccent();
-        query.removeEventListener("change", handleChange);
-    };
+        return () => {
+            query.removeEventListener("change", handleChange);
+        };
+    }, []);
 }

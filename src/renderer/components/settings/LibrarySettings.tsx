@@ -7,7 +7,8 @@ import {
     useSources,
 } from "@renderer/hooks/library/useSources";
 import { useDialog } from "@renderer/hooks/useDialog";
-import { useEffect } from "react";
+import { useIpcListener } from "@renderer/hooks/useIpcListener";
+import { useCallback, useState } from "react";
 import TimeAgo from "timeago-react";
 
 import IconFolder from "~icons/lucide/folder";
@@ -15,9 +16,16 @@ import IconFolder from "~icons/lucide/folder";
 interface SourceItemProps {
     source: LibraryMediaSource;
     onRemove: () => void;
+    isScanning: boolean;
+    progress: { processed: number; total: number } | null;
 }
 
-function SourceItem({ source, onRemove }: SourceItemProps) {
+function SourceItem({
+    source,
+    onRemove,
+    isScanning,
+    progress,
+}: SourceItemProps) {
     return (
         <div className="flex items-center justify-between pl-1">
             <div className="flex flex-row items-center gap-4">
@@ -25,23 +33,31 @@ function SourceItem({ source, onRemove }: SourceItemProps) {
                 <div className="flex flex-col">
                     <h2>{source.displayName}</h2>
                     <span className="text-xs opacity-50">{source.path}</span>
-                    <span className="text-xs opacity-50">
-                        {source.fileCount} files, scanned <></>
-                        <TimeAgo datetime={source.lastUpdated} live />
-                    </span>
-                    {/* <span className="text-xs opacity-50">
-                        scanning, 8 out of 512 files processed...
-                    </span> */}
+                    {isScanning && progress ? (
+                        <span className="text-xs opacity-50">
+                            {progress.processed === 0 && progress.total === 0
+                                ? "scanning in progress..."
+                                : `scanning, ${progress.processed} out of ${progress.total} files processed...`}
+                        </span>
+                    ) : (
+                        <span className="text-xs opacity-50">
+                            {source.fileCount} files, scanned {}
+                            <TimeAgo datetime={source.lastUpdated} live />
+                        </span>
+                    )}
                 </div>
             </div>
             <div className="flex flex-col items-center justify-start gap-1.5">
-                <Button onClick={onRemove}>Remove</Button>
+                <Button onClick={onRemove} disabled={isScanning}>
+                    Remove
+                </Button>
                 <button
                     className="text-xs lowercase opacity-50 hover:underline disabled:pointer-events-none"
-                    onClick={() =>
-                        electron.invoke("library:scanSource", source.id)
-                    }>
-                    Scan Now
+                    onClick={() => {
+                        electron.invoke("library:scanSource", source.id);
+                    }}
+                    disabled={isScanning}>
+                    {isScanning ? "Scanning..." : "Scan Now"}
                 </button>
             </div>
         </div>
@@ -53,11 +69,59 @@ export function LibrarySettings() {
     const removeSource = useRemoveSource();
     const { openDialog } = useDialog();
 
+    const [activeScans, setActiveScans] = useState<
+        Map<number, { processed: number; total: number }>
+    >(new Map());
+
+    useIpcListener(
+        "library:onScanStart",
+        useCallback((sourceId: number) => {
+            setActiveScans((prev) => {
+                const next = new Map(prev);
+                next.set(sourceId, { processed: 0, total: 0 });
+                return next;
+            });
+        }, []),
+    );
+
+    useIpcListener(
+        "library:onScanProgress",
+        useCallback((sourceId: number, processed: number, total: number) => {
+            setActiveScans((prev) => {
+                const next = new Map(prev);
+                next.set(sourceId, { processed, total });
+                return next;
+            });
+        }, []),
+    );
+
+    useIpcListener(
+        "library:onScanEnd",
+        useCallback(
+            (sourceId: number) => {
+                setActiveScans((prev) => {
+                    const next = new Map(prev);
+                    next.delete(sourceId);
+                    return next;
+                });
+                refetch();
+            },
+            [refetch],
+        ),
+    );
+
+    useIpcListener(
+        "library:onSourcesChanged",
+        useCallback(() => {
+            refetch();
+        }, [refetch]),
+    );
+
     const handleRemove = async (source: LibraryMediaSource) => {
         const confirm = await openDialog({
             type: "question",
-            title: `Remove ${source.displayName}`,
-            description: `Are you sure you want to remove ${source.displayName}? This won't delete your files.`,
+            title: `Remove ${source.displayName}?`,
+            description: `Your albums and tracks from this media source will be removed, this won't delete your files.`,
             id: "confirm:remove-source",
             buttons: [
                 { label: "Cancel", value: "cancel", default: true },
@@ -97,17 +161,6 @@ export function LibrarySettings() {
         }
     };
 
-    useEffect(() => {
-        let isMounted = true;
-        const unsubscribe = electron.send("library:onSourcesChanged", () => {
-            if (isMounted) refetch();
-        });
-        return () => {
-            isMounted = false;
-            unsubscribe();
-        };
-    }, [refetch]);
-
     return (
         <SettingsCategory title="Library">
             <div className="flex flex-col gap-6 rounded-lg border border-neutral-300 bg-black/4 p-6 dark:border-neutral-800 dark:bg-white/2">
@@ -123,13 +176,18 @@ export function LibrarySettings() {
                     </p>
                 ) : (
                     <div className="flex flex-col gap-6">
-                        {sources.map((source) => (
-                            <SourceItem
-                                key={source.id}
-                                source={source}
-                                onRemove={() => handleRemove(source)}
-                            />
-                        ))}
+                        {sources.map((source) => {
+                            const scanProgress = activeScans.get(source.id);
+                            return (
+                                <SourceItem
+                                    key={source.id}
+                                    source={source}
+                                    onRemove={() => handleRemove(source)}
+                                    isScanning={!!scanProgress}
+                                    progress={scanProgress ?? null}
+                                />
+                            );
+                        })}
                     </div>
                 )}
             </div>

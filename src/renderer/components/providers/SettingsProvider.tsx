@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import {
-    subscribeToSettings,
+    useSettingsListeners,
     useSettingsStore,
 } from "@renderer/lib/state/settingsStore";
 import { useEffect } from "react";
@@ -15,13 +15,9 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
 
     useEffect(() => {
         loadSettings();
-
-        const unsubscribe = subscribeToSettings();
-
-        return () => {
-            unsubscribe();
-        };
     }, [loadSettings]);
+
+    useSettingsListeners();
 
     return <>{children}</>;
 }
