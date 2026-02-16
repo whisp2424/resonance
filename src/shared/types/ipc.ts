@@ -5,6 +5,7 @@ import type {
     AddSourceResult,
     LibraryMediaSource,
     RemoveSourceResult,
+    ScanSourceResult,
 } from "@shared/types/library";
 import type { TabDescriptor } from "@shared/types/tabs";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
@@ -58,6 +59,8 @@ export type MainIpcHandleEvents = {
     "library:addSource": (uri: string, name?: string) => AddSourceResult;
 
     "library:removeSource": (sourceId: number) => RemoveSourceResult;
+
+    "library:scanSource": (sourceId: number) => ScanSourceResult;
 
     "dev:getTables": () => string[];
     "dev:getTableSchema": (table: string) => {

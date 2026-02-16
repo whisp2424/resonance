@@ -1,5 +1,8 @@
-import type { LibraryMediaSource } from "@shared/types/library";
-import type { Result } from "@shared/types/result";
+import type {
+    AddSourceResult,
+    GetSourcesResult,
+    RemoveSourceResult,
+} from "@shared/types/library";
 
 import path from "node:path";
 
@@ -9,14 +12,6 @@ import { scanner } from "@main/library/scanner";
 import { validatePath } from "@main/utils/path";
 import { error, ok } from "@shared/types/result";
 import { eq } from "drizzle-orm";
-
-type AddSourceResult = Result<
-    { source: LibraryMediaSource },
-    "duplicate_source" | "invalid_source" | "unknown"
->;
-
-type RemoveSourceResult = Result<true, "not_found" | "unknown">;
-type GetSourcesResult = Result<LibraryMediaSource[], "unknown">;
 
 class LibraryManager {
     async getSources(): Promise<GetSourcesResult> {
@@ -54,7 +49,11 @@ class LibraryManager {
 
             const result = await db
                 .insert(sourcesTable)
-                .values({ displayName, path: normalizedPath })
+                .values({
+                    displayName,
+                    path: normalizedPath,
+                    lastUpdated: Date.now(),
+                })
                 .onConflictDoNothing()
                 .returning();
 

@@ -1,4 +1,5 @@
 import type { MediaSource } from "@main/database/schema";
+import type { ScanSourceResult } from "@shared/types/library";
 import type { Result } from "@shared/types/result";
 
 import { stat } from "node:fs/promises";
@@ -15,27 +16,38 @@ import { glob } from "tinyglobby";
 
 const GLOB_PATTERN = "**/*.{mp3,flac,m4a,wav,ogg,opus}";
 
-interface ScanDiff {
+interface MediaDiff {
     added: Set<string>;
     removed: Set<string>;
     updated: Set<string>;
 }
 
-type GetDiffResult = Result<ScanDiff, "unknown">;
-type ScanResult = Result<true, "invalid_source" | "unknown">;
+type GenerateDiffResult = Result<MediaDiff, "unknown">;
+
+interface SourceState {
+    diff: MediaDiff;
+    errors: string[];
+    job?: Promise<void>;
+}
 
 class MediaScanner {
-    private activeSources = new Set<number>();
-    private activeJobs = new pQueue({ concurrency: 2 });
-    private pendingFiles = new Map<number, ScanDiff>();
+    private sourceState = new Map<number, SourceState>();
+
+    /**
+     * A p-queue instance that enqueues at most two scan jobs per-source, that
+     * can be ran in parallel.
+     */
+    private scansQueue = new pQueue({ concurrency: 2 });
 
     /**
      * Returns the set of files that have been added, removed, or modified since
      * the last scan for the given source.
      */
-    private async getDiff(source: MediaSource): Promise<GetDiffResult> {
+    private async generateDiff(
+        source: MediaSource,
+    ): Promise<GenerateDiffResult> {
         try {
-            const diff: ScanDiff = {
+            const diff: MediaDiff = {
                 added: new Set(),
                 removed: new Set(),
                 updated: new Set(),
@@ -85,7 +97,7 @@ class MediaScanner {
         }
     }
 
-    async scan(sourceId: number): Promise<ScanResult> {
+    async scan(sourceId: number): Promise<ScanSourceResult> {
         const dbSources = await db
             .select()
             .from(sourcesTable)
@@ -99,9 +111,12 @@ class MediaScanner {
             );
         }
 
-        log(pc.dim(`scanning ${source.displayName}...`), "MediaScanner");
+        log(
+            pc.dim(`scanning ${source.displayName} (${source.path})...`),
+            "MediaScanner",
+        );
 
-        const diff = await this.getDiff(source);
+        const diff = await this.generateDiff(source);
         const diffSummary = { added: 0, removed: 0, updated: 0, total: 0 };
         if (!diff.success) return error(diff.error, diff.message);
 
@@ -117,47 +132,46 @@ class MediaScanner {
             diffSummary.removed === 0
         ) {
             log(
-                pc.dim(`media source ${source.displayName} is up-to-date`),
+                pc.dim(`${pc.italic(source.displayName)} is up-to-date`),
                 "MediaScanner",
             );
-            return ok(true);
+            return ok({ success: true, errors: [] });
         }
 
         log(
-            pc.dim("pending changes: ") +
+            pc.dim(`${pc.italic(source.displayName)} summary: `) +
                 `${pc.green(diffSummary.added)} new, ` +
                 `${pc.cyan(diffSummary.updated)} updated, ` +
                 `${pc.red(diffSummary.removed)} removed`,
             "MediaScanner",
         );
 
-        const pendingFiles = this.pendingFiles.get(sourceId);
+        const sourceState = this.sourceState.get(sourceId);
 
-        if (!pendingFiles) {
-            this.pendingFiles.set(sourceId, diff.data);
+        if (!sourceState) {
+            this.sourceState.set(sourceId, { diff: diff.data, errors: [] });
         } else {
             for (const f of diff.data.added) {
-                pendingFiles.removed.delete(f);
-                pendingFiles.updated.delete(f);
-                pendingFiles.added.add(f);
+                sourceState.diff.removed.delete(f);
+                sourceState.diff.updated.delete(f);
+                sourceState.diff.added.add(f);
             }
 
             for (const f of diff.data.updated) {
-                if (!pendingFiles.added.has(f)) {
-                    pendingFiles.updated.add(f);
+                if (!sourceState.diff.added.has(f)) {
+                    sourceState.diff.updated.add(f);
                 }
             }
 
             for (const f of diff.data.removed) {
-                pendingFiles.added.delete(f);
-                pendingFiles.updated.delete(f);
-                pendingFiles.removed.add(f);
+                sourceState.diff.added.delete(f);
+                sourceState.diff.updated.delete(f);
+                sourceState.diff.removed.add(f);
             }
         }
 
-        if (!this.activeSources.has(sourceId)) {
-            this.activeSources.add(sourceId);
-            this.activeJobs.add(async () => {
+        if (!this.sourceState.get(sourceId)?.job) {
+            const scanJob = this.scansQueue.add(async () => {
                 try {
                     log(
                         pc.dim(`processing ${diffSummary.total} files...`),
@@ -165,36 +179,49 @@ class MediaScanner {
                     );
 
                     while (true) {
-                        const pending = this.pendingFiles.get(sourceId);
-                        if (!pending) break;
+                        const state = this.sourceState.get(sourceId);
+                        if (!state?.job) break;
 
-                        this.pendingFiles.delete(sourceId);
+                        this.sourceState.delete(sourceId);
 
-                        for (const file of pending.added) {
+                        for (const file of state.diff.added) {
                             log(`${pc.green("+")} ${file}`, "MediaScanner");
                         }
-                        for (const file of pending.updated) {
+                        for (const file of state.diff.updated) {
                             log(`${pc.cyan("~")} ${file}`, "MediaScanner");
                         }
-                        for (const file of pending.removed) {
+                        for (const file of state.diff.removed) {
                             log(`${pc.red("-")} ${file}`, "MediaScanner");
                         }
                     }
+                } catch (err) {
+                    const state = this.sourceState.get(sourceId);
+                    if (state) state.errors.push(getErrorMessage(err));
                 } finally {
-                    this.activeSources.delete(sourceId);
-                    this.pendingFiles.delete(sourceId);
+                    this.sourceState.delete(sourceId);
                 }
             });
+
+            const existingState = this.sourceState.get(sourceId);
+            if (existingState) existingState.job = scanJob;
         } else {
             log(
                 pc.dim(
-                    `a processing job for ${source.displayName} is already running, queueing changes...`,
+                    `a processing job for ${pc.italic(source.displayName)} is already running, queueing changes...`,
                 ),
                 "MediaScanner",
             );
         }
 
-        return ok(true);
+        const currentState = this.sourceState.get(sourceId);
+        if (currentState?.job) {
+            await currentState.job;
+            this.sourceState.delete(sourceId);
+        }
+
+        const errors = this.sourceState.get(sourceId)?.errors ?? [];
+        this.sourceState.delete(sourceId);
+        return ok({ success: true, errors });
     }
 }
 

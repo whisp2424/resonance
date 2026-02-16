@@ -2,6 +2,7 @@ import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
 import { library } from "@main/library";
+import { scanner } from "@main/library/scanner";
 import { windowManager } from "@main/window/windowManager";
 
 export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
@@ -20,6 +21,11 @@ export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
     ipc.handle("library:removeSource", async (_, sourceId) => {
         const result = await library.removeSource(sourceId);
         if (result.success) windowManager.emitEvent("library:onSourcesChanged");
+        return result;
+    });
+
+    ipc.handle("library:scanSource", async (_, sourceId) => {
+        const result = await scanner.scan(sourceId);
         return result;
     });
 }

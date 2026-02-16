@@ -8,6 +8,7 @@ import {
 } from "@renderer/hooks/library/useSources";
 import { useDialog } from "@renderer/hooks/useDialog";
 import { useEffect } from "react";
+import TimeAgo from "timeago-react";
 
 import IconFolder from "~icons/lucide/folder";
 
@@ -22,13 +23,27 @@ function SourceItem({ source, onRemove }: SourceItemProps) {
             <div className="flex flex-row items-center gap-4">
                 <IconFolder className="opacity-20" />
                 <div className="flex flex-col">
-                    <h2 className="flex items-center gap-1.5">
-                        {source.displayName}
-                    </h2>
+                    <h2>{source.displayName}</h2>
                     <span className="text-xs opacity-50">{source.path}</span>
+                    <span className="text-xs opacity-50">
+                        {source.fileCount} files, scanned <></>
+                        <TimeAgo datetime={source.lastUpdated} live />
+                    </span>
+                    {/* <span className="text-xs opacity-50">
+                        scanning, 8 out of 512 files processed...
+                    </span> */}
                 </div>
             </div>
-            <Button onClick={onRemove}>Remove</Button>
+            <div className="flex flex-col items-center justify-start gap-1.5">
+                <Button onClick={onRemove}>Remove</Button>
+                <button
+                    className="text-xs lowercase opacity-50 hover:underline disabled:pointer-events-none"
+                    onClick={() =>
+                        electron.invoke("library:scanSource", source.id)
+                    }>
+                    Scan Now
+                </button>
+            </div>
         </div>
     );
 }

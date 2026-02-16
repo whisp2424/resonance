@@ -6,6 +6,8 @@ export const sourcesTable = sqliteTable(
         id: int().primaryKey({ autoIncrement: true }),
         path: text().notNull(),
         displayName: text().notNull(),
+        fileCount: int().notNull().default(0),
+        lastUpdated: int().notNull(),
     },
     (table) => [unique().on(table.path)],
 );
