@@ -15,34 +15,46 @@ export const sourcesTable = sqliteTable(
 export type MediaSource = typeof sourcesTable.$inferSelect;
 export type NewMediaSource = typeof sourcesTable.$inferInsert;
 
-export const artistsTable = sqliteTable("artists", {
-    id: int().primaryKey({ autoIncrement: true }),
-    name: text().notNull(),
-    sortName: text(),
-});
+export const artistsTable = sqliteTable(
+    "artists",
+    {
+        id: int().primaryKey({ autoIncrement: true }),
+        name: text().notNull(),
+        sortName: text(),
+    },
+    (table) => [unique().on(table.name)],
+);
 
 export type Artist = typeof artistsTable.$inferSelect;
 export type NewArtist = typeof artistsTable.$inferInsert;
 
-export const albumArtistsTable = sqliteTable("album_artists", {
-    id: int().primaryKey({ autoIncrement: true }),
-    name: text().notNull(),
-});
+export const albumArtistsTable = sqliteTable(
+    "album_artists",
+    {
+        id: int().primaryKey({ autoIncrement: true }),
+        name: text().notNull(),
+    },
+    (table) => [unique().on(table.name)],
+);
 
 export type AlbumArtist = typeof albumArtistsTable.$inferSelect;
 export type NewAlbumArtist = typeof albumArtistsTable.$inferInsert;
 
-export const albumsTable = sqliteTable("albums", {
-    id: int().primaryKey({ autoIncrement: true }),
-    albumArtistId: int()
-        .notNull()
-        .references(() => albumArtistsTable.id, { onDelete: "cascade" }),
-    title: text().notNull(),
-    releaseDate: text(),
-    totalTracks: int(),
-    totalLength: int(),
-    artworkPath: text(),
-});
+export const albumsTable = sqliteTable(
+    "albums",
+    {
+        id: int().primaryKey({ autoIncrement: true }),
+        albumArtistId: int()
+            .notNull()
+            .references(() => albumArtistsTable.id, { onDelete: "cascade" }),
+        title: text().notNull(),
+        releaseDate: text(),
+        totalTracks: int(),
+        totalLength: int(),
+        artworkPath: text(),
+    },
+    (table) => [unique().on(table.title, table.albumArtistId)],
+);
 
 export type Album = typeof albumsTable.$inferSelect;
 export type NewAlbum = typeof albumsTable.$inferInsert;
@@ -55,7 +67,7 @@ export const discsTable = sqliteTable(
             .notNull()
             .references(() => albumsTable.id, { onDelete: "cascade" }),
         discNumber: int().notNull(),
-        subtitle: text(),
+        discSubtitle: text(),
     },
     (table) => [unique().on(table.albumId, table.discNumber)],
 );
@@ -84,6 +96,7 @@ export const tracksTable = sqliteTable(
         fileFormat: text(),
         bitrate: int(),
         sampleRate: int(),
+        bitDepth: int(),
         modifiedAt: int(),
         playCount: int().notNull().default(0),
     },

@@ -8,10 +8,11 @@ import {
 } from "@renderer/hooks/library/useSources";
 import { useDialog } from "@renderer/hooks/useDialog";
 import { useIpcListener } from "@renderer/hooks/useIpcListener";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import TimeAgo from "timeago-react";
 
 import IconFolder from "~icons/lucide/folder";
+import IconLoader from "~icons/lucide/loader-circle";
 
 interface SourceItemProps {
     source: LibraryMediaSource;
@@ -28,7 +29,10 @@ function SourceItem({
     progress,
     scanStatusLoaded,
 }: SourceItemProps) {
-    const isButtonDisabled = !scanStatusLoaded || isScanning;
+    const onClickScan = () => {
+        if (isScanning) electron.invoke("library:cancelScan", source.id);
+        else electron.invoke("library:scanSource", source.id);
+    };
 
     return (
         <div className="flex items-center justify-between pl-1">
@@ -38,10 +42,11 @@ function SourceItem({
                     <h2>{source.displayName}</h2>
                     <span className="text-xs opacity-50">{source.path}</span>
                     {isScanning && progress ? (
-                        <span className="text-xs opacity-50">
+                        <span className="flex items-center gap-1.5 text-xs opacity-50">
                             {progress.processed === 0 && progress.total === 0
-                                ? "scanning in progress..."
-                                : `scanning, ${progress.processed} out of ${progress.total} files processed...`}
+                                ? "scanning, processing files"
+                                : `scanning, ${progress.processed} out of ${progress.total} files processed`}
+                            <IconLoader className="size-3 translate-y-px animate-spin" />
                         </span>
                     ) : (
                         <span className="text-xs opacity-50">
@@ -52,16 +57,16 @@ function SourceItem({
                 </div>
             </div>
             <div className="flex flex-col items-center justify-start gap-1.5">
-                <Button onClick={onRemove} disabled={isButtonDisabled}>
+                <Button
+                    onClick={onRemove}
+                    disabled={!scanStatusLoaded || isScanning}>
                     Remove
                 </Button>
                 <button
                     className="text-xs lowercase opacity-50 hover:underline disabled:pointer-events-none"
-                    onClick={() => {
-                        electron.invoke("library:scanSource", source.id);
-                    }}
-                    disabled={isButtonDisabled}>
-                    {isScanning ? "Scanning..." : "Scan Now"}
+                    onClick={onClickScan}
+                    disabled={!scanStatusLoaded}>
+                    {isScanning ? "Cancel Scan" : "Scan Now"}
                 </button>
             </div>
         </div>
@@ -77,14 +82,15 @@ export function LibrarySettings() {
         Map<number, { processed: number; total: number }>
     >(new Map());
     const [scanStatusLoaded, setScanStatusLoaded] = useState(false);
+    const isMountedRef = useRef(true);
 
     useEffect(() => {
-        let mounted = true;
+        isMountedRef.current = true;
 
         async function fetchProgress() {
-            if (!mounted) return;
+            if (!isMountedRef.current) return;
             const progress = await electron.invoke("library:getScanProgress");
-            if (mounted) {
+            if (isMountedRef.current) {
                 setActiveScans(progress);
                 setScanStatusLoaded(true);
             }
@@ -94,7 +100,7 @@ export function LibrarySettings() {
         const interval = setInterval(fetchProgress, 500);
 
         return () => {
-            mounted = false;
+            isMountedRef.current = false;
             clearInterval(interval);
         };
     }, []);

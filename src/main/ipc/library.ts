@@ -29,6 +29,10 @@ export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
         return result;
     });
 
+    ipc.handle("library:cancelScan", (_, sourceId) => {
+        scanner.cancel(sourceId);
+    });
+
     ipc.handle("library:getScanProgress", async () => {
         return scanner.getProgress();
     });

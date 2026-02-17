@@ -1,7 +1,7 @@
 {
     "version": "6",
     "dialect": "sqlite",
-    "id": "17a8483d-a16d-4786-9ccd-5967e2488487",
+    "id": "ed638360-c218-4df4-b585-16a04ae0c55a",
     "prevId": "00000000-0000-0000-0000-000000000000",
     "tables": {
         "album_artists": {
@@ -22,7 +22,13 @@
                     "autoincrement": false
                 }
             },
-            "indexes": {},
+            "indexes": {
+                "album_artists_name_unique": {
+                    "name": "album_artists_name_unique",
+                    "columns": ["name"],
+                    "isUnique": true
+                }
+            },
             "foreignKeys": {},
             "compositePrimaryKeys": {},
             "uniqueConstraints": {},
@@ -81,7 +87,13 @@
                     "autoincrement": false
                 }
             },
-            "indexes": {},
+            "indexes": {
+                "albums_title_albumArtistId_unique": {
+                    "name": "albums_title_albumArtistId_unique",
+                    "columns": ["title", "albumArtistId"],
+                    "isUnique": true
+                }
+            },
             "foreignKeys": {
                 "albums_albumArtistId_album_artists_id_fk": {
                     "name": "albums_albumArtistId_album_artists_id_fk",
@@ -122,7 +134,13 @@
                     "autoincrement": false
                 }
             },
-            "indexes": {},
+            "indexes": {
+                "artists_name_unique": {
+                    "name": "artists_name_unique",
+                    "columns": ["name"],
+                    "isUnique": true
+                }
+            },
             "foreignKeys": {},
             "compositePrimaryKeys": {},
             "uniqueConstraints": {},
@@ -152,8 +170,8 @@
                     "notNull": true,
                     "autoincrement": false
                 },
-                "subtitle": {
-                    "name": "subtitle",
+                "discSubtitle": {
+                    "name": "discSubtitle",
                     "type": "text",
                     "primaryKey": false,
                     "notNull": false,
@@ -316,6 +334,13 @@
                 },
                 "sampleRate": {
                     "name": "sampleRate",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "bitDepth": {
+                    "name": "bitDepth",
                     "type": "integer",
                     "primaryKey": false,
                     "notNull": false,

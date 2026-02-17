@@ -3,6 +3,7 @@ CREATE TABLE `album_artists` (
 	`name` text NOT NULL
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `album_artists_name_unique` ON `album_artists` (`name`);--> statement-breakpoint
 CREATE TABLE `albums` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`albumArtistId` integer NOT NULL,
@@ -14,17 +15,19 @@ CREATE TABLE `albums` (
 	FOREIGN KEY (`albumArtistId`) REFERENCES `album_artists`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `albums_title_albumArtistId_unique` ON `albums` (`title`,`albumArtistId`);--> statement-breakpoint
 CREATE TABLE `artists` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`sortName` text
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `artists_name_unique` ON `artists` (`name`);--> statement-breakpoint
 CREATE TABLE `discs` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`albumId` integer NOT NULL,
 	`discNumber` integer NOT NULL,
-	`subtitle` text,
+	`discSubtitle` text,
 	FOREIGN KEY (`albumId`) REFERENCES `albums`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -51,6 +54,7 @@ CREATE TABLE `tracks` (
 	`fileFormat` text,
 	`bitrate` integer,
 	`sampleRate` integer,
+	`bitDepth` integer,
 	`modifiedAt` integer,
 	`playCount` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`sourceId`) REFERENCES `media_sources`(`id`) ON UPDATE no action ON DELETE cascade,

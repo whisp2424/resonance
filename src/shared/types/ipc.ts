@@ -66,6 +66,7 @@ export type MainIpcHandleEvents = {
     "library:removeSource": (sourceId: number) => RemoveSourceResult;
 
     "library:scanSource": (sourceId: number) => ScanSourceResult;
+    "library:cancelScan": (sourceId: number) => void;
 
     "dev:getTables": () => string[];
     "dev:getTableSchema": (table: string) => {

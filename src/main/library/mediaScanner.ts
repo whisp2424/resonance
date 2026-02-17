@@ -7,16 +7,16 @@ import { join } from "node:path";
 
 import { db } from "@main/database";
 import { sourcesTable, tracksTable } from "@main/database/schema";
+import { importer } from "@main/library/mediaImporter";
 import { windowManager } from "@main/window/windowManager";
 import { error, ok } from "@shared/types/result";
 import { getErrorMessage, log } from "@shared/utils/logger";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import PQueue from "p-queue";
 import pc from "picocolors";
 import { glob } from "tinyglobby";
 
 const GLOB_PATTERN = "**/*.{mp3,flac,m4a,wav,ogg,opus}";
-const BATCH_SIZE = 50;
 
 interface MediaDiff {
     added: Set<string>;
@@ -28,6 +28,7 @@ interface SourceState {
     diff: MediaDiff;
     errors: string[];
     running: boolean;
+    cancelled: boolean;
     processed: number;
     total: number;
 }
@@ -131,12 +132,14 @@ export class MediaScanner {
                 diff: newDiff(),
                 errors: [],
                 running: true,
+                cancelled: false,
                 processed: 0,
                 total: 0,
             };
             this.sourceState.set(sourceId, state);
         } else {
             state.running = true;
+            state.cancelled = false;
             state.processed = 0;
             state.total = 0;
         }
@@ -169,7 +172,7 @@ export class MediaScanner {
         }
 
         log(
-            pc.dim(`${source.displayName} summary: `) +
+            pc.dim(`pending summary for ${source.displayName}: `) +
                 `${pc.green(diffSummary.added)} new, ` +
                 `${pc.cyan(diffSummary.updated)} updated, ` +
                 `${pc.red(diffSummary.removed)} removed`,
@@ -179,33 +182,46 @@ export class MediaScanner {
         mergeDiff(state.diff, diff);
         state.total = diffSummary.total;
 
-        const job = this.scansQueue.add(async () => {
-            const currentState = state;
-            const totalFiles = diffSummary.total;
+        importer.resetCache();
 
-            let processedFiles = 0;
-            let lastProgressTimestamp = Date.now();
+        const processFiles = async (
+            files: string[],
+            operation: "add" | "update" | "remove",
+        ): Promise<void> => {
+            for (const file of files) {
+                if (state.cancelled) return;
 
-            function emitProgress() {
-                const now = Date.now();
-                if (now - lastProgressTimestamp >= 500) {
-                    lastProgressTimestamp = now;
-                    currentState.processed = processedFiles;
-                    windowManager.emitEvent(
-                        "library:onScanProgress",
-                        sourceId,
-                        processedFiles,
-                        totalFiles,
+                try {
+                    if (operation === "add") {
+                        log(`${pc.green("+")} ${file}`, "MediaScanner");
+                        await importer.importFile(sourceId, source.path, file);
+                    } else if (operation === "update") {
+                        log(`${pc.cyan("~")} ${file}`, "MediaScanner");
+                        await importer.importFile(sourceId, source.path, file);
+                    } else {
+                        log(`${pc.red("-")} ${file}`, "MediaScanner");
+                        await importer.removeFile(sourceId, file);
+                    }
+                } catch (err) {
+                    const errorMsg =
+                        operation === "add"
+                            ? "import"
+                            : operation === "update"
+                              ? "update"
+                              : "remove";
+                    state.errors.push(
+                        `${errorMsg} failed: ${getErrorMessage(err)}`,
                     );
                 }
-            }
 
-            windowManager.emitEvent(
-                "library:onScanProgress",
-                sourceId,
-                0,
-                totalFiles,
-            );
+                state.processed++;
+                await new Promise((resolve) => setImmediate(resolve));
+            }
+        };
+
+        const job = this.scansQueue.add(async () => {
+            const currentState = state;
+            if (!currentState || currentState.cancelled) return;
 
             try {
                 while (
@@ -213,6 +229,8 @@ export class MediaScanner {
                     currentState.diff.updated.size ||
                     currentState.diff.removed.size
                 ) {
+                    if (currentState.cancelled) return;
+
                     const currentDiff = {
                         added: Array.from(currentState.diff.added),
                         updated: Array.from(currentState.diff.updated),
@@ -221,75 +239,28 @@ export class MediaScanner {
 
                     currentState.diff = newDiff();
 
-                    for (
-                        let i = 0;
-                        i < currentDiff.added.length;
-                        i += BATCH_SIZE
-                    ) {
-                        const batch = currentDiff.added.slice(
-                            i,
-                            i + BATCH_SIZE,
-                        );
+                    if (currentDiff.added.length > 0)
+                        await processFiles(currentDiff.added, "add");
 
-                        for (const file of batch) {
-                            log(`${pc.green("+")} ${file}`, "MediaScanner");
-                            // TODO: actual importing logic
-                            processedFiles++;
-                            emitProgress();
-                        }
+                    if (currentDiff.updated.length > 0)
+                        await processFiles(currentDiff.updated, "update");
 
-                        await new Promise((resolve) => setImmediate(resolve));
-                    }
-
-                    for (
-                        let i = 0;
-                        i < currentDiff.updated.length;
-                        i += BATCH_SIZE
-                    ) {
-                        const batch = currentDiff.updated.slice(
-                            i,
-                            i + BATCH_SIZE,
-                        );
-
-                        for (const file of batch) {
-                            log(`${pc.cyan("~")} ${file}`, "MediaScanner");
-                            // TODO: actual importing logic
-                            processedFiles++;
-                            emitProgress();
-                        }
-
-                        await new Promise((resolve) => setImmediate(resolve));
-                    }
-
-                    for (
-                        let i = 0;
-                        i < currentDiff.removed.length;
-                        i += BATCH_SIZE
-                    ) {
-                        const batch = currentDiff.removed.slice(
-                            i,
-                            i + BATCH_SIZE,
-                        );
-
-                        for (const file of batch) {
-                            log(`${pc.red("-")} ${file}`, "MediaScanner");
-                            // TODO: delete track from DB
-                            processedFiles++;
-                            emitProgress();
-                        }
-
-                        await new Promise((resolve) => setImmediate(resolve));
-                    }
+                    if (currentDiff.removed.length > 0)
+                        await processFiles(currentDiff.removed, "remove");
                 }
             } catch (err) {
                 currentState.errors.push(getErrorMessage(err));
             } finally {
                 currentState.running = false;
-                currentState.processed = 0;
-                currentState.total = 0;
+
+                const [{ value: fileCount }] = await db
+                    .select({ value: count() })
+                    .from(tracksTable)
+                    .where(eq(tracksTable.sourceId, sourceId));
+
                 await db
                     .update(sourcesTable)
-                    .set({ lastUpdated: Date.now() })
+                    .set({ lastUpdated: Date.now(), fileCount })
                     .where(eq(sourcesTable.id, sourceId));
                 windowManager.emitEvent("library:onScanEnd", sourceId);
             }
@@ -297,6 +268,15 @@ export class MediaScanner {
 
         await job;
         return ok({ success: true, errors: state.errors });
+    }
+
+    cancel(sourceId: number) {
+        const state = this.sourceState.get(sourceId);
+        if (state) {
+            state.cancelled = true;
+            state.running = false;
+            windowManager.emitEvent("library:onScanEnd", sourceId);
+        }
     }
 
     getProgress(): Map<number, { processed: number; total: number }> {
