@@ -9,6 +9,7 @@ import path from "node:path";
 import { db } from "@main/database";
 import { sourcesTable } from "@main/database/schema";
 import { scanner } from "@main/library/mediaScanner";
+import { watcher } from "@main/library/sourceWatcher";
 import { validatePath } from "@main/utils/fs";
 import { error, ok } from "@shared/types/result";
 import { eq } from "drizzle-orm";
@@ -65,6 +66,7 @@ class LibraryManager {
             }
 
             const source = result[0];
+            await watcher.watch(source.id, source.path);
             scanner.scan(source.id);
             return ok({ source });
         } catch {
@@ -77,6 +79,8 @@ class LibraryManager {
 
     async removeSource(sourceId: number): Promise<RemoveSourceResult> {
         try {
+            watcher.unwatch(sourceId);
+
             const result = await db
                 .delete(sourcesTable)
                 .where(eq(sourcesTable.id, sourceId));
@@ -95,6 +99,20 @@ class LibraryManager {
                 "An unknown error occurred while removing the source",
             );
         }
+    }
+
+    async scanAll(): Promise<void> {
+        const sources = await db.select().from(sourcesTable);
+        for (const source of sources) scanner.scan(source.id);
+    }
+
+    async watch(): Promise<void> {
+        await this.scanAll();
+        await watcher.loadAll();
+    }
+
+    unwatch(): void {
+        watcher.dispose();
     }
 }
 

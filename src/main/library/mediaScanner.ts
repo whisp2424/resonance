@@ -161,11 +161,7 @@ export class MediaScanner {
         };
 
         if (diffSummary.total === 0) {
-            log(
-                pc.dim(`${pc.italic(source.displayName)} is up-to-date`),
-                "MediaScanner",
-            );
-
+            log(pc.dim(`${source.displayName} is up-to-date`), "MediaScanner");
             state.running = false;
             windowManager.emitEvent("library:onScanEnd", sourceId);
             return ok({ success: true, errors: [] });

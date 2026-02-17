@@ -16,6 +16,7 @@ import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerTabHandlers } from "@main/ipc/tabs";
 import { registerWindowHandlers } from "@main/ipc/window";
+import { library } from "@main/library";
 import { APP_MENU } from "@main/menu";
 import { initializeSettings, settingsManager } from "@main/settingsManager";
 import { tabsManager } from "@main/tabsManager";
@@ -149,6 +150,7 @@ app.whenReady().then(async () => {
         await runMigrations();
         await windowStateManager.load();
         await tabsManager.load();
+        await library.watch();
 
         const settings = settingsManager.get();
         const ipc = new IpcListener<MainIpcHandleEvents>();
@@ -182,6 +184,7 @@ app.whenReady().then(async () => {
 
         app.on("will-quit", async () => {
             log("goodbye!", "main");
+            library.unwatch();
             unsubscribeAppearanceSettings();
             cleanupSystemHandlers();
             ipc.dispose();
