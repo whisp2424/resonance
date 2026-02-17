@@ -196,17 +196,11 @@ export class MediaScanner {
                         await importer.importFile(sourceId, source.path, file);
                     } else {
                         log(`${pc.red("-")} ${file}`, "MediaScanner");
-                        await importer.removeFile(sourceId, file);
+                        importer.removeFile(sourceId, file);
                     }
                 } catch (err) {
-                    const errorMsg =
-                        operation === "add"
-                            ? "import"
-                            : operation === "update"
-                              ? "update"
-                              : "remove";
                     state.errors.push(
-                        `${errorMsg} failed: ${getErrorMessage(err)}`,
+                        `${operation} failed: ${getErrorMessage(err)}`,
                     );
                 }
 
@@ -278,11 +272,12 @@ export class MediaScanner {
     getProgress(): Map<number, { processed: number; total: number }> {
         const result = new Map<number, { processed: number; total: number }>();
         for (const [sourceId, state] of this.sourceState) {
-            if (state.running)
+            if (state.running) {
                 result.set(sourceId, {
                     processed: state.processed,
                     total: state.total,
                 });
+            }
         }
         return result;
     }

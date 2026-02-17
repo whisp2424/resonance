@@ -9,7 +9,6 @@ import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconLight from "@main/../../build/tray-light.png?asset";
 import { runMigrations } from "@main/database";
 import { registerAppHandlers } from "@main/ipc/app";
-import { registerDatabaseHandlers } from "@main/ipc/dev";
 import { registerDialogHandlers } from "@main/ipc/dialog";
 import { registerLibraryHandlers } from "@main/ipc/library";
 import { registerSettingsHandlers } from "@main/ipc/settings";
@@ -147,7 +146,7 @@ app.on("second-instance", () => {
 app.whenReady().then(async () => {
     try {
         await initializeSettings();
-        await runMigrations();
+        runMigrations();
         await windowStateManager.load();
         await tabsManager.load();
         await library.watch();
@@ -174,7 +173,6 @@ app.whenReady().then(async () => {
         registerLibraryHandlers(ipc);
         registerSettingsHandlers(ipc);
         registerTabHandlers(ipc);
-        registerDatabaseHandlers(ipc);
         registerDialogHandlers(ipc);
 
         const cleanupSystemHandlers = registerSystemHandlers(

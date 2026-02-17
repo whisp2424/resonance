@@ -28,7 +28,7 @@ function SideBarButton({ item, isActive, onClick }: SideBarButtonProps) {
             onClick={onClick}
             className={twMerge(
                 clsx(
-                    "flex items-center gap-2",
+                    "my-0.5 flex items-center gap-2",
                     "rounded-md px-3 py-1 text-sm",
                     isActive
                         ? "bg-black/10 dark:bg-white/10"
@@ -51,7 +51,7 @@ export default function SideBar({
         <div
             className={twMerge(
                 clsx(
-                    "flex w-56 flex-col gap-1.5 overflow-y-scroll px-0.5 pb-4",
+                    "flex w-56 flex-col overflow-y-scroll px-0.5 pb-4",
                     className,
                 ),
             )}>

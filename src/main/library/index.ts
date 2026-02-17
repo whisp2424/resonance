@@ -83,9 +83,10 @@ class LibraryManager {
 
             const result = await db
                 .delete(sourcesTable)
-                .where(eq(sourcesTable.id, sourceId));
+                .where(eq(sourcesTable.id, sourceId))
+                .returning({ id: sourcesTable.id });
 
-            if (result.rowsAffected === 0) {
+            if (result.length === 0) {
                 return error(
                     "not_found",
                     `Source ID ${sourceId} does not exist`,

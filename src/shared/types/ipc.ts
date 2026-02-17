@@ -68,19 +68,6 @@ export type MainIpcHandleEvents = {
     "library:scanSource": (sourceId: number) => ScanSourceResult;
     "library:cancelScan": (sourceId: number) => void;
 
-    "dev:getTables": () => string[];
-    "dev:getTableSchema": (table: string) => {
-        name: string;
-        type: string;
-        notnull: number;
-        dflt_value: unknown;
-        pk: number;
-    }[];
-
-    "dev:getTableCount": (table: string) => number;
-    "dev:query": (sql: string) => Record<string, unknown>[];
-    "dev:delete": (table: string, where: Record<string, unknown>) => void;
-
     "tabs:get": () => { tabs: TabDescriptor[]; activeId: string | null } | null;
     "tabs:set": (tabs: TabDescriptor[], activeId: string | null) => void;
 };

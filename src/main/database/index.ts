@@ -1,32 +1,39 @@
+import type Database from "better-sqlite3";
+import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+
 import { join } from "node:path";
 
 import { is } from "@electron-toolkit/utils";
-import { createClient } from "@libsql/client";
-import { getErrorMessage, log } from "@shared/utils/logger";
-import { drizzle } from "drizzle-orm/libsql";
-import { migrate } from "drizzle-orm/libsql/migrator";
+import BetterSqlite3 from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { app } from "electron";
+
+import * as schema from "./schema";
 
 const DB_FILENAME = "database.db";
 const DB_PATH = is.dev
     ? join(process.cwd(), DB_FILENAME)
     : join(app.getPath("userData"), DB_FILENAME);
 
-export const client = createClient({ url: `file:${DB_PATH}` });
-client.execute("PRAGMA journal_mode = WAL");
-client.execute("PRAGMA foreign_keys = ON");
+export const sqlite: Database.Database = new BetterSqlite3(DB_PATH);
+sqlite.pragma("journal_mode = WAL");
+sqlite.pragma("foreign_keys = ON");
 
-export const db = drizzle({ client: client });
+export const db: BetterSQLite3Database<typeof schema> = drizzle({
+    client: sqlite,
+    schema,
+});
 
-export async function runMigrations(): Promise<void> {
+export function runMigrations(): void {
     const migrationsFolder = is.dev
         ? join(process.cwd(), "drizzle")
         : join(process.resourcesPath, "drizzle");
 
     try {
-        await migrate(db, { migrationsFolder });
+        migrate(db, { migrationsFolder });
     } catch (err) {
-        log(`migration failed: ${getErrorMessage(err)}`, "database", "error");
+        console.error("Migration failed:", err);
         if (!is.dev) throw err;
     }
 }
