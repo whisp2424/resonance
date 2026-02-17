@@ -194,9 +194,8 @@ app.whenReady().then(async () => {
         log(getErrorMessage(err), "main", "error");
         dialog.showErrorBox(
             "An error occurred",
-            "An unknown error has occurred during startup:\n" +
-                `${getErrorMessage(err)}\n` +
-                "The app will now quit.",
+            "An unexpected error was found during startup:\n" +
+                `${getErrorMessage(err)}`,
         );
         app.quit();
     }
