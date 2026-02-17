@@ -87,11 +87,6 @@ export type MainIpcListenEvents = {
     "library:onSourcesChanged": [];
 
     "library:onScanStart": [sourceId: number];
-    "library:onScanProgress": [
-        sourceId: number,
-        processed: number,
-        total: number,
-    ];
     "library:onScanEnd": [sourceId: number];
 };
 
