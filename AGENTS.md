@@ -155,8 +155,8 @@ Processes communicate **only** via typed IPC.
 - **Preload constraint**:
     - **NEVER** add wrapper or helper methods in `src/preload/index.ts`.
 - **Renderer**:
-    - `window.electron.invoke(channel, ...args)`
-    - `window.electron.send(channel, listener)`
+    - `electron.invoke(channel, ...args)`
+    - `electron.send(channel, listener)`
 - **Main**:
     - New IPC channels **must**:
         1. Be defined in `src/shared/types/ipc.ts`
