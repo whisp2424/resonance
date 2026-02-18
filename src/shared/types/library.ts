@@ -10,19 +10,16 @@ export interface LibraryMediaSource {
 
 export type AddSourceResult = Result<
     { source: LibraryMediaSource },
-    "duplicate_source" | "invalid_source" | "unknown"
+    "duplicate_source" | "invalid_source"
 >;
 
-export type RemoveSourceResult = Result<true, "not_found" | "unknown">;
+export type RemoveSourceResult = Result<true, "not_found">;
 
-export type GetSourcesResult = Result<LibraryMediaSource[], "unknown">;
+export type GetSourcesResult = Result<LibraryMediaSource[]>;
 
 export interface ScanSourceSuccess {
     success: true;
     errors: string[];
 }
 
-export type ScanSourceResult = Result<
-    ScanSourceSuccess,
-    "invalid_source" | "unknown"
->;
+export type ScanSourceResult = Result<ScanSourceSuccess, "invalid_source">;

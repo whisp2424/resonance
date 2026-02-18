@@ -286,6 +286,41 @@ useIpcListener(
 
 ---
 
+### Result Types
+
+**ALWAYS use the shared `Result` type from `@shared/types/result.ts` for operation results.**
+
+```ts
+import type { Result } from "@shared/types/result";
+import { error, ok } from "@shared/types/result";
+
+// Define explicit error codes (without "unknown" - it's included automatically)
+type MyErrorCode = "invalid" | "not_found" | "unauthorized";
+
+// Success case
+return ok({ data: myData });
+
+// Error case
+return error("Item could not be located", "not_found");
+
+// Type annotation - "unknown" is automatically included, no need to specify it
+type MyOperationResult = Result<MyData, MyErrorCode>;
+
+// If there's only unknown as error, omit the second parameter entirely
+type SimpleResult = Result<MyData>;
+```
+
+**Key points:**
+
+- `Result<T, E>` is a discriminated union: `Ok<T> | Err<E | "unknown">`
+- **"unknown" is automatically included** - do NOT add it to your error codes
+- `Ok` has `{ success: true; data: T }`
+- `Err` has `{ success: false; error: E | "unknown"; message: string }`
+- Use the `ok()` and `error()` helper functions for construction
+- Check `result.success` to narrow the type
+
+---
+
 ### Loading States & UX
 
 **Avoid spinners and loading indicators for fast operations.** Small delays of no content are preferred over showing a spinner for a split second.

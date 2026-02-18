@@ -8,9 +8,9 @@ import { getErrorMessage } from "@shared/utils/logger";
 
 export async function validatePath(
     sourcePath: string,
-): Promise<Result<string, "invalid_path" | "not_found" | "unknown">> {
+): Promise<Result<string, "invalid_path" | "not_found">> {
     if (!sourcePath.trim() || !path.isAbsolute(sourcePath))
-        return error("invalid_path", "A valid directory path is required");
+        return error("A valid directory path is required", "invalid_path");
 
     const resolvedPath = path.resolve(sourcePath);
 
@@ -18,14 +18,14 @@ export async function validatePath(
         const stats = await fs.stat(resolvedPath);
         if (!stats.isDirectory())
             return error(
-                "invalid_path",
                 "The provided path does not belong to a directory",
+                "invalid_path",
             );
 
         return ok(resolvedPath);
     } catch (err) {
         if ((err as NodeJS.ErrnoException).code === "ENOENT")
-            return error("not_found", "The provided directory does not exist");
-        return error("unknown", getErrorMessage(err));
+            return error("The provided directory does not exist", "not_found");
+        return error(getErrorMessage(err));
     }
 }

@@ -6,6 +6,7 @@ import type {
     NewDisc,
     NewTrack,
 } from "@main/database/schema";
+import type { Result } from "@shared/types/result";
 import type { IAudioMetadata } from "music-metadata";
 
 import { stat } from "node:fs/promises";
@@ -19,11 +20,11 @@ import {
     discsTable,
     tracksTable,
 } from "@main/database/schema";
+import { error, ok } from "@shared/types/result";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { eq, sql } from "drizzle-orm";
 import { fileTypeFromFile } from "file-type";
 import { parseFile } from "music-metadata";
-import pc from "picocolors";
 
 interface ImportCache {
     artists: Map<string, number>;
@@ -31,6 +32,16 @@ interface ImportCache {
     albums: Map<string, number>;
     discs: Map<string, number>;
 }
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export interface ParsedTrack {
+    file: string;
+    metadata: IAudioMetadata;
+    mtime: number;
+}
+
+export type ParseResult = Result<ParsedTrack, "invalid_file" | "parse_failed">;
 
 function createCache(): ImportCache {
     return {
@@ -62,22 +73,16 @@ export class MediaImporter {
         return stats;
     }
 
-    async importFile(
-        sourceId: number,
+    async parseMetadata(
         sourcePath: string,
         file: string,
-    ): Promise<boolean> {
+    ): Promise<ParseResult> {
         const absolutePath = join(sourcePath, file);
+
         try {
             await this.validateFile(absolutePath);
         } catch (err) {
-            log(getErrorMessage(err), "MediaImporter", "error");
-            log(
-                pc.dim(`invalid file: ${absolutePath}`),
-                "MediaImporter",
-                "warning",
-            );
-            return false;
+            return error(getErrorMessage(err), "invalid_file");
         }
 
         try {
@@ -87,291 +92,315 @@ export class MediaImporter {
             ]);
 
             const mtime = Math.floor(stats.mtimeMs);
-            this.saveTrack(sourceId, file, metadata, mtime);
-            return true;
+            return ok({ file, metadata, mtime });
         } catch (err) {
-            log(
-                `failed to import ${file}: ${getErrorMessage(err)}`,
-                "MediaImporter",
-                "error",
-            );
-            return false;
+            return error(getErrorMessage(err), "parse_failed");
         }
+    }
+
+    async importFiles(
+        sourceId: number,
+        tracks: ParsedTrack[],
+    ): Promise<Result<{ failed: string[] }>> {
+        const failed: string[] = [];
+
+        try {
+            db.transaction((tx) => {
+                for (const track of tracks) {
+                    const result = this.saveTrack(tx, sourceId, track);
+                    if (!result.success) {
+                        failed.push(track.file);
+                        log(result.message, "MediaImporter", "error");
+                    }
+                }
+            });
+        } catch (err) {
+            log(getErrorMessage(err), "MediaImporter", "error");
+            return error(getErrorMessage(err));
+        }
+
+        return ok({ failed });
     }
 
     private getOrCreateArtist(
-        tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+        tx: Transaction,
         name: string,
         sortName: string | undefined,
-    ): number {
+    ): Result<number> {
         const cached = this.cache.artists.get(name);
-        if (cached !== undefined) return cached;
+        if (cached !== undefined) return ok(cached);
 
-        const existing = tx
-            .select({ id: artistsTable.id })
-            .from(artistsTable)
-            .where(eq(artistsTable.name, name))
-            .limit(1)
-            .all();
+        try {
+            const existing = tx
+                .select({ id: artistsTable.id })
+                .from(artistsTable)
+                .where(eq(artistsTable.name, name))
+                .limit(1)
+                .all();
 
-        if (existing.length > 0) {
-            this.cache.artists.set(name, existing[0].id);
-            return existing[0].id;
+            if (existing.length > 0) {
+                this.cache.artists.set(name, existing[0].id);
+                return ok(existing[0].id);
+            }
+
+            const newArtist: NewArtist = { name, sortName };
+
+            const inserted = tx
+                .insert(artistsTable)
+                .values(newArtist)
+                .onConflictDoUpdate({
+                    target: artistsTable.name,
+                    set: { name },
+                })
+                .returning({ id: artistsTable.id })
+                .all();
+
+            const id = inserted[0].id;
+            this.cache.artists.set(name, id);
+            return ok(id);
+        } catch (err) {
+            return error(getErrorMessage(err));
         }
-
-        const newArtist: NewArtist = {
-            name,
-            sortName,
-        };
-
-        const inserted = tx
-            .insert(artistsTable)
-            .values(newArtist)
-            .onConflictDoUpdate({
-                target: artistsTable.name,
-                set: { name },
-            })
-            .returning({ id: artistsTable.id })
-            .all();
-
-        const id = inserted[0].id;
-        this.cache.artists.set(name, id);
-        return id;
     }
 
     private getOrCreateAlbumArtist(
-        tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+        tx: Transaction,
         name: string,
-    ): number {
+    ): Result<number> {
         const cached = this.cache.albumArtists.get(name);
-        if (cached !== undefined) return cached;
+        if (cached !== undefined) return ok(cached);
 
-        const existing = tx
-            .select({ id: albumArtistsTable.id })
-            .from(albumArtistsTable)
-            .where(eq(albumArtistsTable.name, name))
-            .limit(1)
-            .all();
+        try {
+            const existing = tx
+                .select({ id: albumArtistsTable.id })
+                .from(albumArtistsTable)
+                .where(eq(albumArtistsTable.name, name))
+                .limit(1)
+                .all();
 
-        if (existing.length > 0) {
-            this.cache.albumArtists.set(name, existing[0].id);
-            return existing[0].id;
+            if (existing.length > 0) {
+                this.cache.albumArtists.set(name, existing[0].id);
+                return ok(existing[0].id);
+            }
+
+            const newAlbumArtist: NewAlbumArtist = { name };
+            const inserted = tx
+                .insert(albumArtistsTable)
+                .values(newAlbumArtist)
+                .onConflictDoUpdate({
+                    target: albumArtistsTable.name,
+                    set: { name },
+                })
+                .returning({ id: albumArtistsTable.id })
+                .all();
+
+            const id = inserted[0].id;
+            this.cache.albumArtists.set(name, id);
+            return ok(id);
+        } catch (err) {
+            return error(getErrorMessage(err));
         }
-
-        const newAlbumArtist: NewAlbumArtist = { name };
-        const inserted = tx
-            .insert(albumArtistsTable)
-            .values(newAlbumArtist)
-            .onConflictDoUpdate({
-                target: albumArtistsTable.name,
-                set: { name },
-            })
-            .returning({ id: albumArtistsTable.id })
-            .all();
-
-        const id = inserted[0].id;
-        this.cache.albumArtists.set(name, id);
-        return id;
     }
 
     private getOrCreateAlbum(
-        tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+        tx: Transaction,
         title: string,
         albumArtistId: number,
         totalTracks: number | undefined,
         releaseDate: string | undefined,
-    ): number {
+    ): Result<number> {
         const key = `${albumArtistId}|${title}`;
         const cached = this.cache.albums.get(key);
-        if (cached !== undefined) return cached;
+        if (cached !== undefined) return ok(cached);
 
-        const existing = tx
-            .select({ id: albumsTable.id })
-            .from(albumsTable)
-            .where(
-                sql`${albumsTable.title} = ${title} AND ${albumsTable.albumArtistId} = ${albumArtistId}`,
-            )
-            .limit(1)
-            .all();
+        try {
+            const existing = tx
+                .select({ id: albumsTable.id })
+                .from(albumsTable)
+                .where(
+                    sql`${albumsTable.title} = ${title} AND ${albumsTable.albumArtistId} = ${albumArtistId}`,
+                )
+                .limit(1)
+                .all();
 
-        if (existing.length > 0) {
-            this.cache.albums.set(key, existing[0].id);
-            return existing[0].id;
+            if (existing.length > 0) {
+                this.cache.albums.set(key, existing[0].id);
+                return ok(existing[0].id);
+            }
+
+            const newAlbum: NewAlbum = {
+                title,
+                albumArtistId,
+                totalTracks,
+                releaseDate,
+            };
+
+            const inserted = tx
+                .insert(albumsTable)
+                .values(newAlbum)
+                .onConflictDoUpdate({
+                    target: [albumsTable.title, albumsTable.albumArtistId],
+                    set: { title },
+                })
+                .returning({ id: albumsTable.id })
+                .all();
+
+            const id = inserted[0].id;
+            this.cache.albums.set(key, id);
+            return ok(id);
+        } catch (err) {
+            return error(getErrorMessage(err));
         }
-
-        const newAlbum: NewAlbum = {
-            title,
-            albumArtistId,
-            totalTracks,
-            releaseDate,
-        };
-
-        const inserted = tx
-            .insert(albumsTable)
-            .values(newAlbum)
-            .onConflictDoUpdate({
-                target: [albumsTable.title, albumsTable.albumArtistId],
-                set: { title },
-            })
-            .returning({ id: albumsTable.id })
-            .all();
-
-        const id = inserted[0].id;
-        this.cache.albums.set(key, id);
-        return id;
     }
 
     private getOrCreateDisc(
-        tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+        tx: Transaction,
         albumId: number,
         discNumber: number,
         discSubtitle: string | undefined,
-    ): number {
+    ): Result<number> {
         const key = `${albumId}|${discNumber}`;
         const cached = this.cache.discs.get(key);
-        if (cached !== undefined) return cached;
+        if (cached !== undefined) return ok(cached);
 
-        const existing = tx
-            .select({ id: discsTable.id })
-            .from(discsTable)
-            .where(
-                sql`${discsTable.albumId} = ${albumId} AND ${discsTable.discNumber} = ${discNumber}`,
-            )
-            .limit(1)
-            .all();
+        try {
+            const existing = tx
+                .select({ id: discsTable.id })
+                .from(discsTable)
+                .where(
+                    sql`${discsTable.albumId} = ${albumId} AND ${discsTable.discNumber} = ${discNumber}`,
+                )
+                .limit(1)
+                .all();
 
-        if (existing.length > 0) {
-            this.cache.discs.set(key, existing[0].id);
-            return existing[0].id;
+            if (existing.length > 0) {
+                this.cache.discs.set(key, existing[0].id);
+                return ok(existing[0].id);
+            }
+
+            const newDisc: NewDisc = {
+                albumId,
+                discNumber,
+                discSubtitle,
+            };
+
+            const inserted = tx
+                .insert(discsTable)
+                .values(newDisc)
+                .onConflictDoUpdate({
+                    target: [discsTable.albumId, discsTable.discNumber],
+                    set: { discNumber },
+                })
+                .returning({ id: discsTable.id })
+                .all();
+
+            const id = inserted[0].id;
+            this.cache.discs.set(key, id);
+            return ok(id);
+        } catch (err) {
+            return error(getErrorMessage(err));
         }
-
-        const newDisc: NewDisc = {
-            albumId,
-            discNumber,
-            discSubtitle,
-        };
-
-        const inserted = tx
-            .insert(discsTable)
-            .values(newDisc)
-            .onConflictDoUpdate({
-                target: [discsTable.albumId, discsTable.discNumber],
-                set: { discNumber },
-            })
-            .returning({ id: discsTable.id })
-            .all();
-
-        const id = inserted[0].id;
-        this.cache.discs.set(key, id);
-        return id;
     }
 
     private saveTrack(
+        tx: Transaction,
         sourceId: number,
-        file: string,
-        metadata: IAudioMetadata,
-        mtime: number,
-    ): void {
+        track: ParsedTrack,
+    ): Result<boolean> {
+        const { file, metadata, mtime } = track;
         const common = metadata.common;
         const format = metadata.format;
 
+        const artistName = common.artist || "unknown";
+        const artistResult = this.getOrCreateArtist(
+            tx,
+            artistName,
+            common.artistsort,
+        );
+        if (!artistResult.success) return artistResult;
+
+        const albumArtistName = common.albumartist || artistName || "unknown";
+        const albumArtistResult = this.getOrCreateAlbumArtist(
+            tx,
+            albumArtistName,
+        );
+        if (!albumArtistResult.success) return albumArtistResult;
+
+        const albumTitle = common.album || "unknown";
+        const albumResult = this.getOrCreateAlbum(
+            tx,
+            albumTitle,
+            albumArtistResult.data,
+            common.track.of ?? undefined,
+            common.date || (common.year ? String(common.year) : undefined),
+        );
+        if (!albumResult.success) return albumResult;
+
+        const discNumber = common.disk.no || 1;
+        const discSubtitle = Array.isArray(common.discsubtitle)
+            ? common.discsubtitle[0]
+            : common.discsubtitle;
+
+        const discResult = this.getOrCreateDisc(
+            tx,
+            albumResult.data,
+            discNumber,
+            discSubtitle,
+        );
+        if (!discResult.success) return discResult;
+
+        const title = common.title || file;
+        const trackNumber = common.track.no;
+        const duration = format.duration
+            ? Math.round(format.duration)
+            : undefined;
+
+        const newTrack: NewTrack = {
+            sourceId,
+            albumId: albumResult.data,
+            artistId: artistResult.data,
+            discId: discResult.data,
+            title,
+            trackNumber,
+            duration,
+            relativePath: file,
+            fileFormat: format.container,
+            bitrate: format.bitrate,
+            sampleRate: format.sampleRate,
+            bitDepth: format.bitsPerSample,
+            modifiedAt: mtime,
+        };
+
         try {
-            db.transaction((tx) => {
-                const artistName = common.artist || "unknown";
-                const artistId = this.getOrCreateArtist(
-                    tx,
-                    artistName,
-                    common.artistsort,
-                );
-
-                const albumArtistName =
-                    common.albumartist || artistName || "unknown";
-                const albumArtistId = this.getOrCreateAlbumArtist(
-                    tx,
-                    albumArtistName,
-                );
-
-                const albumTitle = common.album || "unknown";
-                const albumId = this.getOrCreateAlbum(
-                    tx,
-                    albumTitle,
-                    albumArtistId,
-                    common.track.of ?? undefined,
-                    common.date ||
-                        (common.year ? String(common.year) : undefined),
-                );
-
-                const discNumber = common.disk.no || 1;
-                const discSubtitle = Array.isArray(common.discsubtitle)
-                    ? common.discsubtitle[0]
-                    : common.discsubtitle;
-
-                const discId = this.getOrCreateDisc(
-                    tx,
-                    albumId,
-                    discNumber,
-                    discSubtitle,
-                );
-
-                const title = common.title || file;
-                const trackNumber = common.track.no;
-                const duration = format.duration
-                    ? Math.round(format.duration)
-                    : undefined;
-
-                const newTrack: NewTrack = {
-                    sourceId,
-                    albumId,
-                    artistId,
-                    discId,
-                    title,
-                    trackNumber,
-                    duration,
-                    relativePath: file,
-                    fileFormat: format.container,
-                    bitrate: format.bitrate,
-                    sampleRate: format.sampleRate,
-                    bitDepth: format.bitsPerSample,
-                    modifiedAt: mtime,
-                };
-
-                tx.insert(tracksTable)
-                    .values(newTrack)
-                    .onConflictDoUpdate({
-                        target: [
-                            tracksTable.sourceId,
-                            tracksTable.relativePath,
-                        ],
-                        set: newTrack,
-                    })
-                    .run();
-            });
+            tx.insert(tracksTable)
+                .values(newTrack)
+                .onConflictDoUpdate({
+                    target: [tracksTable.sourceId, tracksTable.relativePath],
+                    set: newTrack,
+                })
+                .run();
+            return ok(true);
         } catch (err) {
-            log(
-                `transaction failed for ${file}: ${getErrorMessage(err)}`,
-                "MediaImporter",
-                "error",
-            );
-            throw err;
+            return error(getErrorMessage(err));
         }
     }
 
-    removeFile(sourceId: number, file: string): void {
+    removeFiles(sourceId: number, files: string[]): Result<boolean> {
+        if (files.length === 0) return ok(true);
         try {
             db.transaction((tx) => {
-                tx.delete(tracksTable)
-                    .where(
-                        sql`${tracksTable.sourceId} = ${sourceId} AND ${tracksTable.relativePath} = ${file}`,
-                    )
-                    .run();
+                for (const file of files) {
+                    tx.delete(tracksTable)
+                        .where(
+                            sql`${tracksTable.sourceId} = ${sourceId} AND ${tracksTable.relativePath} = ${file}`,
+                        )
+                        .run();
+                }
             });
+            return ok(true);
         } catch (err) {
-            log(
-                `failed to remove ${file}: ${getErrorMessage(err)}`,
-                "MediaImporter",
-                "error",
-            );
-            throw err;
+            log(getErrorMessage(err), "MediaImporter", "error");
+            return error(getErrorMessage(err));
         }
     }
 }

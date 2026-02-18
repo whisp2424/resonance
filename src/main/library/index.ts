@@ -21,7 +21,6 @@ class LibraryManager {
             return ok(sources);
         } catch {
             return error(
-                "unknown",
                 "An unknown error occurred while fetching media sources",
             );
         }
@@ -41,7 +40,7 @@ class LibraryManager {
                     validationResult.error === "unknown"
                         ? "unknown"
                         : "invalid_source";
-                return error(errorCode, validationResult.message);
+                return error(validationResult.message, errorCode);
             }
 
             const normalizedPath = validationResult.data;
@@ -60,8 +59,8 @@ class LibraryManager {
 
             if (result.length === 0) {
                 return error(
-                    "duplicate_source",
                     "This media source has already been added to your library",
+                    "duplicate_source",
                 );
             }
 
@@ -70,10 +69,7 @@ class LibraryManager {
             scanner.scan(source.id);
             return ok({ source });
         } catch {
-            return error(
-                "unknown",
-                "An unknown error occurred while adding the source",
-            );
+            return error("An unknown error occurred while adding the source");
         }
     }
 
@@ -88,17 +84,14 @@ class LibraryManager {
 
             if (result.length === 0) {
                 return error(
-                    "not_found",
                     `Source ID ${sourceId} does not exist`,
+                    "not_found",
                 );
             }
 
             return ok(true);
         } catch {
-            return error(
-                "unknown",
-                "An unknown error occurred while removing the source",
-            );
+            return error("An unknown error occurred while removing the source");
         }
     }
 
