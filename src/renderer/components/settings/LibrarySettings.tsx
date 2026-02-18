@@ -19,7 +19,7 @@ interface SourceItemProps {
     onRemove: () => void;
     isScanning: boolean;
     progress: { processed: number; total: number } | null;
-    scanStatusLoaded: boolean;
+    libraryStatusLoaded: boolean;
 }
 
 function SourceItem({
@@ -27,7 +27,7 @@ function SourceItem({
     onRemove,
     isScanning,
     progress,
-    scanStatusLoaded,
+    libraryStatusLoaded,
 }: SourceItemProps) {
     const onClickScan = () => {
         if (isScanning) electron.invoke("library:cancelScan", source.id);
@@ -43,7 +43,7 @@ function SourceItem({
                     <span className="text-xs opacity-50">{source.path}</span>
                     {isScanning && progress ? (
                         <span className="flex items-center gap-1.5 text-xs opacity-50">
-                            {progress.processed === 0 && progress.total === 0
+                            {progress.processed === 0
                                 ? "scanning, processing files"
                                 : `scanning, ${progress.processed} out of ${progress.total} files processed`}
                             <IconLoader className="size-3 translate-y-px animate-spin" />
@@ -59,13 +59,13 @@ function SourceItem({
             <div className="flex flex-col items-center justify-start gap-1.5">
                 <Button
                     onClick={onRemove}
-                    disabled={!scanStatusLoaded || isScanning}>
+                    disabled={!libraryStatusLoaded || isScanning}>
                     Remove
                 </Button>
                 <button
                     className="text-xs lowercase opacity-50 hover:underline disabled:pointer-events-none"
                     onClick={onClickScan}
-                    disabled={!scanStatusLoaded}>
+                    disabled={!libraryStatusLoaded}>
                     {isScanning ? "Cancel Scan" : "Scan Now"}
                 </button>
             </div>
@@ -81,7 +81,7 @@ export function LibrarySettings() {
     const [activeScans, setActiveScans] = useState<
         Map<number, { processed: number; total: number }>
     >(new Map());
-    const [scanStatusLoaded, setScanStatusLoaded] = useState(false);
+    const [libraryStatusLoaded, setLibraryStatusLoaded] = useState(false);
     const isMountedRef = useRef(true);
 
     useEffect(() => {
@@ -91,8 +91,14 @@ export function LibrarySettings() {
             if (!isMountedRef.current) return;
             const progress = await electron.invoke("library:getScanProgress");
             if (isMountedRef.current) {
-                setActiveScans(progress);
-                setScanStatusLoaded(true);
+                setActiveScans((prev) => {
+                    const next = new Map(prev);
+                    for (const [sourceId, data] of progress)
+                        next.set(sourceId, data);
+                    return next;
+                });
+
+                setLibraryStatusLoaded(true);
             }
         }
 
@@ -206,7 +212,7 @@ export function LibrarySettings() {
                                     onRemove={() => handleRemove(source)}
                                     isScanning={!!scanProgress}
                                     progress={scanProgress ?? null}
-                                    scanStatusLoaded={scanStatusLoaded}
+                                    libraryStatusLoaded={libraryStatusLoaded}
                                 />
                             );
                         })}

@@ -56,9 +56,8 @@ export type MainIpcHandleEvents = {
 
     "library:getSources": () => LibraryMediaSource[];
 
-    "library:getScanProgress": () => Map<
-        number,
-        { processed: number; total: number }
+    "library:getScanProgress": () => Array<
+        [number, { processed: number; total: number }]
     >;
 
     "library:addSource": (uri: string, name?: string) => AddSourceResult;

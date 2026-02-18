@@ -180,6 +180,10 @@ export class MediaScanner {
 
         if (diffSummary.total === 0) {
             log(pc.dim(`${source.displayName} is up-to-date`), "MediaScanner");
+            await db
+                .update(sourcesTable)
+                .set({ lastUpdated: Date.now() })
+                .where(eq(sourcesTable.id, sourceId));
             windowManager.emitEvent("library:onScanEnd", sourceId);
             return ok({ success: true, errors: [] });
         }
