@@ -24,19 +24,22 @@ interface SideBarButtonProps {
 
 function SideBarButton({ item, isActive, onClick }: SideBarButtonProps) {
     return (
-        <button
-            onClick={onClick}
-            className={twMerge(
-                clsx(
-                    "my-0.5 flex items-center gap-2",
-                    "rounded-md px-3 py-1 text-sm",
-                    isActive
-                        ? "bg-black/10 dark:bg-white/10"
-                        : "text-neutral-600 hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/5",
-                ),
-            )}>
-            {item.icon && <span className="size-4 shrink-0">{item.icon}</span>}
-            <span className="truncate">{item.label}</span>
+        <button onClick={onClick} className="group py-0.5">
+            <div
+                className={twMerge(
+                    clsx(
+                        "flex items-center gap-2",
+                        "rounded-md px-3 py-1 text-sm",
+                        isActive
+                            ? "bg-black/10 dark:bg-white/10"
+                            : "text-neutral-600 group-hover:bg-black/5 dark:text-neutral-400 dark:group-hover:bg-white/5",
+                    ),
+                )}>
+                {item.icon && (
+                    <span className="size-4 shrink-0">{item.icon}</span>
+                )}
+                <span className="truncate">{item.label}</span>
+            </div>
         </button>
     );
 }
