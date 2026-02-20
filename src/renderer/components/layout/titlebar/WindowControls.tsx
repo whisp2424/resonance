@@ -1,6 +1,5 @@
+import { TitleBarButton } from "@renderer/components/layout/titlebar/TitleBarButton";
 import { useCallback } from "react";
-
-import { TitleBarButton } from "./TitleBarButton";
 
 import IconX from "~icons/fluent/dismiss-16-regular";
 import IconMaximize from "~icons/fluent/maximize-16-regular";
