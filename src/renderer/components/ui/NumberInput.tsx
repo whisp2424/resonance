@@ -2,7 +2,7 @@ import type { InputHTMLAttributes, RefObject } from "react";
 
 import { Input as BaseInput } from "@base-ui/react/input";
 import clsx from "clsx";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 
 import ChevronDown from "~icons/lucide/chevron-down";
 import ChevronUp from "~icons/lucide/chevron-up";
@@ -23,28 +23,42 @@ export default function NumberInput({
 }: NumberInputProps) {
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleButtonClick = (delta: number) => {
-        const input = inputRef.current;
-        if (!input) return;
+    const handleButtonClick = useCallback(
+        (delta: number) => {
+            const input = inputRef.current;
+            if (!input) return;
 
-        const currentValue = parseFloat(input.value) || 0;
-        let newValue = currentValue + delta;
+            const currentValue = parseFloat(input.value) || 0;
+            let newValue = currentValue + delta;
 
-        if (min !== undefined && newValue < min) newValue = min;
-        if (max !== undefined && newValue > max) newValue = max;
+            if (min !== undefined && newValue < min) newValue = min;
+            if (max !== undefined && newValue > max) newValue = max;
 
-        const descriptor = Object.getOwnPropertyDescriptor(
-            window.HTMLInputElement.prototype,
-            "value",
-        );
-        const nativeSetter = descriptor?.set;
+            const descriptor = Object.getOwnPropertyDescriptor(
+                window.HTMLInputElement.prototype,
+                "value",
+            );
 
-        if (nativeSetter) {
-            nativeSetter.call(input, String(newValue));
-            input.dispatchEvent(new Event("input", { bubbles: true }));
-            input.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-    };
+            const nativeSetter = descriptor?.set;
+
+            if (nativeSetter) {
+                nativeSetter.call(input, String(newValue));
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+                input.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+        },
+        [min, max],
+    );
+
+    const handleIncrement = useCallback(
+        () => handleButtonClick(step),
+        [handleButtonClick, step],
+    );
+
+    const handleDecrement = useCallback(
+        () => handleButtonClick(-step),
+        [handleButtonClick, step],
+    );
 
     return (
         <div className="relative flex items-center">
@@ -65,14 +79,14 @@ export default function NumberInput({
             <div className="absolute top-1/2 right-2 flex -translate-y-1/2 flex-col">
                 <button
                     type="button"
-                    onClick={() => handleButtonClick(step)}
+                    onClick={handleIncrement}
                     className="opacity-50 hover:opacity-80"
                     tabIndex={-1}>
                     <ChevronUp className="size-3" />
                 </button>
                 <button
                     type="button"
-                    onClick={() => handleButtonClick(-step)}
+                    onClick={handleDecrement}
                     className="opacity-50 hover:opacity-80"
                     tabIndex={-1}>
                     <ChevronDown className="size-3" />

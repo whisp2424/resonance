@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import clsx from "clsx";
+import { useCallback } from "react";
 import { twMerge } from "tailwind-merge";
 
 export interface SideBarItem {
@@ -50,6 +51,11 @@ export default function SideBar({
     activeItemId,
     onActiveItemChange,
 }: SideBarProps) {
+    const handleItemClick = useCallback(
+        (itemId: string) => onActiveItemChange?.(itemId),
+        [onActiveItemChange],
+    );
+
     return (
         <div
             className={twMerge(
@@ -63,7 +69,7 @@ export default function SideBar({
                     key={item.id}
                     item={item}
                     isActive={activeItemId === item.id}
-                    onClick={() => onActiveItemChange?.(item.id)}
+                    onClick={() => handleItemClick(item.id)}
                 />
             ))}
         </div>

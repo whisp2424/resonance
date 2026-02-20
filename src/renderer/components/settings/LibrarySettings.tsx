@@ -78,10 +78,14 @@ export function LibrarySettings() {
     const removeSource = useRemoveSource();
     const { openDialog } = useDialog();
 
-    const [activeScans, setActiveScans] = useState<
-        Map<number, { processed: number; total: number }>
-    >(new Map());
-    const [libraryStatusLoaded, setLibraryStatusLoaded] = useState(false);
+    const [libraryState, setLibraryState] = useState<{
+        activeScans: Map<number, { processed: number; total: number }>;
+        libraryStatusLoaded: boolean;
+    }>({
+        activeScans: new Map(),
+        libraryStatusLoaded: false,
+    });
+
     const isMountedRef = useRef(true);
 
     useEffect(() => {
@@ -91,14 +95,15 @@ export function LibrarySettings() {
             if (!isMountedRef.current) return;
             const progress = await electron.invoke("library:getScanProgress");
             if (isMountedRef.current) {
-                setActiveScans((prev) => {
-                    const next = new Map(prev);
-                    for (const [sourceId, data] of progress)
-                        next.set(sourceId, data);
-                    return next;
-                });
-
-                setLibraryStatusLoaded(true);
+                setLibraryState((prev) => ({
+                    activeScans: (() => {
+                        const next = new Map(prev.activeScans);
+                        for (const [sourceId, data] of progress)
+                            next.set(sourceId, data);
+                        return next;
+                    })(),
+                    libraryStatusLoaded: true,
+                }));
             }
         }
 
@@ -114,11 +119,14 @@ export function LibrarySettings() {
     useIpcListener(
         "library:onScanStart",
         useCallback((sourceId: number) => {
-            setActiveScans((prev) => {
-                const next = new Map(prev);
-                next.set(sourceId, { processed: 0, total: 0 });
-                return next;
-            });
+            setLibraryState((prev) => ({
+                ...prev,
+                activeScans: (() => {
+                    const next = new Map(prev.activeScans);
+                    next.set(sourceId, { processed: 0, total: 0 });
+                    return next;
+                })(),
+            }));
         }, []),
     );
 
@@ -126,11 +134,14 @@ export function LibrarySettings() {
         "library:onScanEnd",
         useCallback(
             (sourceId: number) => {
-                setActiveScans((prev) => {
-                    const next = new Map(prev);
-                    next.delete(sourceId);
-                    return next;
-                });
+                setLibraryState((prev) => ({
+                    ...prev,
+                    activeScans: (() => {
+                        const next = new Map(prev.activeScans);
+                        next.delete(sourceId);
+                        return next;
+                    })(),
+                }));
                 refetch();
             },
             [refetch],
@@ -149,7 +160,7 @@ export function LibrarySettings() {
             type: "question",
             title: `Remove ${source.displayName}?`,
             description: `Your albums and tracks from this media source will be removed. This won't delete your files.`,
-            id: "confirm:remove-source",
+            id: "confirm:removeSource",
             buttons: [
                 { label: "Cancel", value: "cancel", default: true },
                 { label: "Remove", value: "remove", variant: "primary" },
@@ -171,7 +182,7 @@ export function LibrarySettings() {
                         description:
                             result.message ||
                             "The media source could not be found. It may have already been removed.",
-                        id: "error:source-not-found",
+                        id: "error:sourceNotFound",
                     });
                     break;
                 case "unknown":
@@ -182,7 +193,7 @@ export function LibrarySettings() {
                         description:
                             result.message ||
                             "An error occurred while trying to remove the media source. Please try again.",
-                        id: "error:remove-source",
+                        id: "error:removeSource",
                     });
             }
         }
@@ -204,7 +215,9 @@ export function LibrarySettings() {
                 ) : (
                     <div className="flex flex-col gap-6">
                         {sources.map((source) => {
-                            const scanProgress = activeScans.get(source.id);
+                            const scanProgress = libraryState.activeScans.get(
+                                source.id,
+                            );
                             return (
                                 <SourceItem
                                     key={source.id}
@@ -212,7 +225,9 @@ export function LibrarySettings() {
                                     onRemove={() => handleRemove(source)}
                                     isScanning={!!scanProgress}
                                     progress={scanProgress ?? null}
-                                    libraryStatusLoaded={libraryStatusLoaded}
+                                    libraryStatusLoaded={
+                                        libraryState.libraryStatusLoaded
+                                    }
                                 />
                             );
                         })}
