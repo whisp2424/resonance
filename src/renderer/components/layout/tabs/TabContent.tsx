@@ -9,12 +9,14 @@ import IconX from "~icons/fluent/dismiss-16-regular";
 interface TabContentProps {
     tab: TabDescriptor;
     showClose: boolean | "always";
+    isDragging?: boolean;
     onClose?: (event: MouseEvent) => void;
 }
 
 export default function TabContent({
     tab,
     showClose,
+    isDragging,
     onClose,
 }: TabContentProps) {
     const config = tabTypeRegistry[tab.type];
@@ -35,7 +37,9 @@ export default function TabContent({
                     className={clsx(
                         "flex size-4.5 shrink-0 items-center justify-center rounded p-0.5",
                         showClose === "always"
-                            ? "opacity-100"
+                            ? isDragging
+                                ? "opacity-100"
+                                : "opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
                             : "opacity-0 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5",
                     )}>
                     <IconX className="size-full" />

@@ -17,7 +17,7 @@ export default function TabOverlay({ tab, isActive }: TabOverlayProps) {
                     ? "border-transparent bg-black/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200"
                     : "border-black/10 bg-black/10 text-neutral-800 dark:border-white/5 dark:bg-white/10 dark:text-neutral-200",
             )}>
-            <TabContent tab={tab} showClose="always" />
+            <TabContent tab={tab} showClose="always" isDragging />
         </div>
     );
 }

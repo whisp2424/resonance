@@ -71,6 +71,7 @@ export default function DraggableTab({
                 showClose={
                     showClose && (isActive || isDragging) ? "always" : showClose
                 }
+                isDragging={isDragging}
                 onClose={handleCloseClick}
             />
         </div>
