@@ -1,34 +1,40 @@
+import {
+    HIDE_DELAY_MS,
+    useTitleBarStore,
+} from "@renderer/lib/state/titlebarStore";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const HIDE_DELAY_MS = 500;
 const ANIMATION_DURATION_MS = 300;
 const SPACING_TITLEBAR_HEIGHT = "--spacing-titlebar-height";
 
 const easeOutCubic = (t: number): number => 1 - (1 - t) ** 3;
 
-export function useTitlebarAnimation(isFullscreen: boolean) {
+export function useTitleBar(isFullscreen: boolean) {
     const [isActive, setIsActive] = useState(false);
+    const isLocked = useTitleBarStore((state) => state.isVisible);
     const [fullHeight, setFullHeight] = useState(40);
 
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const animationRef = useRef<number | null>(null);
+    const isMouseOverRef = useRef(false);
     const animationStateRef = useRef({
         startTime: 0,
         startHeight: 0,
         targetHeight: 0,
     });
 
+    const prevFullscreenRef = useRef(isFullscreen);
+    const prevLockedRef = useRef(isLocked);
+
     useEffect(() => {
         let mounted = true;
 
-        // get css height
         const rootElement = document.documentElement;
         const rootComputedStyle = getComputedStyle(rootElement);
         const heightValue = rootComputedStyle.getPropertyValue(
             SPACING_TITLEBAR_HEIGHT,
         );
 
-        // get titlebar height value in pixels
         const tmp = document.createElement("div");
         tmp.style.height = heightValue;
         tmp.style.position = "absolute";
@@ -141,31 +147,47 @@ export function useTitlebarAnimation(isFullscreen: boolean) {
         };
     }, [fullHeight, clearHideTimer]);
 
+    const activate = useCallback(() => {
+        setIsActive(true);
+        clearHideTimer();
+    }, [clearHideTimer]);
+
+    const deactivate = useCallback(() => {
+        if (!isMouseOverRef.current) startHideTimer();
+    }, [startHideTimer]);
+
+    useEffect(() => {
+        const wasFullscreen = prevFullscreenRef.current;
+        const wasLocked = prevLockedRef.current;
+        const enteredFullscreen = isFullscreen && !wasFullscreen;
+        const lockedWhileFullscreen = isFullscreen && isLocked && !wasLocked;
+        const unlockedWhileFullscreen = isFullscreen && !isLocked && wasLocked;
+
+        if (enteredFullscreen || lockedWhileFullscreen) {
+            queueMicrotask(activate);
+        } else if (unlockedWhileFullscreen) {
+            queueMicrotask(deactivate);
+        }
+
+        prevFullscreenRef.current = isFullscreen;
+        prevLockedRef.current = isLocked;
+    }, [isFullscreen, isLocked, activate, deactivate]);
+
     const handleMouseEnter = useCallback(() => {
+        isMouseOverRef.current = true;
         if (isFullscreen) setIsActive(true);
         clearHideTimer();
     }, [isFullscreen, clearHideTimer]);
 
     const handleMouseLeave = useCallback(() => {
-        if (isFullscreen && isActive) startHideTimer();
-    }, [isFullscreen, isActive, startHideTimer]);
-
-    const triggerVisibility = useCallback(() => {
-        if (!isFullscreen) return;
-        clearHideTimer();
-
-        if (!isActive) {
-            setIsActive(true);
-        } else {
-            startHideTimer();
-        }
-    }, [isFullscreen, isActive, clearHideTimer, startHideTimer]);
+        isMouseOverRef.current = false;
+        if (isFullscreen && isActive && !isLocked) startHideTimer();
+    }, [isFullscreen, isActive, isLocked, startHideTimer]);
 
     return {
         isActive,
         fullHeight,
         handleMouseEnter,
         handleMouseLeave,
-        triggerVisibility,
     };
 }

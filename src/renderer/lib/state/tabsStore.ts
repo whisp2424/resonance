@@ -4,6 +4,7 @@ import type {
     TabParams,
 } from "@shared/types/tabs";
 
+import { useTitleBarStore } from "@renderer/lib/state/titlebarStore";
 import { createDefaultTabs, tabTypeRegistry } from "@renderer/lib/tabRegistry";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { create } from "zustand";
@@ -75,6 +76,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
         }));
 
         persistTabs();
+        useTitleBarStore.getState().trigger();
     },
 
     closeTab: (id) => {
@@ -110,6 +112,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
         });
 
         persistTabs();
+        useTitleBarStore.getState().trigger();
     },
 
     restoreLastTab: () => {
@@ -150,6 +153,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
             }));
 
             persistTabs();
+            useTitleBarStore.getState().trigger();
             return;
         }
     },

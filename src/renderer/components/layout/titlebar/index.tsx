@@ -1,28 +1,16 @@
-import TabsContainer from "@renderer/components/layout/TabsContainer";
+import TabsContainer from "@renderer/components/layout/tabs/TabsContainer";
+import { WindowControls } from "@renderer/components/layout/titlebar/WindowControls";
+import { useTitleBar } from "@renderer/components/layout/titlebar/useTitleBar";
 import { useWindowState } from "@renderer/hooks/useWindowState";
-import { useHotkey } from "@tanstack/react-hotkeys";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-
-import { WindowControls } from "./WindowControls";
-import { useTitlebarAnimation } from "./useTitlebarAnimation";
 
 export default function TitleBar() {
     const { windowId, isFullscreen, isMaximized, isWindowFocused, controls } =
         useWindowState();
 
-    const {
-        isActive,
-        fullHeight,
-        handleMouseEnter,
-        handleMouseLeave,
-        triggerVisibility,
-    } = useTitlebarAnimation(isFullscreen);
-
-    useHotkey("Mod+Tab", triggerVisibility);
-    useHotkey("Mod+Shift+Tab", triggerVisibility);
-    useHotkey("Mod+W", triggerVisibility);
-    useHotkey("Mod+Shift+T", triggerVisibility);
+    const { isActive, fullHeight, handleMouseEnter, handleMouseLeave } =
+        useTitleBar(isFullscreen);
 
     return (
         <>

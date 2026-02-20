@@ -43,6 +43,7 @@ Processes communicate **only** via typed IPC.
     │   ├── assets/         # Static assets
     │   ├── components/     # UI components
     │   │   ├── layout/     # Layout components
+    │   │   │   ├── tabs/       # Tab components and drag/drop logic
     │   │   │   └── titlebar/   # TitleBar component and related hooks
     │   │   ├── providers/  # React providers
     │   │   ├── settings/   # Settings components
