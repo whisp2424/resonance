@@ -148,7 +148,7 @@ export function LibrarySettings() {
         const confirm = await openDialog({
             type: "question",
             title: `Remove ${source.displayName}?`,
-            description: `Your albums and tracks from this media source will be removed, this won't delete your files.`,
+            description: `Your albums and tracks from this media source will be removed. This won't delete your files.`,
             id: "confirm:remove-source",
             buttons: [
                 { label: "Cancel", value: "cancel", default: true },
