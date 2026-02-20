@@ -120,11 +120,6 @@ export default function TabsContainer() {
         useTabsStore.getState().openTab("settings");
     });
 
-    useHotkey("Mod+T", () => {
-        if (activeDragId) return;
-        useTabsStore.getState().openTab("empty");
-    });
-
     const activeTab = activeDragId
         ? tabs.find((tab) => tab.id === activeDragId)
         : null;

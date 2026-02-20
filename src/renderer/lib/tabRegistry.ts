@@ -1,10 +1,17 @@
-import type { TabDescriptor, TabTypeConfig } from "@shared/types/tabs";
+import type {
+    TabDescriptor,
+    TabParamsMap,
+    TabType,
+    TabTypeConfig,
+} from "@shared/types/tabs";
 
 import SettingsView from "@renderer/components/views/SettingsView";
 
 import IconSettings from "~icons/lucide/settings";
 
-export const tabTypeRegistry: Record<string, TabTypeConfig> = {
+export const tabRegistry: {
+    settings: TabTypeConfig<"settings">;
+} = {
     settings: {
         singleton: true,
         supportsHistory: false,
@@ -13,31 +20,30 @@ export const tabTypeRegistry: Record<string, TabTypeConfig> = {
         validator: () => true,
         component: SettingsView,
     },
-    empty: {
-        singleton: false,
-        supportsHistory: false,
-        title: "New Tab",
-        validator: () => true,
-        component: () => null,
-    },
 };
 
-interface DefaultTabEntry {
-    type: string;
-    params: Record<string, unknown>;
+interface DefaultTabEntry<T extends TabType> {
+    type: T;
+    params: TabParamsMap[T];
     title?: string;
 }
 
-export const defaultTabs: DefaultTabEntry[] = [
-    { type: "settings", params: { type: "settings" } },
+export const defaultTabs: DefaultTabEntry<TabType>[] = [
+    {
+        type: "settings",
+        title: "Settings",
+        params: {
+            type: "settings",
+        },
+    },
 ];
 
-export function createDefaultTabs(): TabDescriptor[] {
-    return defaultTabs.map(({ type, params, title }) => {
-        const config = tabTypeRegistry[type];
-        if (!config) {
-            throw new Error(`Unknown tab type: ${type}`);
-        }
+export function createDefaultTabs<T extends TabType>(
+    tabs: DefaultTabEntry<T>[],
+): TabDescriptor[] {
+    return tabs.map(({ type, params, title }) => {
+        const config = tabRegistry[type];
+        if (!config) throw new Error(`Unknown tab type: ${type}`);
 
         return {
             id: crypto.randomUUID(),

@@ -1,6 +1,6 @@
 import KeepAlive from "@renderer/components/layout/KeepAlive";
 import { useTabsStore } from "@renderer/lib/state/tabsStore";
-import { tabTypeRegistry } from "@renderer/lib/tabRegistry";
+import { tabRegistry } from "@renderer/lib/tabRegistry";
 
 export default function MainView() {
     const { tabs, activeId } = useTabsStore();
@@ -9,13 +9,14 @@ export default function MainView() {
         <div className="flex flex-1 flex-col overflow-hidden">
             <div className="relative flex-1 overflow-hidden">
                 {tabs.map((tab) => {
-                    const config = tabTypeRegistry[tab.type];
+                    const config = tabRegistry[tab.type];
                     const TabContent = config?.component;
                     const isActive = tab.id === activeId;
+                    const { params, ...rest } = tab;
 
                     return (
                         <KeepAlive key={tab.id} active={isActive}>
-                            <TabContent tab={tab} />
+                            <TabContent {...rest} {...params} />
                         </KeepAlive>
                     );
                 })}

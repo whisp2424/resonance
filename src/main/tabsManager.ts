@@ -33,7 +33,7 @@ class TabsManager {
                 return null;
             }
 
-            this.tabsCache = tabsResult;
+            this.tabsCache = tabsResult as unknown as TabDescriptor[];
             this.activeIdCache = jsonData.activeId ?? null;
 
             return {

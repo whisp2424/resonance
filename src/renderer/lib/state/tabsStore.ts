@@ -1,11 +1,16 @@
 import type {
     ClosedTabEntry,
     TabDescriptor,
-    TabParams,
+    TabParamsMap,
+    TabType,
 } from "@shared/types/tabs";
 
 import { useTitleBarStore } from "@renderer/lib/state/titlebarStore";
-import { createDefaultTabs, tabTypeRegistry } from "@renderer/lib/tabRegistry";
+import {
+    createDefaultTabs,
+    defaultTabs,
+    tabRegistry,
+} from "@renderer/lib/tabRegistry";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { create } from "zustand";
 
@@ -18,17 +23,29 @@ interface TabsState {
 }
 
 interface TabsActions {
-    openTab: (type: string, params?: TabParams, title?: string) => void;
+    openTab: <T extends TabType>(
+        type: T,
+        params?: TabParamsMap[T],
+        title?: string,
+    ) => void;
     closeTab: (id: string) => void;
     restoreLastTab: () => void;
     activateTab: (id: string) => void;
     activateNextTab: () => void;
     activatePreviousTab: () => void;
     moveTab: (fromIndex: number, toIndex: number) => void;
-    navigate: (type: string, params?: TabParams, title?: string) => void;
+    navigate: <T extends TabType>(
+        type: T,
+        params?: TabParamsMap[T],
+        title?: string,
+    ) => void;
     navigateBack: () => void;
     navigateForward: () => void;
-    navigateReplace: (type: string, params?: TabParams, title?: string) => void;
+    navigateReplace: <T extends TabType>(
+        type: T,
+        params?: TabParamsMap[T],
+        title?: string,
+    ) => void;
     restoreTabs: () => Promise<void>;
     persistTabs: () => Promise<void>;
 }
@@ -36,13 +53,13 @@ interface TabsActions {
 export type TabsStore = TabsState & TabsActions;
 
 export const useTabsStore = create<TabsStore>((set, get) => ({
-    tabs: createDefaultTabs(),
-    activeId: createDefaultTabs()[0]!.id,
+    tabs: createDefaultTabs(defaultTabs),
+    activeId: createDefaultTabs(defaultTabs)[0]!.id,
     closedTabs: [],
 
     openTab: (type, params, title) => {
         const { tabs, persistTabs } = get();
-        const config = tabTypeRegistry[type];
+        const config = tabRegistry[type];
 
         if (!config) {
             log(`unknown tab type '${type}'`, "tabs", "warning");
@@ -57,7 +74,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
             }
         }
 
-        const tabParams = params ?? { type };
+        const tabParams = params ?? ({ type } as TabParamsMap[typeof type]);
 
         const newTab: TabDescriptor = {
             id: crypto.randomUUID(),
@@ -121,7 +138,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
 
         for (let i = closedTabs.length - 1; i >= 0; i--) {
             const entry = closedTabs[i];
-            const config = tabTypeRegistry[entry.tab.type];
+            const config = tabRegistry[entry.tab.type];
 
             if (!config) {
                 set((state) => ({
@@ -206,14 +223,14 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
         if (tabIndex === -1) return;
 
         const tab = tabs[tabIndex];
-        const config = tabTypeRegistry[type];
+        const config = tabRegistry[type];
 
         if (!config) {
             log(`unknown tab type: ${type}`, "tabs", "warning");
             return;
         }
 
-        const tabParams = params ?? { type };
+        const tabParams = params ?? ({ type } as TabParamsMap[typeof type]);
 
         if (!config.supportsHistory) {
             if (config.singleton) {
@@ -316,14 +333,14 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
         if (tabIndex === -1) return;
 
         const tab = tabs[tabIndex];
-        const config = tabTypeRegistry[type];
+        const config = tabRegistry[type];
 
         if (!config) {
             log(`unknown tab type: ${type}`, "tabs", "warning");
             return;
         }
 
-        const tabParams = params ?? { type };
+        const tabParams = params ?? ({ type } as TabParamsMap[typeof type]);
 
         if (!config.supportsHistory) {
             const newTabs = [...tabs];
@@ -364,7 +381,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
             const persisted = await electron.invoke("tabs:get");
 
             if (!persisted || persisted.tabs.length === 0) {
-                const defaults = createDefaultTabs();
+                const defaults = createDefaultTabs(defaultTabs);
                 set({
                     tabs: defaults,
                     activeId: defaults[0]!.id,
@@ -374,7 +391,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
 
             const validTabs: TabDescriptor[] = [];
             for (const tab of persisted.tabs) {
-                const config = tabTypeRegistry[tab.type];
+                const config = tabRegistry[tab.type];
                 if (!config) continue;
 
                 const isValid = await config.validator(tab.params);
@@ -384,7 +401,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
             }
 
             if (validTabs.length === 0) {
-                const defaults = createDefaultTabs();
+                const defaults = createDefaultTabs(defaultTabs);
                 set({
                     tabs: defaults,
                     activeId: defaults[0]!.id,
@@ -404,7 +421,7 @@ export const useTabsStore = create<TabsStore>((set, get) => ({
             });
         } catch (err) {
             log(getErrorMessage(err), "tabs", "error");
-            const defaults = createDefaultTabs();
+            const defaults = createDefaultTabs(defaultTabs);
             set({
                 tabs: defaults,
                 activeId: defaults[0]!.id,

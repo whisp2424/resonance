@@ -1,7 +1,7 @@
 import type { TabDescriptor } from "@shared/types/tabs";
 import type { MouseEvent } from "react";
 
-import { tabTypeRegistry } from "@renderer/lib/tabRegistry";
+import { tabRegistry } from "@renderer/lib/tabRegistry";
 import { clsx } from "clsx";
 
 import IconX from "~icons/fluent/dismiss-16-regular";
@@ -19,7 +19,7 @@ export default function TabContent({
     isDragging,
     onClose,
 }: TabContentProps) {
-    const config = tabTypeRegistry[tab.type];
+    const config = tabRegistry[tab.type];
     if (!config) return null;
 
     const Icon = config.icon;
