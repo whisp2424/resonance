@@ -7,10 +7,10 @@ import type {
 import path from "node:path";
 
 import { db } from "@main/database";
-import { sourcesTable } from "@main/database/schema";
 import { scanner } from "@main/library/mediaScanner";
 import { watcher } from "@main/library/sourceWatcher";
 import { validatePath } from "@main/utils/fs";
+import { sourcesTable } from "@shared/database/schema";
 import { error, ok } from "@shared/types/result";
 import { eq } from "drizzle-orm";
 

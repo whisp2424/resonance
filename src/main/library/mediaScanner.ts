@@ -1,5 +1,5 @@
-import type { MediaSource } from "@main/database/schema";
 import type { ParsedTrack } from "@main/library/mediaImporter";
+import type { MediaSource } from "@shared/database/schema";
 import type { ScanSourceResult } from "@shared/types/library";
 import type { Result } from "@shared/types/result";
 
@@ -7,9 +7,9 @@ import { stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import { db } from "@main/database";
-import { sourcesTable, tracksTable } from "@main/database/schema";
 import { importer } from "@main/library/mediaImporter";
 import { windowManager } from "@main/window/windowManager";
+import { sourcesTable, tracksTable } from "@shared/database/schema";
 import { error, ok } from "@shared/types/result";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { count, eq } from "drizzle-orm";

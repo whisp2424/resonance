@@ -5,7 +5,7 @@ import type {
     NewArtist,
     NewDisc,
     NewTrack,
-} from "@main/database/schema";
+} from "@shared/database/schema";
 import type { Result } from "@shared/types/result";
 import type { IAudioMetadata } from "music-metadata";
 
@@ -19,7 +19,7 @@ import {
     artistsTable,
     discsTable,
     tracksTable,
-} from "@main/database/schema";
+} from "@shared/database/schema";
 import { error, ok } from "@shared/types/result";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { eq, sql } from "drizzle-orm";

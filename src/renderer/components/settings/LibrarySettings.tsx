@@ -1,4 +1,4 @@
-import type { LibraryMediaSource } from "@shared/types/library";
+import type { MediaSource } from "@shared/database/schema";
 
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
 import Button from "@renderer/components/ui/Button";
@@ -15,7 +15,7 @@ import IconFolder from "~icons/lucide/folder";
 import IconLoader from "~icons/lucide/loader-circle";
 
 interface SourceItemProps {
-    source: LibraryMediaSource;
+    source: MediaSource;
     onRemove: () => void;
     isScanning: boolean;
     progress: { processed: number; total: number } | null;
@@ -155,7 +155,7 @@ export function LibrarySettings() {
         }, [refetch]),
     );
 
-    const handleRemove = async (source: LibraryMediaSource) => {
+    const handleRemove = async (source: MediaSource) => {
         const confirm = await openDialog({
             type: "question",
             title: `Remove ${source.displayName}?`,

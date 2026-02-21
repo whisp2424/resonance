@@ -1,21 +1,14 @@
+import type { MediaSource } from "@shared/database/schema";
 import type { Result } from "@shared/types/result";
 
-export interface LibraryMediaSource {
-    id: number;
-    path: string;
-    displayName: string;
-    fileCount: number;
-    lastUpdated: number;
-}
-
 export type AddSourceResult = Result<
-    { source: LibraryMediaSource },
+    { source: MediaSource },
     "duplicate_source" | "invalid_source"
 >;
 
 export type RemoveSourceResult = Result<true, "not_found">;
 
-export type GetSourcesResult = Result<LibraryMediaSource[]>;
+export type GetSourcesResult = Result<MediaSource[]>;
 
 export interface ScanSourceSuccess {
     success: true;

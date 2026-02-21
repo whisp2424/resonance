@@ -1,9 +1,9 @@
 import type { WindowRoute } from "@shared/constants/routes";
+import type { MediaSource } from "@shared/database/schema";
 import type { Settings } from "@shared/schema/settings";
 import type { DialogOptions, DialogResult } from "@shared/types/dialog";
 import type {
     AddSourceResult,
-    LibraryMediaSource,
     RemoveSourceResult,
     ScanSourceResult,
 } from "@shared/types/library";
@@ -54,7 +54,7 @@ export type MainIpcHandleEvents = {
     "dialog:open": (options: DialogOptions) => DialogResult;
     "dialog:pickFolder": (title?: string) => string | null;
 
-    "library:getSources": () => LibraryMediaSource[];
+    "library:getSources": () => MediaSource[];
 
     "library:getScanProgress": () => Array<
         [number, { processed: number; total: number }]

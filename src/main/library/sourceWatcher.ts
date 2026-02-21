@@ -2,8 +2,8 @@ import type { FSWatcher } from "chokidar";
 
 import { platform } from "@electron-toolkit/utils";
 import { db } from "@main/database";
-import { sourcesTable } from "@main/database/schema";
 import { scanner } from "@main/library/mediaScanner";
+import { sourcesTable } from "@shared/database/schema";
 import { log } from "@shared/utils/logger";
 import { watch } from "chokidar";
 import pc from "picocolors";
