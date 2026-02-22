@@ -33,6 +33,7 @@ import {
     app,
     dialog,
     nativeTheme,
+    session,
     shell,
     systemPreferences,
 } from "electron";
@@ -147,6 +148,18 @@ app.on("second-instance", () => {
 
 app.whenReady().then(async () => {
     try {
+        session.defaultSession.webRequest.onHeadersReceived(
+            (details, callback) => {
+                callback({
+                    responseHeaders: {
+                        ...details.responseHeaders,
+                        "Cross-Origin-Opener-Policy": ["same-origin"],
+                        "Cross-Origin-Embedder-Policy": ["credentialless"],
+                    },
+                });
+            },
+        );
+
         await initializeSettings();
         runMigrations();
         await windowStateManager.load();
