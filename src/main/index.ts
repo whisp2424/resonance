@@ -7,10 +7,12 @@ import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
 import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconLight from "@main/../../build/tray-light.png?asset";
+import { startServer, stopServer } from "@main/audioServer";
 import { runMigrations } from "@main/database";
 import { registerAppHandlers } from "@main/ipc/app";
 import { registerDialogHandlers } from "@main/ipc/dialog";
 import { registerLibraryHandlers } from "@main/ipc/library";
+import { registerServerHandlers } from "@main/ipc/server";
 import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
 import { registerTabHandlers } from "@main/ipc/tabs";
@@ -150,6 +152,7 @@ app.whenReady().then(async () => {
         await windowStateManager.load();
         await tabsManager.load();
         await library.watch();
+        await startServer();
 
         const settings = settingsManager.get();
         const ipc = new IpcListener<MainIpcHandleEvents>();
@@ -168,21 +171,24 @@ app.whenReady().then(async () => {
             "appearance",
         );
 
-        registerWindowHandlers(ipc);
         registerAppHandlers(ipc);
-        registerLibraryHandlers(ipc);
-        registerSettingsHandlers(ipc);
+        registerWindowHandlers(ipc);
         registerTabHandlers(ipc);
-        registerDialogHandlers(ipc);
 
         const cleanupSystemHandlers = registerSystemHandlers(
             ipc,
             systemPreferences,
         );
 
+        registerSettingsHandlers(ipc);
+        registerDialogHandlers(ipc);
+        registerLibraryHandlers(ipc);
+        registerServerHandlers(ipc);
+
         app.on("will-quit", async () => {
             log("goodbye!", "main");
             library.unwatch();
+            await stopServer();
             unsubscribeAppearanceSettings();
             cleanupSystemHandlers();
             ipc.dispose();

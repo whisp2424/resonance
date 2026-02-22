@@ -39,6 +39,9 @@ export type MainIpcHandleEvents = {
     "window:getId": () => string | null;
     "window:getControls": (id: string) => TitleBarControls;
 
+    "tabs:get": () => { tabs: TabDescriptor[]; activeId: string | null } | null;
+    "tabs:set": (tabs: TabDescriptor[], activeId: string | null) => void;
+
     "system:getAccentColor": () => string;
     "system:isWindows": () => boolean;
     "system:isMac": () => boolean;
@@ -67,8 +70,7 @@ export type MainIpcHandleEvents = {
     "library:scanSource": (sourceId: number) => ScanSourceResult;
     "library:cancelScan": (sourceId: number) => void;
 
-    "tabs:get": () => { tabs: TabDescriptor[]; activeId: string | null } | null;
-    "tabs:set": (tabs: TabDescriptor[], activeId: string | null) => void;
+    "server:getPort": () => number;
 };
 
 export type MainIpcListenEvents = {

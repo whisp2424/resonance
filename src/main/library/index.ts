@@ -1,17 +1,26 @@
 import type {
     AddSourceResult,
     GetSourcesResult,
+    GetTrackResult,
     RemoveSourceResult,
 } from "@shared/types/library";
 
-import path from "node:path";
+import path, { join } from "node:path";
 
 import { db } from "@main/database";
 import { scanner } from "@main/library/mediaScanner";
 import { watcher } from "@main/library/sourceWatcher";
 import { validatePath } from "@main/utils/fs";
-import { sourcesTable } from "@shared/database/schema";
+import {
+    albumArtistsTable,
+    albumsTable,
+    artistsTable,
+    discsTable,
+    sourcesTable,
+    tracksTable,
+} from "@shared/database/schema";
 import { error, ok } from "@shared/types/result";
+import { getErrorMessage } from "@shared/utils/logger";
 import { eq } from "drizzle-orm";
 
 class LibraryManager {
@@ -92,6 +101,57 @@ class LibraryManager {
             return ok(true);
         } catch {
             return error("An unknown error occurred while removing the source");
+        }
+    }
+
+    async getTrack(trackId: number): Promise<GetTrackResult> {
+        try {
+            const result = await db
+                .select({
+                    track: tracksTable,
+                    source: sourcesTable,
+                    artist: artistsTable,
+                    album: albumsTable,
+                    albumArtist: albumArtistsTable,
+                    disc: discsTable,
+                })
+                .from(tracksTable)
+                .innerJoin(
+                    sourcesTable,
+                    eq(tracksTable.sourceId, sourcesTable.id),
+                )
+                .innerJoin(
+                    artistsTable,
+                    eq(tracksTable.artistId, artistsTable.id),
+                )
+                .innerJoin(albumsTable, eq(tracksTable.albumId, albumsTable.id))
+                .innerJoin(
+                    albumArtistsTable,
+                    eq(albumsTable.albumArtistId, albumArtistsTable.id),
+                )
+                .innerJoin(discsTable, eq(tracksTable.discId, discsTable.id))
+                .where(eq(tracksTable.id, trackId))
+                .limit(1);
+
+            if (result.length === 0)
+                return error(`Track ID ${trackId} not found`, "not_found");
+
+            const { track, source, artist, album, albumArtist, disc } =
+                result[0];
+
+            const absolutePath = join(source.path, track.relativePath);
+
+            return ok({
+                absolutePath,
+                track,
+                source,
+                artist,
+                album,
+                albumArtist,
+                disc,
+            });
+        } catch (err) {
+            return error(getErrorMessage(err));
         }
     }
 

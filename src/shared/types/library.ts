@@ -1,4 +1,11 @@
-import type { MediaSource } from "@shared/database/schema";
+import type {
+    Album,
+    AlbumArtist,
+    Artist,
+    Disc,
+    MediaSource,
+    Track,
+} from "@shared/database/schema";
 import type { Result } from "@shared/types/result";
 
 export type AddSourceResult = Result<
@@ -16,3 +23,16 @@ export interface ScanSourceSuccess {
 }
 
 export type ScanSourceResult = Result<ScanSourceSuccess, "invalid_source">;
+
+export type GetTrackResult = Result<
+    {
+        absolutePath: string;
+        track: Track;
+        source: MediaSource;
+        artist: Artist;
+        album: Album;
+        albumArtist: AlbumArtist;
+        disc: Disc;
+    },
+    "not_found"
+>;
