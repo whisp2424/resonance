@@ -7,7 +7,7 @@ import { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
 import trayIconDark from "@main/../../build/tray-dark.png?asset";
 import trayIconLight from "@main/../../build/tray-light.png?asset";
-import { startServer, stopServer } from "@main/audioServer";
+import { startServer, stopServer } from "@main/audio/server";
 import { runMigrations } from "@main/database";
 import { registerAppHandlers } from "@main/ipc/app";
 import { registerDialogHandlers } from "@main/ipc/dialog";

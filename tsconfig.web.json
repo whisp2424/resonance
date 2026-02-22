@@ -19,7 +19,7 @@
             "@shared/*": ["src/shared/*"]
         },
         "strict": true,
-        "types": ["unplugin-icons/types/react"],
+        "types": ["unplugin-icons/types/react", "audioworklet"],
         "useDefineForClassFields": true,
         "verbatimModuleSyntax": true,
         "resolveJsonModule": true,

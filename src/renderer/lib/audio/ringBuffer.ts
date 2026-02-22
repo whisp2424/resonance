@@ -1,0 +1,180 @@
+const CHANNEL_COUNT = 2;
+const BUFFER_SECONDS = 20;
+
+const WRITE_HEAD = 0;
+const READ_HEAD = 1;
+
+/**
+ * A ring buffer for streaming decoded audio between the main thread and the
+ * audio worklet.
+ *
+ * Audio data lives in a fixed-size circular array in shared memory. The main
+ * thread writes decoded PCM samples into it, and the worklet reads from it on
+ * the audio thread. Because the memory is shared, no copying occurs between
+ * threads — the worklet always reads exactly what the main thread wrote.
+ *
+ * "Circular" means that when we reach the end of the array, we wrap back
+ * around to the beginning. This lets us reuse a fixed block of memory
+ * indefinitely, rather than allocating new memory for every chunk of audio.
+ *
+ * The buffer stores channels separately — all left samples first, then all
+ * right samples — so the worklet can read each channel directly without any
+ * extra overhead.
+ */
+export class RingBuffer {
+    /**
+     * The sample rate this buffer was created for, derived from the
+     * AudioContext.
+     */
+    readonly sampleRate: number;
+
+    /**
+     * The maximum number of samples per channel this buffer can hold at once.
+     *
+     * Equivalent to `BUFFER_SECONDS` seconds of audio at the given sample rate.
+     */
+    readonly capacity: number;
+
+    /**
+     * The shared memory block holding the actual PCM samples.
+     *
+     * Passed to the worklet on initialization so both threads see the same
+     * data.
+     */
+    readonly channelData: SharedArrayBuffer;
+
+    /**
+     * A tiny shared memory block holding just two integers: the write head
+     * and read head positions.
+     *
+     * Both threads use these to know where to write or read next, and how much
+     * audio is currently buffered.
+     */
+    readonly state: SharedArrayBuffer;
+
+    /**
+     * Float32Array views into channelData — one per channel.
+     *
+     * `channels[0]` is the left channel, `channels[1]` is the right channel.
+     *
+     * These are just views into the SharedArrayBuffer, not copies.
+     */
+    private readonly channels: Float32Array[];
+
+    /**
+     * An Int32Array view into the state buffer.
+     *
+     * `heads[WRITE_HEAD]` is where the next write will go.
+     *
+     * `heads[READ_HEAD]` is where the next read will come from.
+     */
+    private readonly heads: Int32Array;
+
+    constructor(sampleRate: number) {
+        this.sampleRate = sampleRate;
+        this.capacity = sampleRate * BUFFER_SECONDS;
+
+        // allocate shared memory for audio data.
+        // total size = channels * samples per channel * bytes per sample.
+        this.channelData = new SharedArrayBuffer(
+            CHANNEL_COUNT * this.capacity * Float32Array.BYTES_PER_ELEMENT,
+        );
+
+        // allocate shared memory for the two head positions.
+        this.state = new SharedArrayBuffer(2 * Int32Array.BYTES_PER_ELEMENT);
+
+        // create a Float32Array view for each channel, slicing into the
+        // shared buffer at the correct offset so channels don't overlap.
+        this.channels = Array.from({ length: CHANNEL_COUNT }, (_, i) => {
+            return new Float32Array(
+                this.channelData,
+                i * this.capacity * Float32Array.BYTES_PER_ELEMENT,
+                this.capacity,
+            );
+        });
+
+        this.heads = new Int32Array(this.state);
+    }
+
+    /**
+     * How many samples per channel are currently available for the worklet
+     * to read.
+     *
+     * This is the distance between the write head and read head, accounting for
+     * wrap-around.
+     */
+    get availableSamples(): number {
+        const write = Atomics.load(this.heads, WRITE_HEAD);
+        const read = Atomics.load(this.heads, READ_HEAD);
+        return (write - read + this.capacity) % this.capacity;
+    }
+
+    /**
+     * How many more samples per channel we can write before the buffer is full.
+     */
+    get freeSpace(): number {
+        /**
+         * We subtract 1 to always keep one slot empty — this is how we
+         * distinguish a completely full buffer from a completely empty one,
+         * since both would otherwise have equal head positions.
+         */
+        return this.capacity - this.availableSamples - 1;
+    }
+
+    /**
+     * Writes all samples from a decoded AudioBuffer into the ring buffer.
+     *
+     * If the audio chunk is too large to fit in the remaining free space,
+     * the write is rejected entirely and this method returns false. The caller
+     * should wait until the worklet has consumed more samples before retrying.
+     *
+     * When a chunk wraps around the end of the buffer, it's written in two
+     * parts: the first part fills up to the end, and the second part continues
+     * from the beginning.
+     */
+    write(audioBuffer: AudioBuffer): boolean {
+        const sampleCount = audioBuffer.length;
+        if (sampleCount > this.freeSpace) return false;
+        const writeHead = Atomics.load(this.heads, WRITE_HEAD);
+
+        for (let ch = 0; ch < CHANNEL_COUNT; ch++) {
+            const src = audioBuffer.getChannelData(ch);
+
+            // writeHead might be near the end of the array, so the chunk might
+            // not fit. in one contiguous stretch — we may need to write the
+            // tail end first, then wrap around and continue from the beginning.
+            const spaceToEnd = this.capacity - writeHead;
+
+            if (sampleCount <= spaceToEnd) {
+                // the chunk fits without wrapping — write it in one shot
+                this.channels[ch].set(src, writeHead);
+            } else {
+                // the chunk wraps around — write in two parts
+                this.channels[ch].set(src.subarray(0, spaceToEnd), writeHead);
+                this.channels[ch].set(src.subarray(spaceToEnd), 0);
+            }
+        }
+
+        // advance the write head, wrapping around if we've reached the end.
+        // we only update it after all channels are written so the worklet
+        // never reads a partially written chunk.
+        Atomics.store(
+            this.heads,
+            WRITE_HEAD,
+            (writeHead + sampleCount) % this.capacity,
+        );
+
+        return true;
+    }
+
+    /**
+     * Discards all buffered audio by catching the read head up to the write
+     * head. Useful for seeking — the worklet will immediately start reading
+     * whatever the main thread writes next, with no leftover samples from
+     * before the seek.
+     */
+    flush(): void {
+        const write = Atomics.load(this.heads, WRITE_HEAD);
+        Atomics.store(this.heads, READ_HEAD, write);
+    }
+}
