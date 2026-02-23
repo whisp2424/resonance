@@ -317,6 +317,7 @@ export class MediaImporter {
             artistName,
             common.artistsort,
         );
+
         if (!artistResult.success) return artistResult;
 
         const albumArtistName = common.albumartist || artistName || "unknown";
@@ -324,6 +325,7 @@ export class MediaImporter {
             tx,
             albumArtistName,
         );
+
         if (!albumArtistResult.success) return albumArtistResult;
 
         const albumTitle = common.album || "unknown";
@@ -334,6 +336,7 @@ export class MediaImporter {
             common.track.of ?? undefined,
             common.date || (common.year ? String(common.year) : undefined),
         );
+
         if (!albumResult.success) return albumResult;
 
         const discNumber = common.disk.no || 1;
@@ -347,6 +350,7 @@ export class MediaImporter {
             discNumber,
             discSubtitle,
         );
+
         if (!discResult.success) return discResult;
 
         const title = common.title || file;

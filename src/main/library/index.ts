@@ -98,7 +98,7 @@ class LibraryManager {
                 );
             }
 
-            return ok(true);
+            return ok(undefined);
         } catch {
             return error("An unknown error occurred while removing the source");
         }

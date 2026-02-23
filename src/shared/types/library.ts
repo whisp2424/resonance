@@ -13,7 +13,7 @@ export type AddSourceResult = Result<
     "duplicate_source" | "invalid_source"
 >;
 
-export type RemoveSourceResult = Result<true, "not_found">;
+export type RemoveSourceResult = Result<void, "not_found">;
 
 export type GetSourcesResult = Result<MediaSource[]>;
 
