@@ -8,8 +8,8 @@ import type {
 import path, { join } from "node:path";
 
 import { db } from "@main/database";
-import { scanner } from "@main/library/mediaScanner";
-import { watcher } from "@main/library/sourceWatcher";
+import { scanner } from "@main/library/MediaScanner";
+import { watcher } from "@main/library/SourceWatcher";
 import { validatePath } from "@main/utils/fs";
 import {
     albumArtistsTable,
