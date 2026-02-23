@@ -56,6 +56,9 @@ Processes communicate **only** via typed IPC.
     │   │   ├── theme/      # Theme-related hooks
     │   │   └── *.ts        # Top-level hooks (useIpcListener, etc.)
     │   └── lib/            # Library code (state, types, utils)
+    │       ├── audio/      # Audio engine
+    │       │   ├── engine/ # Ring buffer and audio processor
+    │       │   └── stream/ # PCM stream and server client
     │       ├── state/      # Zustand stores and TanStack Query client
     │       ├── types/      # Frontend-specific types
     │       └── utils/      # Renderer utilities
