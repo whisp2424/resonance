@@ -13,10 +13,11 @@ import { getErrorMessage } from "@shared/utils/logger";
  */
 export class PCMStream {
     private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
-    private abortController = new AbortController();
+    private abortController: AbortController | null = null;
 
     async open(url: string): Promise<Result<void, "not_found" | "aborted">> {
         try {
+            this.abortController = new AbortController();
             const response = await fetch(url, {
                 signal: this.abortController.signal,
             });
@@ -43,16 +44,22 @@ export class PCMStream {
      *
      * Returns null when the stream is exhausted — the track has fully decoded.
      */
-    async read(): Promise<Uint8Array | null> {
-        if (!this.reader) throw new Error("Stream is not open");
-        const { value, done } = await this.reader.read();
-        if (done) return null;
-        return value ?? null;
+    async read(): Promise<Result<Uint8Array | null, "not_open" | "aborted">> {
+        if (!this.reader) return error("Stream is not open", "not_open");
+        try {
+            const { value, done } = await this.reader.read();
+            if (done) return ok(null);
+            return ok(value ?? null);
+        } catch (err) {
+            if (err instanceof DOMException && err.name === "AbortError")
+                return error("Stream was aborted", "aborted");
+            return error(getErrorMessage(err));
+        }
     }
 
     /** Cancels the fetch request and releases the stream reader. */
     abort(): void {
-        this.abortController.abort();
+        this.abortController?.abort();
         this.reader?.cancel();
         this.reader = null;
     }
