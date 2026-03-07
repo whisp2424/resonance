@@ -3,6 +3,14 @@ const CHANNEL_COUNT = 2;
 const WRITE_HEAD = 0;
 const READ_HEAD = 1;
 
+/**
+ * A counter that increments every time the buffer is flushed.
+ *
+ * The audio thread checks this before and after reading to ensure it doesn't
+ * overwrite the newly flushed read head position if a flush happens mid-read.
+ */
+const FLUSH_COUNT = 2;
+
 interface ProcessorInitMessage {
     /**
      * The shared memory block holding the actual PCM samples.
@@ -13,13 +21,12 @@ interface ProcessorInitMessage {
     channelData: SharedArrayBuffer;
 
     /**
-     * A tiny shared memory block holding just two integers: the write head
-     * and read head positions.
+     * A tiny shared memory block holding three integers: the write head,
+     * the read head, and a flush counter.
      *
-     * Both threads use these to know where to write or read next, and how much
-     * audio is currently buffered.
+     * Both threads use these to coordinate reading and writing.
      */
-    state: SharedArrayBuffer;
+    stateBuffer: SharedArrayBuffer;
 
     /**
      * The maximum number of samples per channel this buffer can hold at once.
@@ -64,8 +71,12 @@ class AudioProcessor extends AudioWorkletProcessor {
         // after the worklet is added to the AudioContext. Until that message
         // arrives, process() outputs silence.
         this.port.onmessage = (e: MessageEvent<ProcessorInitMessage>) => {
-            const { channelData, state, capacity } = e.data;
-            this.reader = new RingBufferReader(channelData, state, capacity);
+            const { channelData, stateBuffer, capacity } = e.data;
+            this.reader = new RingBufferReader(
+                channelData,
+                stateBuffer,
+                capacity,
+            );
         };
     }
 
@@ -121,15 +132,15 @@ class RingBufferReader {
     /**
      * An Int32Array view into the state buffer.
      *
-     * `heads[WRITE_HEAD]` is where the next write will go.
-     *
-     * `heads[READ_HEAD]` is where the next read will come from.
+     * - `state[WRITE_HEAD]` is where the next write will go
+     * - `state[READ_HEAD]` is where the next read will come from
+     * - `state[FLUSH_COUNT]` increments every time the buffer is flushed
      */
-    private readonly heads: Int32Array;
+    private readonly state: Int32Array;
 
     constructor(
         channelData: SharedArrayBuffer,
-        state: SharedArrayBuffer,
+        stateBuffer: SharedArrayBuffer,
         capacity: number,
     ) {
         this.capacity = capacity;
@@ -144,7 +155,7 @@ class RingBufferReader {
             );
         });
 
-        this.heads = new Int32Array(state);
+        this.state = new Int32Array(stateBuffer);
     }
 
     /**
@@ -155,8 +166,8 @@ class RingBufferReader {
      * wrap-around.
      */
     get availableSamples(): number {
-        const write = Atomics.load(this.heads, WRITE_HEAD);
-        const read = Atomics.load(this.heads, READ_HEAD);
+        const write = Atomics.load(this.state, WRITE_HEAD);
+        const read = Atomics.load(this.state, READ_HEAD);
         return (write - read + this.capacity) % this.capacity;
     }
 
@@ -170,6 +181,11 @@ class RingBufferReader {
      *
      * Like the write path, a read may wrap around the end of the buffer and
      * continue from the beginning.
+     *
+     * If the main thread flushed the buffer between our load and store of
+     * READ_HEAD, the flush count will have changed. In that case we discard
+     * the read and output silence so the flushed position isn't overwritten
+     * with a stale value.
      */
     read(output: Float32Array[], samples: number): boolean {
         if (this.availableSamples < samples) {
@@ -177,7 +193,8 @@ class RingBufferReader {
             return false;
         }
 
-        const readHead = Atomics.load(this.heads, READ_HEAD);
+        const countBefore = Atomics.load(this.state, FLUSH_COUNT);
+        const readHead = Atomics.load(this.state, READ_HEAD);
 
         for (let ch = 0; ch < CHANNEL_COUNT; ch++) {
             const spaceToEnd = this.capacity - readHead;
@@ -200,8 +217,17 @@ class RingBufferReader {
             }
         }
 
+        // if a flush occurred while we were reading, the main thread has
+        // already repositioned READ_HEAD. Drop this cycle's output as
+        // silence rather than overwriting the flushed position.
+        const countAfter = Atomics.load(this.state, FLUSH_COUNT);
+        if (countAfter !== countBefore) {
+            for (let ch = 0; ch < CHANNEL_COUNT; ch++) output[ch].fill(0);
+            return true;
+        }
+
         Atomics.store(
-            this.heads,
+            this.state,
             READ_HEAD,
             (readHead + samples) % this.capacity,
         );

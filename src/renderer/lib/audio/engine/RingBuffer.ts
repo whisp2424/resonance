@@ -5,6 +5,14 @@ const WRITE_HEAD = 0;
 const READ_HEAD = 1;
 
 /**
+ * A counter that increments every time the buffer is flushed.
+ *
+ * The audio thread checks this before and after reading to ensure it doesn't
+ * overwrite the newly flushed read head position if a flush happens mid-read.
+ */
+const FLUSH_COUNT = 2;
+
+/**
  * A ring buffer for streaming decoded audio between the main thread and the
  * audio worklet.
  *
@@ -44,13 +52,12 @@ export class RingBuffer {
     readonly channelData: SharedArrayBuffer;
 
     /**
-     * A tiny shared memory block holding just two integers: the write head
-     * and read head positions.
+     * A tiny shared memory block holding three integers: the write head,
+     * the read head, and a flush counter.
      *
-     * Both threads use these to know where to write or read next, and how much
-     * audio is currently buffered.
+     * Both threads use these to coordinate reading and writing.
      */
-    readonly state: SharedArrayBuffer;
+    readonly stateBuffer: SharedArrayBuffer;
 
     /**
      * Float32Array views into channelData — one per channel.
@@ -64,11 +71,11 @@ export class RingBuffer {
     /**
      * An Int32Array view into the state buffer.
      *
-     * `heads[WRITE_HEAD]` is where the next write will go.
-     *
-     * `heads[READ_HEAD]` is where the next read will come from.
+     * - `state[WRITE_HEAD]` is where the next write will go
+     * - `state[READ_HEAD]` is where the next read will come from
+     * - `state[FLUSH_COUNT]` increments every time the buffer is flushed
      */
-    private readonly heads: Int32Array;
+    private readonly state: Int32Array;
 
     constructor(sampleRate: number) {
         this.sampleRate = sampleRate;
@@ -80,8 +87,10 @@ export class RingBuffer {
             CHANNEL_COUNT * this.capacity * Float32Array.BYTES_PER_ELEMENT,
         );
 
-        // allocate shared memory for the two head positions.
-        this.state = new SharedArrayBuffer(2 * Int32Array.BYTES_PER_ELEMENT);
+        // allocate shared memory for the state integers.
+        this.stateBuffer = new SharedArrayBuffer(
+            3 * Int32Array.BYTES_PER_ELEMENT,
+        );
 
         // create a Float32Array view for each channel, slicing into the
         // shared buffer at the correct offset so channels don't overlap.
@@ -93,7 +102,7 @@ export class RingBuffer {
             );
         });
 
-        this.heads = new Int32Array(this.state);
+        this.state = new Int32Array(this.stateBuffer);
     }
 
     /**
@@ -104,8 +113,8 @@ export class RingBuffer {
      * wrap-around.
      */
     get availableSamples(): number {
-        const write = Atomics.load(this.heads, WRITE_HEAD);
-        const read = Atomics.load(this.heads, READ_HEAD);
+        const write = Atomics.load(this.state, WRITE_HEAD);
+        const read = Atomics.load(this.state, READ_HEAD);
         return (write - read + this.capacity) % this.capacity;
     }
 
@@ -135,7 +144,7 @@ export class RingBuffer {
     write(audioBuffer: AudioBuffer): boolean {
         const sampleCount = audioBuffer.length;
         if (sampleCount > this.freeSpace) return false;
-        const writeHead = Atomics.load(this.heads, WRITE_HEAD);
+        const writeHead = Atomics.load(this.state, WRITE_HEAD);
 
         for (let ch = 0; ch < CHANNEL_COUNT; ch++) {
             const src = audioBuffer.getChannelData(ch);
@@ -159,7 +168,7 @@ export class RingBuffer {
         // we only update it after all channels are written so the worklet
         // never reads a partially written chunk.
         Atomics.store(
-            this.heads,
+            this.state,
             WRITE_HEAD,
             (writeHead + sampleCount) % this.capacity,
         );
@@ -172,9 +181,15 @@ export class RingBuffer {
      * head. Useful for seeking — the worklet will immediately start reading
      * whatever the main thread writes next, with no leftover samples from
      * before the seek.
+     *
+     * The flush count is incremented so the audio thread can detect when a
+     * flush occurred between its load and store of READ_HEAD. Without this,
+     * the worklet could overwrite the flushed read head with a stale value,
+     * causing it to replay audio from before the seek.
      */
     flush(): void {
-        const write = Atomics.load(this.heads, WRITE_HEAD);
-        Atomics.store(this.heads, READ_HEAD, write);
+        const write = Atomics.load(this.state, WRITE_HEAD);
+        Atomics.store(this.state, READ_HEAD, write);
+        Atomics.add(this.state, FLUSH_COUNT, 1);
     }
 }
