@@ -141,7 +141,7 @@ export class RingBuffer {
             const src = audioBuffer.getChannelData(ch);
 
             // writeHead might be near the end of the array, so the chunk might
-            // not fit. in one contiguous stretch — we may need to write the
+            // not fit in one contiguous stretch — we may need to write the
             // tail end first, then wrap around and continue from the beginning.
             const spaceToEnd = this.capacity - writeHead;
 

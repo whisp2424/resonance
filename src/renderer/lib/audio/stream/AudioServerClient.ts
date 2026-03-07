@@ -21,8 +21,10 @@ export class AudioServerClient {
     track(id: number, options: TrackStreamOptions): string {
         const params = new URLSearchParams({
             sampleRate: String(options.sampleRate),
-            ...(options.offset ? { offset: String(options.offset) } : {}),
         });
+
+        if (options.offset !== undefined)
+            params.set("offset", String(options.offset));
 
         return `${this.baseUrl}/tracks/${id}?${params}`;
     }
