@@ -131,36 +131,50 @@ export class RingBuffer {
     }
 
     /**
-     * Writes all samples from a decoded AudioBuffer into the ring buffer.
+     * Writes `frames` samples per channel from the provided deinterleaved
+     * channel arrays into the ring buffer.
      *
-     * If the audio chunk is too large to fit in the remaining free space,
-     * the write is rejected entirely and this method returns false. The caller
-     * should wait until the worklet has consumed more samples before retrying.
+     * If there isn't enough free space, the write is rejected entirely and
+     * this method returns false. The caller should wait until the worklet has
+     * consumed more samples before retrying.
      *
      * When a chunk wraps around the end of the buffer, it's written in two
      * parts: the first part fills up to the end, and the second part continues
      * from the beginning.
      */
-    write(audioBuffer: AudioBuffer): boolean {
-        const sampleCount = audioBuffer.length;
-        if (sampleCount > this.freeSpace) return false;
+    write(left: Float32Array, right: Float32Array, frames: number): boolean {
+        if (!Number.isInteger(frames) || frames < 0) {
+            throw new RangeError(
+                "RingBuffer.write: frames must be a non-negative integer",
+            );
+        }
+
+        if (frames > left.length || frames > right.length) {
+            throw new RangeError(
+                "RingBuffer.write: frames exceeds provided channel buffer length",
+            );
+        }
+
+        if (frames === 0) return true;
+        if (frames > this.freeSpace) return false;
         const writeHead = Atomics.load(this.state, WRITE_HEAD);
+        const sources = [left, right];
 
         for (let ch = 0; ch < CHANNEL_COUNT; ch++) {
-            const src = audioBuffer.getChannelData(ch);
+            const src = sources[ch];
 
             // writeHead might be near the end of the array, so the chunk might
             // not fit in one contiguous stretch — we may need to write the
             // tail end first, then wrap around and continue from the beginning.
             const spaceToEnd = this.capacity - writeHead;
 
-            if (sampleCount <= spaceToEnd) {
+            if (frames <= spaceToEnd) {
                 // the chunk fits without wrapping — write it in one shot
-                this.channels[ch].set(src, writeHead);
+                this.channels[ch].set(src.subarray(0, frames), writeHead);
             } else {
                 // the chunk wraps around — write in two parts
                 this.channels[ch].set(src.subarray(0, spaceToEnd), writeHead);
-                this.channels[ch].set(src.subarray(spaceToEnd), 0);
+                this.channels[ch].set(src.subarray(spaceToEnd, frames), 0);
             }
         }
 
@@ -170,7 +184,7 @@ export class RingBuffer {
         Atomics.store(
             this.state,
             WRITE_HEAD,
-            (writeHead + sampleCount) % this.capacity,
+            (writeHead + frames) % this.capacity,
         );
 
         return true;
