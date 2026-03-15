@@ -1,5 +1,5 @@
 import type { RingBuffer } from "@renderer/lib/audio/engine/RingBuffer";
-import type { StagingBufferData } from "@renderer/lib/audio/stream/StagingBuffer";
+import type { StagingBufferData } from "@renderer/lib/audio/engine/StagingBuffer";
 
 import { PCMStream } from "@renderer/lib/audio/stream/PCMStream";
 import { getErrorMessage, log } from "@shared/utils/logger";

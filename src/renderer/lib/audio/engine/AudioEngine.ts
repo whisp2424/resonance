@@ -75,8 +75,7 @@ export class AudioEngine {
         return this.context?.sampleRate ?? 0;
     }
 
-    getRingBuffer(): RingBuffer {
-        if (!this.ringBuffer) throw new Error("AudioEngine is not initialized");
+    get buffer(): RingBuffer | null {
         return this.ringBuffer;
     }
 
@@ -150,6 +149,37 @@ export class AudioEngine {
         this.trackStartPosition = 0;
         this.samplesConsumed = 0;
         this.lastReadHead = 0;
+    }
+
+    /**
+     * Returns all available audio output devices.
+     */
+    static async enumerateOutputDevices(): Promise<MediaDeviceInfo[]> {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        return devices.filter((d) => d.kind === "audiooutput");
+    }
+
+    /**
+     * Routes audio output to the given device.
+     * Passing an empty string will use the default output.
+     *
+     * Has no effect if the engine has not been initialized.
+     */
+    async setOutputDevice(deviceId: string): Promise<void> {
+        if (!this.context) return;
+        await (
+            this.context as AudioContext & {
+                /**
+                 * The **`setSinkId()`** method of the HTMLMediaElement
+                 * interface sets the ID of the audio device to use for output
+                 * and returns a Promise.
+                 * Available only in secure contexts.
+                 *
+                 * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/setSinkId)
+                 */
+                setSinkId: (id: string) => Promise<void>;
+            }
+        ).setSinkId(deviceId);
     }
 
     /**
