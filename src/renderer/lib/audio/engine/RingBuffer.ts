@@ -143,19 +143,6 @@ export class RingBuffer {
      * from the beginning.
      */
     write(left: Float32Array, right: Float32Array, frames: number): boolean {
-        if (!Number.isInteger(frames) || frames < 0) {
-            throw new RangeError(
-                "RingBuffer.write: frames must be a non-negative integer",
-            );
-        }
-
-        if (frames > left.length || frames > right.length) {
-            throw new RangeError(
-                "RingBuffer.write: frames exceeds provided channel buffer length",
-            );
-        }
-
-        if (frames === 0) return true;
         if (frames > this.freeSpace) return false;
         const writeHead = Atomics.load(this.state, WRITE_HEAD);
         const sources = [left, right];

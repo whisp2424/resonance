@@ -76,9 +76,6 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
     });
 
     ffmpeg.stdout.pipe(res);
-    ffmpeg.stderr.on("data", (data) => {
-        log(data.toString(), "ffmpeg");
-    });
 
     ffmpeg.on("error", (err) => {
         log(getErrorMessage(err), "AudioServer", "error");
