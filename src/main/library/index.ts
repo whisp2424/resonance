@@ -1,8 +1,18 @@
 import type {
+    Album,
+    AlbumArtist,
+    Artist,
+    Disc,
+    MediaSource,
+    Track,
+} from "@shared/database/schema";
+import type {
     AddSourceResult,
     GetSourcesResult,
     GetTrackResult,
+    GetTracksResult,
     RemoveSourceResult,
+    TrackResult,
 } from "@shared/types/library";
 
 import path, { join } from "node:path";
@@ -21,7 +31,35 @@ import {
 } from "@shared/database/schema";
 import { error, ok } from "@shared/types/result";
 import { getErrorMessage } from "@shared/utils/logger";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+
+const trackJoin = {
+    track: tracksTable,
+    source: sourcesTable,
+    artist: artistsTable,
+    album: albumsTable,
+    albumArtist: albumArtistsTable,
+    disc: discsTable,
+};
+
+function toTrackResult(row: {
+    track: Track;
+    source: MediaSource;
+    artist: Artist;
+    album: Album;
+    albumArtist: AlbumArtist;
+    disc: Disc;
+}): TrackResult {
+    return {
+        absolutePath: join(row.source.path, row.track.relativePath),
+        track: row.track,
+        source: row.source,
+        artist: row.artist,
+        album: row.album,
+        albumArtist: row.albumArtist,
+        disc: row.disc,
+    };
+}
 
 class LibraryManager {
     async getSources(): Promise<GetSourcesResult> {
@@ -40,7 +78,6 @@ class LibraryManager {
         name?: string,
     ): Promise<AddSourceResult> {
         try {
-            // trim whitespace and strip surrounding quotes from user input
             sourcePath = sourcePath.trim().replace(/^["']|["']$/g, "");
 
             const validationResult = await validatePath(sourcePath);
@@ -107,14 +144,7 @@ class LibraryManager {
     async getTrack(trackId: number): Promise<GetTrackResult> {
         try {
             const result = await db
-                .select({
-                    track: tracksTable,
-                    source: sourcesTable,
-                    artist: artistsTable,
-                    album: albumsTable,
-                    albumArtist: albumArtistsTable,
-                    disc: discsTable,
-                })
+                .select(trackJoin)
                 .from(tracksTable)
                 .innerJoin(
                     sourcesTable,
@@ -136,22 +166,59 @@ class LibraryManager {
             if (result.length === 0)
                 return error(`Track ID ${trackId} not found`, "not_found");
 
-            const { track, source, artist, album, albumArtist, disc } =
-                result[0];
-
-            const absolutePath = join(source.path, track.relativePath);
-
-            return ok({
-                absolutePath,
-                track,
-                source,
-                artist,
-                album,
-                albumArtist,
-                disc,
-            });
+            return ok(toTrackResult(result[0]));
         } catch (err) {
             return error(getErrorMessage(err));
+        }
+    }
+
+    async getTracks(ids: number[]): Promise<GetTracksResult> {
+        if (ids.length === 0) return { tracks: [], errors: [] };
+
+        try {
+            const rows = await db
+                .select(trackJoin)
+                .from(tracksTable)
+                .innerJoin(
+                    sourcesTable,
+                    eq(tracksTable.sourceId, sourcesTable.id),
+                )
+                .innerJoin(
+                    artistsTable,
+                    eq(tracksTable.artistId, artistsTable.id),
+                )
+                .innerJoin(albumsTable, eq(tracksTable.albumId, albumsTable.id))
+                .innerJoin(
+                    albumArtistsTable,
+                    eq(albumsTable.albumArtistId, albumArtistsTable.id),
+                )
+                .innerJoin(discsTable, eq(tracksTable.discId, discsTable.id))
+                .where(inArray(tracksTable.id, ids));
+
+            const found = new Map(rows.map((r) => [r.track.id, r]));
+
+            const tracks: TrackResult[] = [];
+            const errors: { trackId: number; error: string }[] = [];
+
+            for (const id of ids) {
+                const row = found.get(id);
+                if (row) {
+                    tracks.push(toTrackResult(row));
+                } else {
+                    errors.push({
+                        trackId: id,
+                        error: `Track ID ${id} not found`,
+                    });
+                }
+            }
+
+            return { tracks, errors };
+        } catch (err) {
+            const message = getErrorMessage(err);
+            return {
+                tracks: [],
+                errors: ids.map((id) => ({ trackId: id, error: message })),
+            };
         }
     }
 

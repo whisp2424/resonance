@@ -24,15 +24,21 @@ export interface ScanSourceSuccess {
 
 export type ScanSourceResult = Result<ScanSourceSuccess, "invalid_source">;
 
-export type GetTrackResult = Result<
-    {
-        absolutePath: string;
-        track: Track;
-        source: MediaSource;
-        artist: Artist;
-        album: Album;
-        albumArtist: AlbumArtist;
-        disc: Disc;
-    },
-    "not_found"
->;
+export interface TrackResult {
+    absolutePath: string;
+    track: Track;
+    source: MediaSource;
+    artist: Artist;
+    album: Album;
+    albumArtist: AlbumArtist;
+    disc: Disc;
+}
+
+export type AbsoluteTrack = Track & { absolutePath: string };
+
+export type GetTrackResult = Result<TrackResult, "not_found">;
+
+export interface GetTracksResult {
+    tracks: TrackResult[];
+    errors: { trackId: number; error: string }[];
+}

@@ -37,4 +37,8 @@ export function registerLibraryHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
         const progress = scanner.getProgress();
         return Array.from(progress.entries());
     });
+
+    ipc.handle("library:getTracks", async (_, ids) => {
+        return library.getTracks(ids);
+    });
 }

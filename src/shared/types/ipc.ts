@@ -4,9 +4,11 @@ import type { Settings } from "@shared/schema/settings";
 import type { DialogOptions, DialogResult } from "@shared/types/dialog";
 import type {
     AddSourceResult,
+    GetTracksResult,
     RemoveSourceResult,
     ScanSourceResult,
 } from "@shared/types/library";
+import type { PlaybackState } from "@shared/types/playback";
 import type { TabDescriptor } from "@shared/types/tabs";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
@@ -70,7 +72,12 @@ export type MainIpcHandleEvents = {
     "library:scanSource": (sourceId: number) => ScanSourceResult;
     "library:cancelScan": (sourceId: number) => void;
 
+    "library:getTracks": (ids: number[]) => GetTracksResult;
+
     "server:getPort": () => number;
+
+    "playback:loadState": () => PlaybackState | null;
+    "playback:saveState": (state: PlaybackState) => void;
 };
 
 export type MainIpcListenEvents = {
