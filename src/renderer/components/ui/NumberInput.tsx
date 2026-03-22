@@ -6,45 +6,15 @@ import clsx from "clsx";
 import ChevronDown from "~icons/lucide/chevron-down";
 import ChevronUp from "~icons/lucide/chevron-up";
 
-type NumberInputProps = {
+type NumberInputProps = Omit<NumberField.Root.Props, "className"> & {
     className?: string;
-    min?: number;
-    max?: number;
-    step?: number;
-    value?: number | null;
-    defaultValue?: number;
-    onValueChange?: (
-        value: number | null,
-        eventDetails: NumberField.Root.ChangeEventDetails,
-    ) => void;
-    disabled?: boolean;
-    id?: string;
-    name?: string;
 };
 
-export default function NumberInput({
-    className,
-    min,
-    max,
-    step = 1,
-    value,
-    defaultValue,
-    onValueChange,
-    disabled,
-    id,
-    name,
-}: NumberInputProps) {
+export default function NumberInput(props: NumberInputProps) {
+    const { className, step = 1, ...rootProps } = props;
+
     return (
-        <BaseNumberField.Root
-            id={id}
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            defaultValue={defaultValue}
-            onValueChange={onValueChange}
-            disabled={disabled}
-            name={name}>
+        <BaseNumberField.Root {...rootProps} step={step}>
             <BaseNumberField.Group className="relative flex items-center">
                 <BaseNumberField.Input
                     className={clsx(
