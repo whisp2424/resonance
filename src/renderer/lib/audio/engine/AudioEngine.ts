@@ -169,17 +169,9 @@ export class AudioEngine {
         if (!this.context) return;
         await (
             this.context as AudioContext & {
-                /**
-                 * The **`setSinkId()`** method of the HTMLMediaElement
-                 * interface sets the ID of the audio device to use for output
-                 * and returns a Promise.
-                 * Available only in secure contexts.
-                 *
-                 * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/setSinkId)
-                 */
                 setSinkId: (id: string) => Promise<void>;
             }
-        ).setSinkId(deviceId);
+        ).setSinkId(deviceId === "default" ? "" : deviceId);
     }
 
     /**

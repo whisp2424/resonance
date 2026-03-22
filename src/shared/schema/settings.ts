@@ -6,6 +6,11 @@ export const settingsSchema = type({
         appTheme: "'system' | 'light' | 'dark'",
         trayIcon: "'auto' | 'light' | 'dark'",
     },
+    audio: {
+        output: {
+            deviceId: "string",
+        },
+    },
 });
 
 export type Settings = typeof settingsSchema.infer;
@@ -16,5 +21,10 @@ export const DEFAULT_SETTINGS: Settings = {
     appearance: {
         appTheme: "system",
         trayIcon: "auto",
+    },
+    audio: {
+        output: {
+            deviceId: "default",
+        },
     },
 };

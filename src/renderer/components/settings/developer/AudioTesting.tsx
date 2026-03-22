@@ -8,11 +8,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@renderer/components/ui/Select";
+import { useSetting } from "@renderer/hooks/settings/useSetting";
 import { AudioServerClient } from "@renderer/lib/audio/AudioServerClient";
 import { AudioEngine } from "@renderer/lib/audio/engine/AudioEngine";
 import { StagingBuffer } from "@renderer/lib/audio/engine/StagingBuffer";
 import processorPath from "@renderer/lib/audio/engine/audioProcessor?worker&url";
 import { AudioStream } from "@renderer/lib/audio/stream/AudioStream";
+import { useAudioStore } from "@renderer/lib/state/audioStore";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Status =
@@ -25,14 +27,15 @@ export default function AudioTesting() {
     const [trackAId, setTrackAId] = useState<number>(1);
     const [trackBId, setTrackBId] = useState<number>(2);
     const [status, setStatus] = useState<Status>({ type: "idle" });
-    const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-    const [deviceId, setDeviceId] = useState<string>("");
+    const [deviceId, setDeviceId] = useSetting("audio.output.deviceId");
     const [isClientReady, setIsClientReady] = useState(false);
 
     const engineRef = useRef<AudioEngine | null>(null);
     const streamRef = useRef<AudioStream | null>(null);
     const stagingRef = useRef<StagingBuffer | null>(null);
     const clientRef = useRef<AudioServerClient | null>(null);
+
+    const devices = useAudioStore((state) => state.outputDevices);
 
     useEffect(() => {
         electron.invoke("server:getPort").then(
@@ -47,54 +50,36 @@ export default function AudioTesting() {
                 });
             },
         );
+    }, []);
 
-        const refreshDevices = async () => {
-            const updated = await AudioEngine.enumerateOutputDevices();
-            setDevices(updated);
-            setDeviceId((current) => {
-                if (
-                    current !== "" &&
-                    !updated.some((d) => d.deviceId === current)
-                ) {
-                    engineRef.current?.setOutputDevice("").catch(() => {});
-                    return "";
+    const handleDeviceChange = useCallback(
+        async (id: string | null) => {
+            const selected = id ?? "default";
+            await setDeviceId(selected);
+            if (engineRef.current) {
+                try {
+                    await engineRef.current.setOutputDevice(selected);
+                } catch (err) {
+                    setStatus({
+                        type: "error",
+                        message: `Failed to switch output device: ${String(err)}`,
+                    });
                 }
-                return current;
-            });
-        };
-
-        refreshDevices();
-        navigator.mediaDevices.addEventListener("devicechange", refreshDevices);
-        return () => {
-            navigator.mediaDevices.removeEventListener(
-                "devicechange",
-                refreshDevices,
-            );
-        };
-    }, []);
-
-    const handleDeviceChange = useCallback(async (id: string | null) => {
-        const selected = id ?? "";
-        setDeviceId(selected);
-        if (engineRef.current) {
-            try {
-                await engineRef.current.setOutputDevice(selected);
-            } catch (err) {
-                setStatus({
-                    type: "error",
-                    message: `Failed to switch output device: ${String(err)}`,
-                });
             }
-        }
-    }, []);
+        },
+        [setDeviceId],
+    );
 
     const stop = useCallback(async () => {
         streamRef.current?.abort();
         streamRef.current = null;
+
         stagingRef.current?.abort();
         stagingRef.current = null;
+
         await engineRef.current?.destroy();
         engineRef.current = null;
+
         setStatus({ type: "idle" });
     }, []);
 
@@ -105,7 +90,7 @@ export default function AudioTesting() {
 
         await engine.init();
 
-        if (deviceId) {
+        if (deviceId && deviceId !== "default") {
             try {
                 await engine.setOutputDevice(deviceId);
             } catch (err) {
@@ -228,26 +213,32 @@ export default function AudioTesting() {
 
             <Field name="outputDevice">
                 <FieldLabel>Output Device</FieldLabel>
-                <Select value={deviceId} onValueChange={handleDeviceChange}>
-                    <SelectTrigger>
-                        <SelectValue>
-                            {deviceId === ""
-                                ? "Default"
-                                : (devices.find((d) => d.deviceId === deviceId)
-                                      ?.label ?? deviceId)}
-                        </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="min-w-80">
-                        <SelectItem value="">Default</SelectItem>
-                        {devices.map((device) => (
-                            <SelectItem
-                                key={device.deviceId}
-                                value={device.deviceId}>
-                                {device.label || device.deviceId}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                {deviceId !== undefined && (
+                    <Select
+                        key={devices.map((d) => d.deviceId).join(",")}
+                        items={devices.map((d) => ({
+                            label: d.label || d.deviceId,
+                            value: d.deviceId,
+                        }))}
+                        value={deviceId}
+                        onValueChange={handleDeviceChange}>
+                        <SelectTrigger>
+                            <SelectValue>
+                                {devices.find((d) => d.deviceId === deviceId)
+                                    ?.label ?? "Default"}
+                            </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="min-w-80">
+                            {devices.map((device) => (
+                                <SelectItem
+                                    key={device.deviceId}
+                                    value={device.deviceId}>
+                                    {device.label || device.deviceId}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
             </Field>
 
             {status.type === "error" && (
