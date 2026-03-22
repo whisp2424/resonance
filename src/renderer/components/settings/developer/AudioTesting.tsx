@@ -197,7 +197,8 @@ export default function AudioTesting() {
                     <NumberInput
                         value={trackAId}
                         min={1}
-                        onChange={(e) => setTrackAId(Number(e.target.value))}
+                        format={{ useGrouping: false }}
+                        onValueChange={(value) => setTrackAId(value ?? 1)}
                     />
                 </Field>
 
@@ -206,7 +207,8 @@ export default function AudioTesting() {
                     <NumberInput
                         value={trackBId}
                         min={1}
-                        onChange={(e) => setTrackBId(Number(e.target.value))}
+                        format={{ useGrouping: false }}
+                        onValueChange={(value) => setTrackBId(value ?? 1)}
                     />
                 </Field>
             </div>
