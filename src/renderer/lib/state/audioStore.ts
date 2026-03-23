@@ -1,4 +1,4 @@
-import { AudioEngine } from "@renderer/lib/audio/engine/AudioEngine";
+import { AudioEngine } from "@renderer/lib/audio/processing/AudioEngine";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { create } from "zustand";
 

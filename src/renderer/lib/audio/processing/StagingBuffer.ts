@@ -1,6 +1,6 @@
 import type { Result } from "@shared/types/result";
 
-import { PCMStream } from "@renderer/lib/audio/stream/PCMStream";
+import { PCMStream } from "@renderer/lib/audio/streaming/PCMStream";
 import { error, ok } from "@shared/types/result";
 import { getErrorMessage } from "@shared/utils/logger";
 

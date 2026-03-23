@@ -1,4 +1,4 @@
-import { RingBuffer } from "@renderer/lib/audio/engine/RingBuffer";
+import { RingBuffer } from "@renderer/lib/audio/processing/RingBuffer";
 
 const READ_HEAD = 1;
 

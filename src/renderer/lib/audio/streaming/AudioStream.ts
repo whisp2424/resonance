@@ -1,7 +1,7 @@
-import type { RingBuffer } from "@renderer/lib/audio/engine/RingBuffer";
-import type { StagingBufferData } from "@renderer/lib/audio/engine/StagingBuffer";
+import type { RingBuffer } from "@renderer/lib/audio/processing/RingBuffer";
+import type { StagingBufferData } from "@renderer/lib/audio/processing/StagingBuffer";
 
-import { PCMStream } from "@renderer/lib/audio/stream/PCMStream";
+import { PCMStream } from "@renderer/lib/audio/streaming/PCMStream";
 import { getErrorMessage, log } from "@shared/utils/logger";
 
 const CHANNEL_COUNT = 2;

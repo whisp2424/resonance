@@ -10,11 +10,11 @@ import {
 } from "@renderer/components/ui/Select";
 import { useSetting } from "@renderer/hooks/settings/useSetting";
 import { AudioServerClient } from "@renderer/lib/audio/AudioServerClient";
-import { TrackTimeline } from "@renderer/lib/audio/TrackTimeline";
-import { AudioEngine } from "@renderer/lib/audio/engine/AudioEngine";
-import { StagingBuffer } from "@renderer/lib/audio/engine/StagingBuffer";
-import processorPath from "@renderer/lib/audio/engine/audioProcessor?worker&url";
-import { AudioStream } from "@renderer/lib/audio/stream/AudioStream";
+import { AudioEngine } from "@renderer/lib/audio/processing/AudioEngine";
+import { StagingBuffer } from "@renderer/lib/audio/processing/StagingBuffer";
+import { TrackTimeline } from "@renderer/lib/audio/processing/TrackTimeline";
+import processorPath from "@renderer/lib/audio/processing/audioProcessor?worker&url";
+import { AudioStream } from "@renderer/lib/audio/streaming/AudioStream";
 import { useAudioStore } from "@renderer/lib/state/audioStore";
 import { useCallback, useEffect, useRef, useState } from "react";
 
