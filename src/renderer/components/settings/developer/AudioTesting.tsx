@@ -10,6 +10,7 @@ import {
 } from "@renderer/components/ui/Select";
 import { useSetting } from "@renderer/hooks/settings/useSetting";
 import { AudioServerClient } from "@renderer/lib/audio/AudioServerClient";
+import { TrackTimeline } from "@renderer/lib/audio/TrackTimeline";
 import { AudioEngine } from "@renderer/lib/audio/engine/AudioEngine";
 import { StagingBuffer } from "@renderer/lib/audio/engine/StagingBuffer";
 import processorPath from "@renderer/lib/audio/engine/audioProcessor?worker&url";
@@ -23,17 +24,36 @@ type Status =
     | { type: "paused" }
     | { type: "error"; message: string };
 
+interface TrackMeta {
+    title: string;
+    duration: number | null;
+}
+
+function formatTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
 export default function AudioTesting() {
     const [trackAId, setTrackAId] = useState<number>(1);
     const [trackBId, setTrackBId] = useState<number>(2);
     const [status, setStatus] = useState<Status>({ type: "idle" });
     const [deviceId, setDeviceId] = useSetting("audio.output.deviceId");
     const [isClientReady, setIsClientReady] = useState(false);
+    const [currentTrackTitle, setCurrentTrackTitle] = useState("");
+    const [currentTrackDuration, setCurrentTrackDuration] = useState<
+        number | null
+    >(null);
 
     const engineRef = useRef<AudioEngine | null>(null);
     const streamRef = useRef<AudioStream | null>(null);
     const stagingRef = useRef<StagingBuffer | null>(null);
     const clientRef = useRef<AudioServerClient | null>(null);
+    const timelineRef = useRef<TrackTimeline | null>(null);
+    const rafRef = useRef(0);
+    const positionRef = useRef<HTMLSpanElement>(null);
+    const trackMetaRef = useRef<Map<number, TrackMeta>>(new Map());
 
     const devices = useAudioStore((state) => state.outputDevices);
 
@@ -51,6 +71,54 @@ export default function AudioTesting() {
             },
         );
     }, []);
+
+    // --- Position polling ---
+
+    const startPositionPolling = useCallback(() => {
+        function poll() {
+            const engine = engineRef.current;
+            const timeline = timelineRef.current;
+            if (!engine || !timeline) return;
+
+            const resolved = timeline.resolve(engine.consumedSamples);
+            if (resolved && positionRef.current) {
+                const positionSec = resolved.sampleOffset / engine.sampleRate;
+                positionRef.current.textContent = formatTime(positionSec);
+            }
+
+            rafRef.current = requestAnimationFrame(poll);
+        }
+        rafRef.current = requestAnimationFrame(poll);
+    }, []);
+
+    const stopPositionPolling = useCallback(() => {
+        if (rafRef.current) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = 0;
+        }
+    }, []);
+
+    // --- Track metadata ---
+
+    const fetchTrackMeta = useCallback(async (trackIds: number[]) => {
+        const result = await electron.invoke("library:getTracks", trackIds);
+        const map = new Map<number, TrackMeta>();
+        for (const tr of result.tracks) {
+            map.set(tr.track.id, {
+                title: tr.track.title,
+                duration: tr.track.duration,
+            });
+        }
+        trackMetaRef.current = map;
+    }, []);
+
+    const applyTrackMeta = useCallback((trackId: number) => {
+        const meta = trackMetaRef.current.get(trackId);
+        setCurrentTrackTitle(meta?.title ?? `Track ${String(trackId)}`);
+        setCurrentTrackDuration(meta?.duration ?? null);
+    }, []);
+
+    // --- Lifecycle ---
 
     const handleDeviceChange = useCallback(
         async (id: string | null) => {
@@ -71,17 +139,29 @@ export default function AudioTesting() {
     );
 
     const stop = useCallback(async () => {
+        stopPositionPolling();
+
         streamRef.current?.abort();
         streamRef.current = null;
 
         stagingRef.current?.abort();
         stagingRef.current = null;
 
+        timelineRef.current = null;
+
         await engineRef.current?.destroy();
         engineRef.current = null;
 
         setStatus({ type: "idle" });
-    }, []);
+        setCurrentTrackTitle("");
+        setCurrentTrackDuration(null);
+    }, [stopPositionPolling]);
+
+    // Stable ref so timeline callbacks can always call the latest stop
+    const stopRef = useRef(stop);
+    useEffect(() => {
+        stopRef.current = stop;
+    }, [stop]);
 
     const initEngine = useCallback(async () => {
         const engine = new AudioEngine(processorPath, {
@@ -117,8 +197,21 @@ export default function AudioTesting() {
 
         engineRef.current = engine;
 
+        await fetchTrackMeta([trackAId]);
+        applyTrackMeta(trackAId);
+
+        const timeline = new TrackTimeline({
+            onTrackChanged: (trackId) => applyTrackMeta(trackId),
+            onPlaybackEnded: () => void stopRef.current(),
+        });
+        timeline.reset(trackAId);
+        timelineRef.current = timeline;
+
         const stream = new AudioStream(engine.buffer!, {
-            onWriteEnd: () => null,
+            onWriteEnd: (samplesWritten) => {
+                timeline.markFinalBoundary(samplesWritten);
+                return null;
+            },
             onError: () =>
                 setStatus({ type: "error", message: "Stream failed to open" }),
         });
@@ -132,7 +225,15 @@ export default function AudioTesting() {
 
         await engine.play();
         setStatus({ type: "playing" });
-    }, [trackAId, stop, initEngine]);
+        startPositionPolling();
+    }, [
+        trackAId,
+        stop,
+        initEngine,
+        fetchTrackMeta,
+        applyTrackMeta,
+        startPositionPolling,
+    ]);
 
     const startGaplessTest = useCallback(async () => {
         await stop();
@@ -150,20 +251,40 @@ export default function AudioTesting() {
         const sampleRate = engine.buffer!.sampleRate;
         const client = clientRef.current!;
 
+        await fetchTrackMeta([trackAId, trackBId]);
+        applyTrackMeta(trackAId);
+
+        const timeline = new TrackTimeline({
+            onTrackChanged: (trackId) => applyTrackMeta(trackId),
+            onPlaybackEnded: () => void stopRef.current(),
+        });
+        timeline.reset(trackAId);
+        timelineRef.current = timeline;
+
         const staging = new StagingBuffer(sampleRate);
         stagingRef.current = staging;
         staging.load(client.track(trackBId, { sampleRate }));
 
+        let transitioned = false;
+
         const stream = new AudioStream(engine.buffer!, {
-            onWriteEnd: () => {
-                if (!staging.data.isComplete) return null;
-                return {
-                    stagingData: staging.data,
-                    nextTrackUrl: client.track(trackBId, {
-                        sampleRate,
-                        offset: staging.data.totalSamples / sampleRate,
-                    }),
-                };
+            onWriteEnd: (samplesWritten) => {
+                if (!transitioned) {
+                    transitioned = true;
+                    timeline.addBoundary(trackBId, samplesWritten);
+
+                    if (!staging.data.isComplete) return null;
+                    return {
+                        stagingData: staging.data,
+                        nextTrackUrl: client.track(trackBId, {
+                            sampleRate,
+                            offset: staging.data.totalSamples / sampleRate,
+                        }),
+                    };
+                }
+
+                timeline.markFinalBoundary(samplesWritten);
+                return null;
             },
             onError: () =>
                 setStatus({ type: "error", message: "Stream failed to open" }),
@@ -174,7 +295,16 @@ export default function AudioTesting() {
 
         await engine.play();
         setStatus({ type: "playing" });
-    }, [trackAId, trackBId, stop, initEngine]);
+        startPositionPolling();
+    }, [
+        trackAId,
+        trackBId,
+        stop,
+        initEngine,
+        fetchTrackMeta,
+        applyTrackMeta,
+        startPositionPolling,
+    ]);
 
     const togglePause = useCallback(async () => {
         if (!engineRef.current) return;
@@ -242,6 +372,20 @@ export default function AudioTesting() {
                     </Select>
                 )}
             </Field>
+
+            {isActive && (
+                <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+                    <p className="text-sm font-medium">
+                        {currentTrackTitle || "\u2014"}
+                    </p>
+                    <p className="text-sm text-neutral-500 tabular-nums">
+                        <span ref={positionRef}>0:00</span>
+                        {currentTrackDuration !== null && (
+                            <> / {formatTime(currentTrackDuration)}</>
+                        )}
+                    </p>
+                </div>
+            )}
 
             {status.type === "error" && (
                 <p className="text-sm text-red-500">{status.message}</p>

@@ -205,30 +205,66 @@ export class AudioEngine {
     }
 
     /**
-     * The current playback position in seconds.
+     * Reads the audio thread's current read head from shared memory and accumulates
+     * the number of newly consumed samples into `samplesConsumed`.
      *
-     * Accumulates the delta between successive READ_HEAD observations to
-     * produce a monotonically increasing value that survives buffer wrap-around.
-     *
-     * Must be polled frequently enough to not miss a full wrap (~20s at 44100Hz).
-     *
-     * Returns 0 if the engine has not been initialized.
+     * `samplesConsumed` is a monotonically increasing counter used by TrackTimeline
+     * to resolve which track is playing. It must be called frequently enough that
+     * the read head never completes a full lap between calls (~20s at 44.1kHz).
      */
-    get position(): number {
-        if (!this.stateView || !this.ringBuffer) return 0;
+    private syncConsumedSamples(): void {
+        if (!this.stateView || !this.ringBuffer) return;
+
         const readHead = Atomics.load(this.stateView, READ_HEAD);
 
-        const delta =
+        // Modular delta handles wrap-around when the read head passes capacity.
+        const samplesConsumedSinceLastPoll =
             (readHead - this.lastReadHead + this.ringBuffer.capacity) %
             this.ringBuffer.capacity;
 
         this.lastReadHead = readHead;
-        this.samplesConsumed += delta;
+        this.samplesConsumed += samplesConsumedSinceLastPoll;
+    }
+
+    /**
+     * The current playback position in seconds.
+     *
+     * Accumulates the delta between successive READ_HEAD observations to
+     * produce a monotonically increasing value that survives buffer
+     * wrap-around.
+     *
+     * Must be polled frequently enough to not miss a full wrap
+     * (~20s at 44100Hz).
+     *
+     * Returns 0 if the engine has not been initialized.
+     */
+    get position(): number {
+        this.syncConsumedSamples();
+        if (!this.ringBuffer) return 0;
 
         return (
             this.trackStartPosition +
             this.samplesConsumed / this.ringBuffer.sampleRate
         );
+    }
+
+    /**
+     * The total number of samples consumed by the worklet since the last seek
+     * or init. Used by TrackTimeline to resolve which track is currently
+     * playing.
+     *
+     * Unlike `position`, this returns the raw sample count without converting
+     * to seconds or adding the track start offset.
+     *
+     * Must be called frequently enough to not miss a full buffer wrap
+     * (~20s at 44100 Hz). In practice, `position` or this getter should be
+     * polled on every animation frame.
+     *
+     * Returns 0 if the engine has not been initialized.
+     */
+    get consumedSamples(): number {
+        this.syncConsumedSamples();
+        return this.samplesConsumed;
     }
 
     /**

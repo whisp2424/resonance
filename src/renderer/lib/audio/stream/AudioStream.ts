@@ -21,10 +21,14 @@ export interface AudioStreamCallbacks {
      * PCM has been written into the ring buffer, but the worklet may not have
      * consumed it yet.
      *
+     * The `samplesWritten` parameter is the total number of samples per channel
+     * that were written for the completed track. Use this to compute the
+     * cumulative offset for the next track in the timeline.
+     *
      * Return a `TrackTransition` to continue into the next track, or `null`
      * if the queue is exhausted.
      */
-    onWriteEnd: () => TrackTransition | null;
+    onWriteEnd: (samplesWritten: number) => TrackTransition | null;
 
     /**
      * Called when a stream fails to open, the track was not found, the server
@@ -49,6 +53,13 @@ export class AudioStream {
     private readonly callbacks: AudioStreamCallbacks;
 
     private stream: PCMStream | null = null;
+
+    /**
+     * The total number of samples (per channel) written since the stream
+     * started or since the last callback. Reset to 0 when onWriteEnd is called,
+     * so each callback invocation reports samples for exactly one track.
+     */
+    private samplesWritten = 0;
 
     /**
      * Remainder bytes from the previous chunk that didn't align to a complete
@@ -110,6 +121,7 @@ export class AudioStream {
         this.stream?.abort();
         this.stream = null;
         this.remainderBytes = new Uint8Array(0);
+        this.samplesWritten = 0;
     }
 
     /**
@@ -143,7 +155,10 @@ export class AudioStream {
 
             if (this.aborted) return;
 
-            const transition = this.callbacks.onWriteEnd();
+            const completedSamples = this.samplesWritten;
+            this.samplesWritten = 0;
+
+            const transition = this.callbacks.onWriteEnd(completedSamples);
             if (transition === null) return;
 
             // write the preloaded staging samples directly into the ring
@@ -236,14 +251,21 @@ export class AudioStream {
             totalSamples,
         );
     }
-
+    /**
+     * Writes a frame of PCM samples to the ring buffer, retrying every 10ms
+     * until space is available or the stream is aborted.
+     */
     private async writeWithBackpressure(
         left: Float32Array,
         right: Float32Array,
         frames: number,
     ): Promise<void> {
         while (!this.aborted) {
-            if (this.ringBuffer.write(left, right, frames)) return;
+            if (this.ringBuffer.write(left, right, frames)) {
+                this.samplesWritten += frames;
+                return;
+            }
+
             await sleep(10);
         }
     }
