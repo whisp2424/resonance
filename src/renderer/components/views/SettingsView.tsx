@@ -6,7 +6,7 @@ import { DeveloperSettings } from "@renderer/components/settings/DeveloperSettin
 import { LibrarySettings } from "@renderer/components/settings/LibrarySettings";
 import SideBar from "@renderer/components/ui/SideBar";
 import { useSetting } from "@renderer/hooks/settings/useSetting";
-import { useSettingsStore } from "@renderer/lib/state/settingsStore";
+import { useSettingsStore } from "@renderer/lib/settings/settingsStore";
 import { useEffect, useState } from "react";
 
 import IconAppearance from "~icons/lucide/brush";

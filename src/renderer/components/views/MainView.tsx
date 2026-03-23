@@ -1,6 +1,6 @@
 import KeepAlive from "@renderer/components/layout/KeepAlive";
-import { useTabsStore } from "@renderer/lib/state/tabsStore";
-import { tabRegistry } from "@renderer/lib/tabRegistry";
+import { tabRegistry } from "@renderer/lib/tabs/tabRegistry";
+import { useTabsStore } from "@renderer/lib/tabs/tabsStore";
 
 export default function MainView() {
     const { tabs, activeId } = useTabsStore();

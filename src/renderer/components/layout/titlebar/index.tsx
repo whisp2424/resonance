@@ -1,7 +1,7 @@
 import TabsContainer from "@renderer/components/layout/tabs/TabsContainer";
 import { WindowControls } from "@renderer/components/layout/titlebar/WindowControls";
-import { useTitleBar } from "@renderer/components/layout/titlebar/useTitleBar";
 import { useWindowState } from "@renderer/hooks/useWindowState";
+import { useTitleBar } from "@renderer/lib/titlebar/useTitleBar";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 

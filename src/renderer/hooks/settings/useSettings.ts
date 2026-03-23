@@ -1,4 +1,4 @@
-import { useSettingsStore } from "@renderer/lib/state/settingsStore";
+import { useSettingsStore } from "@renderer/lib/settings/settingsStore";
 
 export function useSettings() {
     const settings = useSettingsStore((state) => state.settings);

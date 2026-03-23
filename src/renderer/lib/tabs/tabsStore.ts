@@ -5,12 +5,12 @@ import type {
     TabType,
 } from "@shared/types/tabs";
 
-import { useTitleBarStore } from "@renderer/lib/state/titlebarStore";
 import {
     createDefaultTabs,
     defaultTabs,
     tabRegistry,
-} from "@renderer/lib/tabRegistry";
+} from "@renderer/lib/tabs/tabRegistry";
+import { useTitleBarStore } from "@renderer/lib/titlebar/titlebarStore";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { create } from "zustand";
 

@@ -1,6 +1,6 @@
 import App from "@renderer/App";
 import { SettingsProvider } from "@renderer/components/providers/SettingsProvider";
-import { queryClient } from "@renderer/lib/state/queryClient";
+import { queryClient } from "@renderer/lib/queryClient";
 import "@renderer/styles.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";

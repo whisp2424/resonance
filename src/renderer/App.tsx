@@ -2,11 +2,11 @@ import TitleBar from "@renderer/components/layout/titlebar";
 import AddSourceView from "@renderer/components/views/AddSourceView";
 import MainView from "@renderer/components/views/MainView";
 import { useOperatingSystem } from "@renderer/hooks/useOperatingSystem";
-import { useTabsStore } from "@renderer/lib/state/tabsStore";
 import {
     useThemeListeners,
     useThemeStore,
-} from "@renderer/lib/state/themeStore";
+} from "@renderer/lib/settings/themeStore";
+import { useTabsStore } from "@renderer/lib/tabs/tabsStore";
 import { ROUTES } from "@shared/constants/routes";
 import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";

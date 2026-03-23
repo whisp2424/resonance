@@ -1,7 +1,7 @@
 import {
     HIDE_DELAY_MS,
     useTitleBarStore,
-} from "@renderer/lib/state/titlebarStore";
+} from "@renderer/lib/titlebar/titlebarStore";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const ANIMATION_DURATION_MS = 300;

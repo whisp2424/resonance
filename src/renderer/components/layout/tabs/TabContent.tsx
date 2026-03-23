@@ -1,7 +1,7 @@
 import type { TabDescriptor } from "@shared/types/tabs";
 import type { MouseEvent } from "react";
 
-import { tabRegistry } from "@renderer/lib/tabRegistry";
+import { tabRegistry } from "@renderer/lib/tabs/tabRegistry";
 import { clsx } from "clsx";
 
 import IconX from "~icons/fluent/dismiss-16-regular";

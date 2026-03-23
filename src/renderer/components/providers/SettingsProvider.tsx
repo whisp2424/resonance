@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import {
     useSettingsListeners,
     useSettingsStore,
-} from "@renderer/lib/state/settingsStore";
+} from "@renderer/lib/settings/settingsStore";
 import { useEffect } from "react";
 
 interface SettingsProviderProps {

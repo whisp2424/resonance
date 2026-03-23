@@ -14,8 +14,8 @@ import { AudioEngine } from "@renderer/lib/audio/processing/AudioEngine";
 import { StagingBuffer } from "@renderer/lib/audio/processing/StagingBuffer";
 import { TrackTimeline } from "@renderer/lib/audio/processing/TrackTimeline";
 import processorPath from "@renderer/lib/audio/processing/audioProcessor?worker&url";
+import { useAudioStore } from "@renderer/lib/audio/state/audioStore";
 import { AudioStream } from "@renderer/lib/audio/streaming/AudioStream";
-import { useAudioStore } from "@renderer/lib/state/audioStore";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Status =

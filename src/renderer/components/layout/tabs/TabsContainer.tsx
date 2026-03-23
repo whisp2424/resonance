@@ -15,8 +15,8 @@ import {
 } from "@dnd-kit/sortable";
 import DraggableTab from "@renderer/components/layout/tabs/DraggableTab";
 import TabOverlay from "@renderer/components/layout/tabs/TabOverlay";
-import { useTabsStore } from "@renderer/lib/state/tabsStore";
-import { useTitleBarStore } from "@renderer/lib/state/titlebarStore";
+import { useTabsStore } from "@renderer/lib/tabs/tabsStore";
+import { useTitleBarStore } from "@renderer/lib/titlebar/titlebarStore";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { clsx } from "clsx";
 import { useEffect, useRef, useState } from "react";
