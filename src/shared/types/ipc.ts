@@ -8,7 +8,6 @@ import type {
     RemoveSourceResult,
     ScanSourceResult,
 } from "@shared/types/library";
-import type { PlaybackState } from "@shared/types/playback";
 import type { TabDescriptor } from "@shared/types/tabs";
 import type { DeepPartial, PathInto, PathValue } from "@shared/types/utils";
 
@@ -75,9 +74,6 @@ export type MainIpcHandleEvents = {
     "library:getTracks": (ids: number[]) => GetTracksResult;
 
     "server:getPort": () => number;
-
-    "playback:loadState": () => PlaybackState | null;
-    "playback:saveState": (state: PlaybackState) => void;
 };
 
 export type MainIpcListenEvents = {
