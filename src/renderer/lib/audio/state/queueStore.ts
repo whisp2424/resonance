@@ -1,6 +1,8 @@
 import type { RepeatMode } from "@shared/types/playback";
+import type { Result } from "@shared/types/result";
 
 import { RESTART_THRESHOLD_SECONDS } from "@shared/types/playback";
+import { error, ok } from "@shared/types/result";
 import { log } from "@shared/utils/logger";
 import { create } from "zustand";
 
@@ -59,14 +61,13 @@ interface QueueActions {
     enqueue: (tracks: number[], options: EnqueueOptions) => EnqueueResult;
     remove: (indices: number[]) => RemoveResult;
     setRepeatMode: (mode: RepeatMode) => void;
-    jump: (index: number) => void;
+    jump: (index: number) => Result<void, "out_of_bounds">;
     next: () => NextResult;
     previous: (trackPosition: number) => PreviousResult;
 }
 
 export type QueueStore = QueueState & QueueActions;
 
-// Derived selectors
 export const selectCurrentTrackId = (state: QueueStore): number | null =>
     state.index >= 0 ? (state.queue[state.index] ?? null) : null;
 
@@ -156,7 +157,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
             // current track was removed — land on the next available track
             nextIndex = Math.min(index, next.length - 1);
         } else {
-            // current track survived — adjust index for removed entries before it
+            // current track survived — adjust index for removed entries before
             const removedBefore = [...toRemove].filter((i) => i < index).length;
             nextIndex = index - removedBefore;
         }
@@ -171,15 +172,11 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         const { queue } = get();
 
         if (index < 0 || index >= queue.length) {
-            log(
-                `jump called with out-of-bounds index ${index}`,
-                "queueStore",
-                "warning",
-            );
-            return;
+            return error(`Index ${index} is out of bounds`, "out_of_bounds");
         }
 
         set({ index });
+        return ok(undefined);
     },
 
     next: () => {
