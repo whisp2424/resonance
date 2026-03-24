@@ -2,17 +2,6 @@ import { RingBuffer } from "@renderer/lib/audio/processing/RingBuffer";
 
 const READ_HEAD = 1;
 
-export interface AudioEngineCallbacks {
-    /**
-     * Called when the audio worklet reports buffer starvation — the ring
-     * buffer ran dry and the worklet is outputting silence.
-     *
-     * This is a diagnostic signal only. The worklet recovers automatically
-     * once the write loop catches up. PlaybackManager is not involved.
-     */
-    onStarvation: () => void;
-}
-
 /**
  * Owns the AudioContext, RingBuffer, AudioWorkletNode, and GainNode.
  *
@@ -25,7 +14,6 @@ export interface AudioEngineCallbacks {
  */
 export class AudioEngine {
     private readonly processorPath: string;
-    private readonly callbacks: AudioEngineCallbacks;
 
     private context: AudioContext | null = null;
     private ringBuffer: RingBuffer | null = null;
@@ -62,9 +50,8 @@ export class AudioEngine {
      */
     private lastReadHead = 0;
 
-    constructor(processorPath: string, callbacks: AudioEngineCallbacks) {
+    constructor(processorPath: string) {
         this.processorPath = processorPath;
-        this.callbacks = callbacks;
     }
 
     get isInitialized(): boolean {
@@ -110,8 +97,10 @@ export class AudioEngine {
             capacity: this.ringBuffer.capacity,
         });
 
-        this.workletNode.port.onmessage = (e: MessageEvent) => {
-            if (e.data?.type === "starvation") this.callbacks.onStarvation();
+        this.workletNode.port.onmessage = (_e: MessageEvent) => {
+            // starvation messages from the worklet are intentionally ignored —
+            // the worklet outputs silence and recovers automatically once the
+            // write loop catches up
         };
 
         // wire the effects chain: worklet → gain → destination
