@@ -159,13 +159,16 @@ export function useTitleBar(isFullscreen: boolean) {
     useEffect(() => {
         const wasFullscreen = prevFullscreenRef.current;
         const wasLocked = prevLockedRef.current;
-        const enteredFullscreen = isFullscreen && !wasFullscreen;
-        const lockedWhileFullscreen = isFullscreen && isLocked && !wasLocked;
-        const unlockedWhileFullscreen = isFullscreen && !isLocked && wasLocked;
+        const didEnterFullscreen = isFullscreen && !wasFullscreen;
+        const didExitFullscreen = !isFullscreen && wasFullscreen;
+        const didLockWhileFullscreen = isFullscreen && isLocked && !wasLocked;
+        const didUnlockWhileFullscreen = isFullscreen && !isLocked && wasLocked;
 
-        if (enteredFullscreen || lockedWhileFullscreen) {
+        if (didEnterFullscreen || didLockWhileFullscreen) {
             queueMicrotask(activate);
-        } else if (unlockedWhileFullscreen) {
+        } else if (didExitFullscreen) {
+            queueMicrotask(() => setIsActive(false));
+        } else if (didUnlockWhileFullscreen) {
             queueMicrotask(deactivate);
         }
 
