@@ -164,9 +164,7 @@ export default function AudioTesting() {
     }, [stop]);
 
     const initEngine = useCallback(async () => {
-        const engine = new AudioEngine(processorPath, {
-            onStarvation: () => {},
-        });
+        const engine = new AudioEngine(processorPath);
 
         await engine.init();
 

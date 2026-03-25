@@ -10,8 +10,6 @@ import { AudioStream } from "@renderer/lib/audio/streaming/AudioStream";
 import { error, ok } from "@shared/types/result";
 import { getErrorMessage, log } from "@shared/utils/logger";
 
-// ---- Types ------------------------------------------------------------------
-
 export type PlaybackError = "stream_error" | "server_error" | "unknown";
 
 export interface PlaybackManagerCallbacks {
