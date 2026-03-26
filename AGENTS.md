@@ -33,9 +33,9 @@ Processes communicate **only** via typed IPC.
 ├── drizzle/            # Database migrations (Drizzle ORM)
 └── src/
     ├── main/               # Electron main process (Node.js)
-    │   ├── database/       # Database layer (Drizzle ORM)
-    │   ├── ipc/            # IPC implementation
-    │   ├── library/        # Library management
+    │   ├── audio/          # Audio HTTP server (ffmpeg/PCM streaming)
+    │   ├── ipc/            # IPC handler registration
+    │   ├── library/        # Library management (scanning, importing, watching)
     │   ├── utils/          # Main process utilities
     │   └── window/         # Window management logic
     ├── preload/            # Preload scripts (bridge)
@@ -44,7 +44,7 @@ Processes communicate **only** via typed IPC.
     │   ├── components/     # UI components
     │   │   ├── layout/     # Layout components
     │   │   │   ├── tabs/       # Tab components and drag/drop logic
-    │   │   │   └── titlebar/   # TitleBar component and related hooks
+    │   │   │   └── titlebar/   # TitleBar component
     │   │   ├── providers/  # React providers
     │   │   ├── settings/   # Settings components
     │   │   │   └── developer/  # Developer settings
@@ -55,16 +55,19 @@ Processes communicate **only** via typed IPC.
     │   │   ├── settings/   # Settings-related hooks
     │   │   ├── theme/      # Theme-related hooks
     │   │   └── *.ts        # Top-level hooks (useIpcListener, etc.)
-    │   └── lib/            # Library code (state, types, utils)
-    │       ├── audio/      # Audio engine
-    │       │   ├── engine/ # Ring buffer and audio processor
-    │       │   └── stream/ # PCM stream and server client
-    │       ├── state/      # Zustand stores and TanStack Query client
-    │       ├── types/      # Frontend-specific types
-    │       └── utils/      # Renderer utilities
+    │   └── lib/            # Domain logic, state, and utilities
+    │       ├── audio/      # Audio pipeline
+    │       │   ├── processing/ # AudioEngine, RingBuffer, StagingBuffer, TrackTimeline, AudioWorklet processor
+    │       │   ├── state/      # Audio and playback Zustand stores (audioStore, playbackStore, queueStore)
+    │       │   └── streaming/  # PCM streaming (AudioStream, PCMStream, AudioServerClient)
+    │       ├── settings/   # Settings and theme Zustand stores
+    │       ├── tabs/       # Tab registry and tabs Zustand store
+    │       ├── titlebar/   # Titlebar Zustand store and hook
+    │       ├── utils/      # Renderer utilities
+    │       └── queryClient.ts  # TanStack Query client
     └── shared/             # Shared across all processes
         ├── constants/      # Cross-process constants
-        ├── schema/         # ArkType schemas
+        ├── schema/         # ArkType schemas (settings, tabs, playback)
         ├── types/          # Cross-process TypeScript types
         └── utils/          # Shared utilities
 ```
