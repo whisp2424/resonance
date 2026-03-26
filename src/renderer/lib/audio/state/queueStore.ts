@@ -1,4 +1,4 @@
-import type { RepeatMode } from "@shared/types/playback";
+import type { RepeatMode } from "@shared/schema/playback";
 import type { Result } from "@shared/types/result";
 
 import { RESTART_THRESHOLD_SECONDS } from "@shared/types/playback";
