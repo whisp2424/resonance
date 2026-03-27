@@ -7,7 +7,7 @@ const READ_HEAD = 1;
  *
  * Knows nothing about tracks or queues — only samples. Position is derived
  * from the worklet's read head in shared memory. Seeking flushes the ring
- * buffer and repositions; restarting the stream is PlaybackManager's concern.
+ * buffer and repositions; restarting the stream is the caller's concern.
  *
  * Call `init()` before use and `destroy()` before reinitializing after a
  * device or sample rate change.
@@ -121,8 +121,8 @@ export class AudioEngine {
      * change. After `destroy()`, call `init()` to bring the engine back up.
      *
      * The current position in seconds should be captured via `position` before
-     * calling `destroy()` so PlaybackManager can restart the stream at the
-     * correct offset.
+     * calling `destroy()` so the caller can restart the stream at the correct
+     * offset.
      */
     async destroy(): Promise<void> {
         this.workletNode?.disconnect();
@@ -182,7 +182,7 @@ export class AudioEngine {
      * Flushes the ring buffer and repositions the playback position to the
      * given offset in seconds.
      *
-     * This only handles the audio engine side of a seek. PlaybackManager is
+     * This only handles the audio engine side of a seek. The caller is
      * responsible for aborting the current AudioStream and starting a new one
      * at the given offset.
      */
@@ -190,7 +190,9 @@ export class AudioEngine {
         this.ringBuffer?.flush();
         this.trackStartPosition = position;
         this.samplesConsumed = 0;
-        this.lastReadHead = 0;
+        this.lastReadHead = this.stateView
+            ? Atomics.load(this.stateView, READ_HEAD)
+            : 0;
     }
 
     /**

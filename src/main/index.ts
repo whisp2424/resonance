@@ -12,7 +12,6 @@ import { runMigrations } from "@main/database";
 import { registerAppHandlers } from "@main/ipc/app";
 import { registerDialogHandlers } from "@main/ipc/dialog";
 import { registerLibraryHandlers } from "@main/ipc/library";
-import { registerPlaybackHandlers } from "@main/ipc/playback";
 import { registerServerHandlers } from "@main/ipc/server";
 import { registerSettingsHandlers } from "@main/ipc/settings";
 import { registerSystemHandlers } from "@main/ipc/system";
@@ -20,7 +19,6 @@ import { registerTabHandlers } from "@main/ipc/tabs";
 import { registerWindowHandlers } from "@main/ipc/window";
 import { library } from "@main/library";
 import { APP_MENU } from "@main/menu";
-import { playbackStateManager } from "@main/playbackState";
 import { initializeSettings, settingsManager } from "@main/settingsManager";
 import { tabsManager } from "@main/tabsManager";
 import { validateBounds } from "@main/window/validateBounds";
@@ -166,7 +164,6 @@ app.whenReady().then(async () => {
         runMigrations();
         await windowStateManager.load();
         await tabsManager.load();
-        await playbackStateManager.load();
         await library.watch();
         await startServer();
 
@@ -200,7 +197,6 @@ app.whenReady().then(async () => {
         registerDialogHandlers(ipc);
         registerLibraryHandlers(ipc);
         registerServerHandlers(ipc);
-        registerPlaybackHandlers(ipc);
 
         app.on("will-quit", async () => {
             log("goodbye!", "main");

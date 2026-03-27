@@ -97,6 +97,9 @@ export class AudioStream {
      * It is safe to call `abort()` at any point after `start()`.
      */
     async start(url: string): Promise<void> {
+        this.aborted = false;
+        this.remainderBytes = new Uint8Array(0);
+        this.samplesWritten = 0;
         this.stream = new PCMStream();
 
         const openResult = await this.stream.open(url);
@@ -107,7 +110,7 @@ export class AudioStream {
             return;
         }
 
-        await this.runWriteLoop();
+        this.runWriteLoop();
     }
 
     /**
@@ -144,8 +147,8 @@ export class AudioStream {
                 }
             } catch (err) {
                 if (this.aborted) return;
-                // non-fatal — stop writing and let the worklet output silence
                 log(getErrorMessage(err), "AudioStream", "warning");
+                this.callbacks.onError();
                 return;
             }
 

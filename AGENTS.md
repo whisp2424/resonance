@@ -58,7 +58,7 @@ Processes communicate **only** via typed IPC.
     │   └── lib/            # Domain logic, state, and utilities
     │       ├── audio/      # Audio pipeline
     │       │   ├── processing/ # AudioEngine, RingBuffer, StagingBuffer, TrackTimeline, AudioWorklet processor
-    │       │   ├── state/      # Audio and playback Zustand stores (audioStore, playbackStore, queueStore)
+    │       │   ├── state/      # Audio-related Zustand stores (audioStore)
     │       │   └── streaming/  # PCM streaming (AudioStream, PCMStream, AudioServerClient)
     │       ├── settings/   # Settings and theme Zustand stores
     │       ├── tabs/       # Tab registry and tabs Zustand store
