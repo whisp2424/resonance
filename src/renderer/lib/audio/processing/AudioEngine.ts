@@ -198,10 +198,6 @@ export class AudioEngine {
     /**
      * Reads the audio thread's current read head from shared memory and accumulates
      * the number of newly consumed samples into `samplesConsumed`.
-     *
-     * `samplesConsumed` is a monotonically increasing counter used by TrackTimeline
-     * to resolve which track is playing. It must be called frequently enough that
-     * the read head never completes a full lap between calls (~20s at 44.1kHz).
      */
     private syncConsumedSamples(): void {
         if (!this.stateView || !this.ringBuffer) return;
@@ -241,8 +237,7 @@ export class AudioEngine {
 
     /**
      * The total number of samples consumed by the worklet since the last seek
-     * or init. Used by TrackTimeline to resolve which track is currently
-     * playing.
+     * or init.
      *
      * Unlike `position`, this returns the raw sample count without converting
      * to seconds or adding the track start offset.
