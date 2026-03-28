@@ -13,6 +13,14 @@ const READ_HEAD = 1;
 const FLUSH_COUNT = 2;
 
 /**
+ * Monotonically increasing count of frames consumed by the audio thread.
+ *
+ * Unlike READ_HEAD, this never wraps during normal playback, so it can be
+ * used as a stable transport clock by the main thread.
+ */
+const TRANSPORT_FRAME = 0;
+
+/**
  * A ring buffer for streaming decoded audio between the main thread and the
  * audio worklet.
  *
@@ -60,6 +68,15 @@ export class RingBuffer {
     readonly stateBuffer: SharedArrayBuffer;
 
     /**
+     * A shared 64-bit counter holding the transport frame.
+     *
+     * The audio thread increments this on every successful read. The main
+     * thread reads it to derive playback progress without relying on the
+     * circular read head.
+     */
+    readonly transportBuffer: SharedArrayBuffer;
+
+    /**
      * Float32Array views into channelData — one per channel.
      *
      * `channels[0]` is the left channel, `channels[1]` is the right channel.
@@ -77,6 +94,9 @@ export class RingBuffer {
      */
     private readonly state: Int32Array;
 
+    /** Shared view of the monotonically increasing transport frame counter. */
+    private readonly transport: BigInt64Array;
+
     constructor(sampleRate: number) {
         this.sampleRate = sampleRate;
         this.capacity = sampleRate * BUFFER_SECONDS;
@@ -92,6 +112,10 @@ export class RingBuffer {
             3 * Int32Array.BYTES_PER_ELEMENT,
         );
 
+        this.transportBuffer = new SharedArrayBuffer(
+            BigInt64Array.BYTES_PER_ELEMENT,
+        );
+
         // create a Float32Array view for each channel, slicing into the
         // shared buffer at the correct offset so channels don't overlap.
         this.channels = Array.from({ length: CHANNEL_COUNT }, (_, i) => {
@@ -103,6 +127,7 @@ export class RingBuffer {
         });
 
         this.state = new Int32Array(this.stateBuffer);
+        this.transport = new BigInt64Array(this.transportBuffer);
     }
 
     /**
@@ -192,5 +217,9 @@ export class RingBuffer {
         const write = Atomics.load(this.state, WRITE_HEAD);
         Atomics.store(this.state, READ_HEAD, write);
         Atomics.add(this.state, FLUSH_COUNT, 1);
+    }
+
+    get transportFrame(): bigint {
+        return Atomics.load(this.transport, TRANSPORT_FRAME);
     }
 }

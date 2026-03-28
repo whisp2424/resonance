@@ -1,13 +1,12 @@
 import { RingBuffer } from "@renderer/lib/audio/processing/RingBuffer";
 
-const READ_HEAD = 1;
-
 /**
  * Owns the AudioContext, RingBuffer, AudioWorkletNode, and GainNode.
  *
- * Knows nothing about tracks or queues — only samples. Position is derived
- * from the worklet's read head in shared memory. Seeking flushes the ring
- * buffer and repositions; restarting the stream is the caller's concern.
+ * Knows nothing about tracks or queues — only PCM frames flowing through the
+ * output path. It exposes a monotonic transport clock plus a seekable offset
+ * within the current stream session; mapping that onto a logical track is the
+ * caller's responsibility.
  *
  * Call `init()` before use and `destroy()` before reinitializing after a
  * device or sample rate change.
@@ -21,34 +20,37 @@ export class AudioEngine {
     private gainNode: GainNode | null = null;
 
     /**
-     * The read-side view into the ring buffer's state, shared with the
-     * audio worklet. Used to derive the current playback position without
-     * any message passing.
-     */
-    private stateView: Int32Array | null = null;
-
-    /**
-     * The position in seconds at the start of the current write session.
-     * Set to 0 on init, updated on seek.
-     */
-    private trackStartPosition = 0;
-
-    /**
-     * Monotonically increasing count of samples consumed by the worklet since
-     * the last seek or init.
+     * The transport clock shared with the audio worklet.
      *
-     * READ_HEAD is a circular index that wraps at buffer capacity (~20s), so
-     * reading it directly would reset the position on every wrap. Instead we
-     * accumulate the delta on each position read, which gives a true elapsed
-     * sample count regardless of how many times the buffer has wrapped.
+     * The worklet increments this every time it successfully emits frames,
+     * giving the main thread a stable playback clock that does not depend on
+     * the circular read head.
      */
-    private samplesConsumed = 0;
+    private transportView: BigInt64Array | null = null;
 
     /**
-     * The READ_HEAD value observed on the previous position read. Used to
-     * compute the delta and detect wrap-around.
+     * The stream position, in seconds, that should be reported when playback
+     * reaches `transportStartFrame`.
+     *
+     * On init this is 0. On seek it becomes the requested seek target, so the
+     * engine can continue reporting position from the new stream location.
      */
-    private lastReadHead = 0;
+    private streamPositionBaseSeconds = 0;
+
+    /**
+     * The total number of output frames that had been played when
+     * `streamPositionBaseSeconds` was last updated.
+     *
+     * A frame is one instant of audio across all channels. In stereo, that
+     * means one left sample plus one right sample together. We count frames,
+     * not individual samples, because playback time advances one frame at a
+     * time.
+     *
+     * On init this is 0. On seek it is set to the current transport frame, so
+     * future playback progress can be measured relative to the new stream
+     * position.
+     */
+    private transportStartFrame = 0;
 
     constructor(processorPath: string) {
         this.processorPath = processorPath;
@@ -76,10 +78,9 @@ export class AudioEngine {
     async init(): Promise<void> {
         this.context = new AudioContext();
         this.ringBuffer = new RingBuffer(this.context.sampleRate);
-        this.stateView = new Int32Array(this.ringBuffer.stateBuffer);
-        this.trackStartPosition = 0;
-        this.samplesConsumed = 0;
-        this.lastReadHead = 0;
+        this.transportView = new BigInt64Array(this.ringBuffer.transportBuffer);
+        this.streamPositionBaseSeconds = 0;
+        this.transportStartFrame = 0;
 
         await this.context.audioWorklet.addModule(this.processorPath);
 
@@ -94,14 +95,9 @@ export class AudioEngine {
         this.workletNode.port.postMessage({
             channelData: this.ringBuffer.channelData,
             stateBuffer: this.ringBuffer.stateBuffer,
+            transportBuffer: this.ringBuffer.transportBuffer,
             capacity: this.ringBuffer.capacity,
         });
-
-        this.workletNode.port.onmessage = (_e: MessageEvent) => {
-            // starvation messages from the worklet are intentionally ignored —
-            // the worklet outputs silence and recovers automatically once the
-            // write loop catches up
-        };
 
         // wire the effects chain: worklet → gain → destination
         this.gainNode = this.context.createGain();
@@ -120,9 +116,9 @@ export class AudioEngine {
      * Must be called before reinitializing following a device or sample rate
      * change. After `destroy()`, call `init()` to bring the engine back up.
      *
-     * The current position in seconds should be captured via `position` before
-     * calling `destroy()` so the caller can restart the stream at the correct
-     * offset.
+     * The current stream-session position in seconds should be captured via
+     * `transportPosition` before calling `destroy()` so the caller can restart
+     * the stream at the correct offset.
      */
     async destroy(): Promise<void> {
         this.workletNode?.disconnect();
@@ -134,10 +130,9 @@ export class AudioEngine {
         this.ringBuffer = null;
         this.workletNode = null;
         this.gainNode = null;
-        this.stateView = null;
-        this.trackStartPosition = 0;
-        this.samplesConsumed = 0;
-        this.lastReadHead = 0;
+        this.transportView = null;
+        this.streamPositionBaseSeconds = 0;
+        this.transportStartFrame = 0;
     }
 
     /**
@@ -179,78 +174,61 @@ export class AudioEngine {
     }
 
     /**
-     * Flushes the ring buffer and repositions the playback position to the
+     * Flushes the ring buffer and repositions the current stream session to the
      * given offset in seconds.
      *
-     * This only handles the audio engine side of a seek. The caller is
-     * responsible for aborting the current AudioStream and starting a new one
-     * at the given offset.
+     * This does not identify a track. It only resets the engine's transport
+     * origin for the current stream session. The caller is still responsible
+     * for aborting the current AudioStream and starting a new one at the given
+     * offset.
      */
     seek(position: number): void {
         this.ringBuffer?.flush();
-        this.trackStartPosition = position;
-        this.samplesConsumed = 0;
-        this.lastReadHead = this.stateView
-            ? Atomics.load(this.stateView, READ_HEAD)
-            : 0;
+        this.streamPositionBaseSeconds = position;
+        this.transportStartFrame = this.transportFrame;
     }
 
     /**
-     * Reads the audio thread's current read head from shared memory and accumulates
-     * the number of newly consumed samples into `samplesConsumed`.
+     * Monotonic count of output frames consumed by the worklet since init.
      */
-    private syncConsumedSamples(): void {
-        if (!this.stateView || !this.ringBuffer) return;
-
-        const readHead = Atomics.load(this.stateView, READ_HEAD);
-
-        // Modular delta handles wrap-around when the read head passes capacity.
-        const samplesConsumedSinceLastPoll =
-            (readHead - this.lastReadHead + this.ringBuffer.capacity) %
-            this.ringBuffer.capacity;
-
-        this.lastReadHead = readHead;
-        this.samplesConsumed += samplesConsumedSinceLastPoll;
+    get transportFrame(): number {
+        if (!this.transportView) return 0;
+        return Number(Atomics.load(this.transportView, 0));
     }
 
     /**
-     * The current playback position in seconds.
+     * The current stream-session position in seconds.
      *
-     * Accumulates the delta between successive READ_HEAD observations to
-     * produce a monotonically increasing value that survives buffer
-     * wrap-around.
+     * This is derived from the monotonic transport clock plus the most recent
+     * stream position passed to `seek()`. It is stable even if the ring buffer
+     * wraps many times between reads.
      *
-     * Must be polled frequently enough to not miss a full wrap
-     * (~20s at 44100Hz).
+     * This is not a track-aware position. It only answers: "how far into the
+     * currently active stream session has the engine played?"
      *
      * Returns 0 if the engine has not been initialized.
      */
-    get position(): number {
-        this.syncConsumedSamples();
+    get transportPosition(): number {
         if (!this.ringBuffer) return 0;
 
         return (
-            this.trackStartPosition +
-            this.samplesConsumed / this.ringBuffer.sampleRate
+            this.streamPositionBaseSeconds +
+            (this.transportFrame - this.transportStartFrame) /
+                this.ringBuffer.sampleRate
         );
     }
 
     /**
-     * The total number of samples consumed by the worklet since the last seek
-     * or init.
+     * The number of output frames consumed since the current stream-session
+     * origin.
      *
-     * Unlike `position`, this returns the raw sample count without converting
-     * to seconds or adding the track start offset.
-     *
-     * Must be called frequently enough to not miss a full buffer wrap
-     * (~20s at 44100 Hz). In practice, `position` or this getter should be
-     * polled on every animation frame.
+     * Unlike `transportPosition`, this returns the raw frame count without
+     * converting to seconds or adding the stream offset.
      *
      * Returns 0 if the engine has not been initialized.
      */
-    get consumedSamples(): number {
-        this.syncConsumedSamples();
-        return this.samplesConsumed;
+    get consumedFrames(): number {
+        return this.transportFrame - this.transportStartFrame;
     }
 
     /**

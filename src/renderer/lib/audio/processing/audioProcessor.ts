@@ -11,6 +11,16 @@ const READ_HEAD = 1;
  */
 const FLUSH_COUNT = 2;
 
+/**
+ * Monotonic count of output frames emitted by the worklet.
+ *
+ * A frame is one instant of audio across all channels. In stereo, that means
+ * one left sample plus one right sample together. This counter advances only
+ * after a successful read from the ring buffer, giving the main thread a
+ * stable transport clock that does not wrap like READ_HEAD.
+ */
+const TRANSPORT_FRAME = 0;
+
 interface ProcessorInitMessage {
     /**
      * The shared memory block holding the actual PCM samples.
@@ -27,6 +37,13 @@ interface ProcessorInitMessage {
      * Both threads use these to coordinate reading and writing.
      */
     stateBuffer: SharedArrayBuffer;
+
+    /**
+     * Shared monotonic transport-frame counter.
+     *
+     * Incremented every time the worklet successfully outputs frames.
+     */
+    transportBuffer: SharedArrayBuffer;
 
     /**
      * The maximum number of samples per channel this buffer can hold at once.
@@ -72,9 +89,11 @@ class AudioProcessor extends AudioWorkletProcessor {
         // arrives, process() outputs silence.
         this.port.onmessage = (e: MessageEvent<ProcessorInitMessage>) => {
             const { channelData, stateBuffer, capacity } = e.data;
+            const { transportBuffer } = e.data;
             this.reader = new RingBufferReader(
                 channelData,
                 stateBuffer,
+                transportBuffer,
                 capacity,
             );
         };
@@ -138,9 +157,13 @@ class RingBufferReader {
      */
     private readonly state: Int32Array;
 
+    /** Monotonic count of frames successfully emitted by the worklet. */
+    private readonly transport: BigInt64Array;
+
     constructor(
         channelData: SharedArrayBuffer,
         stateBuffer: SharedArrayBuffer,
+        transportBuffer: SharedArrayBuffer,
         capacity: number,
     ) {
         this.capacity = capacity;
@@ -156,6 +179,7 @@ class RingBufferReader {
         });
 
         this.state = new Int32Array(stateBuffer);
+        this.transport = new BigInt64Array(transportBuffer);
     }
 
     /**
@@ -232,6 +256,7 @@ class RingBufferReader {
             (readHead + samples) % this.capacity,
         );
 
+        Atomics.add(this.transport, TRANSPORT_FRAME, BigInt(samples));
         return true;
     }
 }
