@@ -85,9 +85,8 @@ export default function AudioTesting() {
     );
 
     const appendEvent = useCallback(function appendEvent(message: string) {
-        const entry = `${new Date().toLocaleTimeString()}: ${message}`;
-        setEventLog((current) => [entry, ...current].slice(0, 18));
-        log(entry, "debug:audio", "info");
+        setEventLog((current) => [message, ...current].slice(0, 18));
+        log(message, "debug:audio", "info");
     }, []);
 
     const syncSnapshot = useCallback(function syncSnapshot() {
@@ -120,8 +119,14 @@ export default function AudioTesting() {
 
             const resolvedDeviceId = deviceId === "default" ? "" : deviceId;
 
+            const result = await engine.setOutputDevice(resolvedDeviceId);
+            if (!result.success) {
+                setErrorMessage(result.message);
+                appendEvent(`output device switch failed: ${result.message}`);
+                return;
+            }
+
             try {
-                await engine.setOutputDevice(resolvedDeviceId);
                 appendEvent(
                     resolvedDeviceId
                         ? `output device set to ${resolvedDeviceId}`
@@ -150,7 +155,16 @@ export default function AudioTesting() {
                 await engine.init();
 
                 if (selectedOutputDeviceId !== "default") {
-                    await engine.setOutputDevice(selectedOutputDeviceId);
+                    const result = await engine.setOutputDevice(
+                        selectedOutputDeviceId,
+                    );
+
+                    if (!result.success) {
+                        setErrorMessage(result.message);
+                        appendEvent(
+                            `audio runtime output device failed: ${result.message}`,
+                        );
+                    }
                 }
 
                 const session = new PlaybackSession(engine, port);
@@ -161,6 +175,7 @@ export default function AudioTesting() {
                 appendEvent(
                     `audio runtime initialized on port ${String(port)}`,
                 );
+
                 return session;
             } catch (err) {
                 const message = getErrorMessage(err);
@@ -402,6 +417,7 @@ export default function AudioTesting() {
                     <FieldLabel>Output Device</FieldLabel>
                     <Select
                         value={selectedOutputDeviceId}
+                        disabled={isLoading}
                         onValueChange={(value) => {
                             if (value === null) return;
 

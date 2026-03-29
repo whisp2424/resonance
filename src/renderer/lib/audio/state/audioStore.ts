@@ -16,19 +16,28 @@ const loadDevices = async (
     set({ isLoading: true, error: null });
     try {
         const devices = await AudioEngine.enumerateOutputDevices();
-        set({ outputDevices: devices, isLoading: false });
+        set({
+            outputDevices: devices,
+            isLoading: false,
+        });
     } catch (err) {
         const errorMessage = getErrorMessage(err);
-        set({ error: errorMessage, isLoading: false });
+        set({
+            error: errorMessage,
+            isLoading: false,
+        });
         log(errorMessage, "audioStore", "error");
     }
 };
 
 export const useAudioStore = create<AudioStore>((set) => {
     loadDevices(set);
-    navigator.mediaDevices.addEventListener("devicechange", () =>
-        loadDevices(set),
-    );
+
+    if (typeof navigator !== "undefined" && navigator.mediaDevices) {
+        navigator.mediaDevices.addEventListener("devicechange", () =>
+            loadDevices(set),
+        );
+    }
 
     return {
         outputDevices: [],

@@ -1,4 +1,12 @@
+import type { Result } from "@shared/types/result";
+
 import { RingBuffer } from "@renderer/lib/audio/processing/RingBuffer";
+import { error, ok } from "@shared/types/result";
+
+export type SetOutputDeviceResult = Result<
+    void,
+    "not_initialized" | "set_failed"
+>;
 
 /**
  * Owns the AudioContext, RingBuffer, AudioWorkletNode, and GainNode.
@@ -170,15 +178,29 @@ export class AudioEngine {
      * Routes audio output to the given device.
      * Passing an empty string will use the default output.
      *
-     * Has no effect if the engine has not been initialized.
+     * Returns a structured result so callers can handle missing engine
+     * initialization and runtime sink errors safely.
      */
-    async setOutputDevice(deviceId: string): Promise<void> {
-        if (!this.context) return;
-        await (
-            this.context as AudioContext & {
-                setSinkId: (id: string) => Promise<void>;
-            }
-        ).setSinkId(deviceId === "default" ? "" : deviceId);
+    async setOutputDevice(deviceId: string): Promise<SetOutputDeviceResult> {
+        if (!this.context) {
+            return error("Audio engine is not initialized", "not_initialized");
+        }
+
+        const sinkAwareContext = this.context as AudioContext & {
+            setSinkId(id: string): Promise<void>;
+        };
+
+        try {
+            await sinkAwareContext.setSinkId(
+                deviceId === "default" ? "" : deviceId,
+            );
+            return ok(undefined);
+        } catch (err) {
+            return error(
+                err instanceof Error ? err.message : String(err),
+                "set_failed",
+            );
+        }
     }
 
     /**
