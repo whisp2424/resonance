@@ -96,11 +96,17 @@ export class AudioStream {
 
     /**
      * Opens a stream to the given URL and begins writing PCM into the ring
-     * buffer. Returns immediately — the write loop runs asynchronously.
+     * buffer.
      *
-     * If the stream fails to open, `onError` is called — there is no way to
-     * recover from an open failure. Mid-stream failures are non-fatal and exit
-     * silently, letting the worklet output silence.
+     * Resolves once the session has either been superseded, failed to open, or
+     * successfully started its asynchronous write loop.
+     *
+     * Returns `true` once the stream opened and the write loop is running.
+     * Returns `false` if the start was superseded by a newer session or if the
+     * stream failed to open.
+     *
+     * If the stream fails to open, `onError` is called. Mid-stream failures are
+     * non-fatal and exit silently, letting the worklet output silence.
      *
      * If the stream exhausts cleanly, `onWriteEnd` is called to get the next
      * track's staging data and continuation URL. If `onWriteEnd` returns null,
@@ -108,7 +114,7 @@ export class AudioStream {
      *
      * It is safe to call `abort()` at any point after `start()`.
      */
-    async start(url: string): Promise<void> {
+    async start(url: string): Promise<boolean> {
         // Preempt the currently active or opening session immediately so the
         // latest request wins even if an older fetch is still opening.
         this.abortActiveSession();
@@ -118,7 +124,10 @@ export class AudioStream {
         const startTask = this.sessionQueue.then(() =>
             this.startSession(sessionId, url),
         );
-        this.sessionQueue = startTask.catch(() => {});
+        this.sessionQueue = startTask.then(
+            () => {},
+            () => {},
+        );
         return startTask;
     }
 
@@ -131,8 +140,19 @@ export class AudioStream {
     async abort(): Promise<void> {
         this.latestSessionId++;
         const activeLoop = this.writeLoopPromise;
-        this.abortActiveSession();
+        this.cancel();
         if (activeLoop) await activeLoop;
+    }
+
+    /**
+     * Synchronously cancels the active or opening session.
+     *
+     * This prevents any further writes immediately, while allowing callers to
+     * separately await `abort()` if they need full loop shutdown.
+     */
+    cancel(): void {
+        this.latestSessionId++;
+        this.abortActiveSession();
     }
 
     /**
@@ -159,12 +179,15 @@ export class AudioStream {
     /**
      * Starts a new streaming session after the previous one has fully stopped.
      */
-    private async startSession(sessionId: number, url: string): Promise<void> {
-        if (sessionId !== this.latestSessionId) return;
+    private async startSession(
+        sessionId: number,
+        url: string,
+    ): Promise<boolean> {
+        if (sessionId !== this.latestSessionId) return false;
 
         await this.stopActiveSession();
 
-        if (sessionId !== this.latestSessionId) return;
+        if (sessionId !== this.latestSessionId) return false;
 
         this.aborted = false;
         this.remainderBytes = new Uint8Array(0);
@@ -175,16 +198,16 @@ export class AudioStream {
 
         const openResult = await stream.open(url);
         if (!openResult.success) {
-            if (this.aborted || this.stream !== stream) return;
+            if (this.aborted || this.stream !== stream) return false;
             log(openResult.message, "AudioStream", "error");
             this.callbacks.onError();
             this.stream = null;
-            return;
+            return false;
         }
 
         if (sessionId !== this.latestSessionId || this.stream !== stream) {
             stream.abort();
-            return;
+            return false;
         }
 
         const writeLoop = this.runWriteLoop(sessionId, stream).finally(() => {
@@ -193,6 +216,7 @@ export class AudioStream {
         });
 
         this.writeLoopPromise = writeLoop;
+        return true;
     }
 
     /**
@@ -339,21 +363,37 @@ export class AudioStream {
         );
     }
     /**
-     * Writes a frame of PCM samples to the ring buffer, retrying every 10ms
-     * until space is available or the stream is aborted.
+     * Writes PCM frames to the ring buffer, retrying every 10ms until the full
+     * chunk has been accepted or the stream is aborted.
+     *
+     * The ring buffer may accept only part of the chunk when space is tight,
+     * so we keep advancing through the remaining tail instead of waiting for a
+     * single all-or-nothing write.
      */
     private async writeWithBackpressure(
         left: Float32Array,
         right: Float32Array,
         frames: number,
     ): Promise<void> {
+        let offset = 0;
+
         while (!this.aborted) {
-            if (this.ringBuffer.write(left, right, frames)) {
-                this.samplesWritten += frames;
-                return;
+            const writtenFrames = this.ringBuffer.write(
+                left.subarray(offset, frames),
+                right.subarray(offset, frames),
+                frames - offset,
+            );
+
+            if (writtenFrames > 0) {
+                this.samplesWritten += writtenFrames;
+                offset += writtenFrames;
+
+                if (offset >= frames) return;
+            } else {
+                await sleep(10);
             }
 
-            await sleep(10);
+            if (offset >= frames) return;
         }
     }
 }

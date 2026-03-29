@@ -95,16 +95,7 @@ export class PCMStream {
     /**
      * Iterates over raw PCM chunks until the stream is exhausted or closed.
      *
-     * Intended to be used with `for await...of`:
-     * ```ts
-     * for await (const chunk of stream) {
-     *     ringBuffer.write(chunk);
-     * }
-     * ```
-     *
-     * @throws {Error} If a read fails mid-stream. Abort the stream before
-     *                 breaking out of the loop early to avoid leaving the
-     *                 underlying fetch request open.
+     * Intended to be used with `for await...of`
      */
     async *[Symbol.asyncIterator](): AsyncGenerator<Uint8Array> {
         if (!this.isOpen) throw new Error("Stream is not open");

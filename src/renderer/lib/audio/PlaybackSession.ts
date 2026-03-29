@@ -8,6 +8,17 @@ import { AudioServerClient } from "@renderer/lib/audio/AudioServerClient";
 import { PlaybackPositionTracker } from "@renderer/lib/audio/processing/PlaybackPositionTracker";
 import { AudioStream } from "@renderer/lib/audio/streaming/AudioStream";
 
+export interface PlaybackSessionSnapshot {
+    generation: number;
+    trackId: number | null;
+    transportFrame: number;
+    transportPositionFrames: number;
+    transportPositionMilliseconds: number;
+    trackPositionFrames: number;
+    trackPositionMilliseconds: number;
+    starvationCount: number;
+}
+
 /**
  * Coordinates a single seekable playback session for one active track.
  *
@@ -18,8 +29,12 @@ import { AudioStream } from "@renderer/lib/audio/streaming/AudioStream";
  * 1. invalidate older requests with a new generation id
  * 2. abort the current stream and wait for it to stop
  * 3. flush/re-anchor the engine at the requested offset
- * 4. commit the target segment at the exact seek boundary
+ * 4. commit the target segment at the seek transport boundary
  * 5. restart streaming from the new offset
+ *
+ * If the replacement stream fails to open, the session fails closed: buffered
+ * audio is cleared and the session returns to an idle state rather than
+ * pretending the previous stream is still active.
  */
 export class PlaybackSession {
     private readonly engine: AudioEngine;
@@ -59,6 +74,20 @@ export class PlaybackSession {
         return this.tracker;
     }
 
+    get snapshot(): PlaybackSessionSnapshot {
+        return {
+            generation: this.activeGeneration,
+            trackId: this.activeTrackId,
+            transportFrame: this.engine.transportFrame,
+            transportPositionFrames: this.engine.transportPositionFrames,
+            transportPositionMilliseconds:
+                this.engine.transportPositionMilliseconds,
+            trackPositionFrames: this.tracker.positionFrames,
+            trackPositionMilliseconds: this.tracker.positionMilliseconds,
+            starvationCount: this.engine.starvationCount,
+        };
+    }
+
     /**
      * Starts a fresh playback generation for the given track.
      */
@@ -93,6 +122,8 @@ export class PlaybackSession {
         this.activeGeneration = 0;
         this.activeTrackId = null;
         this.tracker.clear();
+        this.stream.cancel();
+        this.engine.reset();
         await this.stream.abort();
     }
 
@@ -113,14 +144,30 @@ export class PlaybackSession {
         const segment = this.tracker.commitTargetAtBoundary(boundary);
         if (!segment) return null;
 
-        await this.stream.start(this.createTrackUrl(trackId, offsetSeconds));
+        const didStart = await this.stream.start(
+            this.createTrackUrl(trackId, offsetSeconds),
+        );
+
         if (generation !== this.requestedGeneration) return null;
+        if (!didStart) {
+            this.tracker.clear();
+            this.activeGeneration = 0;
+            this.activeTrackId = null;
+            this.engine.reset();
+            return null;
+        }
 
         this.activeGeneration = generation;
         this.activeTrackId = trackId;
         return segment;
     }
 
+    /**
+     * Captures the transport boundary used for seek generation commits.
+     *
+     * This boundary is aligned with the engine's monotonic transport clock,
+     * not a hardware-confirmed audible timestamp.
+     */
     private createSeekBoundary(): PlaybackSegmentBoundary {
         return {
             startTransportFrame: this.engine.transportFrame,

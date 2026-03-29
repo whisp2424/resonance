@@ -4,8 +4,8 @@ import { RingBuffer } from "@renderer/lib/audio/processing/RingBuffer";
  * Owns the AudioContext, RingBuffer, AudioWorkletNode, and GainNode.
  *
  * Knows nothing about tracks or queues — only PCM frames flowing through the
- * output path. It exposes a monotonic transport clock plus a seekable offset
- * within the current stream session; mapping that onto a logical track is the
+ * output path. It exposes a monotonic transport clock plus a frame-precise
+ * seekable offset within the current stream session; mapping that onto a logical track is the
  * caller's responsibility.
  *
  * Call `init()` before use and `destroy()` before reinitializing after a
@@ -37,13 +37,15 @@ export class AudioEngine {
     private transportView: BigInt64Array | null = null;
 
     /**
-     * The stream position, in seconds, that should be reported when playback
-     * reaches `transportStartFrame`.
+     * The stream position, in output frames, that should be reported when
+     * playback reaches `transportStartFrame`.
      *
-     * On init this is 0. On seek it becomes the requested seek target, so the
-     * engine can continue reporting position from the new stream location.
+     * On init this is 0. On seek it becomes the requested seek target, rounded
+     * down to the nearest whole output frame, so the engine can continue
+     * reporting position from the new stream location without accumulating
+     * floating-point drift across repeated seeks.
      */
-    private streamPositionBaseSeconds = 0;
+    private streamPositionBaseFrames = 0;
 
     /**
      * The total number of output frames that had been played when
@@ -87,7 +89,7 @@ export class AudioEngine {
         this.context = new AudioContext();
         this.ringBuffer = new RingBuffer(this.context.sampleRate);
         this.transportView = new BigInt64Array(this.ringBuffer.transportBuffer);
-        this.streamPositionBaseSeconds = 0;
+        this.streamPositionBaseFrames = 0;
         this.transportStartFrame = 0;
         this.starvationCountValue = 0;
 
@@ -151,7 +153,7 @@ export class AudioEngine {
         this.workletNode = null;
         this.gainNode = null;
         this.transportView = null;
-        this.streamPositionBaseSeconds = 0;
+        this.streamPositionBaseFrames = 0;
         this.transportStartFrame = 0;
         this.starvationCountValue = 0;
     }
@@ -204,8 +206,27 @@ export class AudioEngine {
      * offset.
      */
     seek(position: number): void {
+        this.streamPositionBaseFrames = this.secondsToFrames(position);
         this.ringBuffer?.flush();
-        this.streamPositionBaseSeconds = position;
+        this.transportStartFrame = this.transportFrame;
+    }
+
+    /**
+     * Flushes all buffered PCM without changing the current stream-session
+     * position base.
+     */
+    flush(): void {
+        this.streamPositionBaseFrames = this.transportPositionFrames;
+        this.ringBuffer?.flush();
+        this.transportStartFrame = this.transportFrame;
+    }
+
+    /**
+     * Flushes all buffered PCM and resets the stream-session position to 0.
+     */
+    reset(): void {
+        this.ringBuffer?.flush();
+        this.streamPositionBaseFrames = 0;
         this.transportStartFrame = this.transportFrame;
     }
 
@@ -218,11 +239,21 @@ export class AudioEngine {
     }
 
     /**
+     * The current stream-session position in output frames.
+     *
+     * This is the frame-precise source of truth for engine position. Seconds
+     * and milliseconds should be derived from this value, not tracked
+     * separately.
+     */
+    get transportPositionFrames(): number {
+        return this.streamPositionBaseFrames + this.consumedFrames;
+    }
+
+    /**
      * The current stream-session position in seconds.
      *
-     * This is derived from the monotonic transport clock plus the most recent
-     * stream position passed to `seek()`. It is stable even if the ring buffer
-     * wraps many times between reads.
+     * Derived from the frame-precise transport position, so it remains stable
+     * even if the ring buffer wraps many times between reads.
      *
      * This is not a track-aware position. It only answers: "how far into the
      * currently active stream session has the engine played?"
@@ -231,11 +262,16 @@ export class AudioEngine {
      */
     get transportPosition(): number {
         if (!this.ringBuffer) return 0;
+        return this.transportPositionFrames / this.ringBuffer.sampleRate;
+    }
 
-        return (
-            this.streamPositionBaseSeconds +
-            (this.transportFrame - this.transportStartFrame) /
-                this.ringBuffer.sampleRate
+    /**
+     * The current stream-session position in whole milliseconds.
+     */
+    get transportPositionMilliseconds(): number {
+        if (!this.ringBuffer) return 0;
+        return Math.floor(
+            (this.transportPositionFrames * 1000) / this.ringBuffer.sampleRate,
         );
     }
 
@@ -262,6 +298,11 @@ export class AudioEngine {
      */
     get starvationCount(): number {
         return this.starvationCountValue;
+    }
+
+    private secondsToFrames(seconds: number): number {
+        if (!this.ringBuffer || !Number.isFinite(seconds)) return 0;
+        return Math.max(0, Math.floor(seconds * this.ringBuffer.sampleRate));
     }
 
     /**

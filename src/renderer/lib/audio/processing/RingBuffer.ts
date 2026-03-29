@@ -156,19 +156,21 @@ export class RingBuffer {
     }
 
     /**
-     * Writes `frames` samples per channel from the provided deinterleaved
-     * channel arrays into the ring buffer.
+     * Writes up to `frames` samples per channel from the provided
+     * deinterleaved channel arrays into the ring buffer.
      *
-     * If there isn't enough free space, the write is rejected entirely and
-     * this method returns false. The caller should wait until the worklet has
-     * consumed more samples before retrying.
+     * If there is less free space than requested, this method writes as many
+     * frames as fit and returns that smaller count. The caller can then retry
+     * the remaining tail once the worklet has consumed more audio.
      *
      * When a chunk wraps around the end of the buffer, it's written in two
      * parts: the first part fills up to the end, and the second part continues
      * from the beginning.
      */
-    write(left: Float32Array, right: Float32Array, frames: number): boolean {
-        if (frames > this.freeSpace) return false;
+    write(left: Float32Array, right: Float32Array, frames: number): number {
+        const writableFrames = Math.min(frames, this.freeSpace);
+        if (writableFrames <= 0) return 0;
+
         const writeHead = Atomics.load(this.state, WRITE_HEAD);
         const sources = [left, right];
 
@@ -180,13 +182,19 @@ export class RingBuffer {
             // tail end first, then wrap around and continue from the beginning.
             const spaceToEnd = this.capacity - writeHead;
 
-            if (frames <= spaceToEnd) {
+            if (writableFrames <= spaceToEnd) {
                 // the chunk fits without wrapping — write it in one shot
-                this.channels[ch].set(src.subarray(0, frames), writeHead);
+                this.channels[ch].set(
+                    src.subarray(0, writableFrames),
+                    writeHead,
+                );
             } else {
                 // the chunk wraps around — write in two parts
                 this.channels[ch].set(src.subarray(0, spaceToEnd), writeHead);
-                this.channels[ch].set(src.subarray(spaceToEnd, frames), 0);
+                this.channels[ch].set(
+                    src.subarray(spaceToEnd, writableFrames),
+                    0,
+                );
             }
         }
 
@@ -196,10 +204,10 @@ export class RingBuffer {
         Atomics.store(
             this.state,
             WRITE_HEAD,
-            (writeHead + frames) % this.capacity,
+            (writeHead + writableFrames) % this.capacity,
         );
 
-        return true;
+        return writableFrames;
     }
 
     /**
