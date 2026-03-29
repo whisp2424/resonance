@@ -205,10 +205,11 @@ export class AudioEngine {
      * for aborting the current AudioStream and starting a new one at the given
      * offset.
      */
-    seek(position: number): void {
+    seek(position: number): number {
         this.streamPositionBaseFrames = this.secondsToFrames(position);
         this.ringBuffer?.flush();
         this.transportStartFrame = this.transportFrame;
+        return this.transportStartFrame;
     }
 
     /**

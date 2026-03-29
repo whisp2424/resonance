@@ -269,19 +269,26 @@ class RingBufferReader {
         }
 
         // if a flush occurred while we were reading, the main thread has
-        // already repositioned READ_HEAD. Drop this cycle's output as
-        // silence rather than overwriting the flushed position.
+        // already repositioned READ_HEAD. drop this cycle's output as silence
+        // rather than advancing from a stale read position.
         const countAfter = Atomics.load(this.state, FLUSH_COUNT);
         if (countAfter !== countBefore) {
             for (let ch = 0; ch < CHANNEL_COUNT; ch++) output[ch].fill(0);
             return "flushed";
         }
 
-        Atomics.store(
+        const nextReadHead = (readHead + samplesToRead) % this.capacity;
+        const committedReadHead = Atomics.compareExchange(
             this.state,
             READ_HEAD,
-            (readHead + samplesToRead) % this.capacity,
+            readHead,
+            nextReadHead,
         );
+
+        if (committedReadHead !== readHead) {
+            for (let ch = 0; ch < CHANNEL_COUNT; ch++) output[ch].fill(0);
+            return "flushed";
+        }
 
         Atomics.add(this.transport, TRANSPORT_FRAME, BigInt(samplesToRead));
         return samplesToRead === samples ? "full" : "partial";

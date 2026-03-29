@@ -9,13 +9,15 @@ import { PlaybackPositionTracker } from "@renderer/lib/audio/processing/Playback
 import { AudioStream } from "@renderer/lib/audio/streaming/AudioStream";
 
 export interface PlaybackSessionSnapshot {
+    state: "idle" | "opening" | "active";
     generation: number;
-    trackId: number | null;
+    activeTrackId: number | null;
+    pendingTrackId: number | null;
     transportFrame: number;
     transportPositionFrames: number;
     transportPositionMilliseconds: number;
-    trackPositionFrames: number;
-    trackPositionMilliseconds: number;
+    trackPositionFrames: number | null;
+    trackPositionMilliseconds: number | null;
     starvationCount: number;
 }
 
@@ -75,15 +77,27 @@ export class PlaybackSession {
     }
 
     get snapshot(): PlaybackSessionSnapshot {
+        const isActive =
+            this.activeGeneration > 0 && this.activeTrackId !== null;
+        const pendingTrackId = this.tracker.target?.trackId ?? null;
+
         return {
+            state: isActive
+                ? "active"
+                : pendingTrackId !== null
+                  ? "opening"
+                  : "idle",
             generation: this.activeGeneration,
-            trackId: this.activeTrackId,
+            activeTrackId: this.activeTrackId,
+            pendingTrackId,
             transportFrame: this.engine.transportFrame,
             transportPositionFrames: this.engine.transportPositionFrames,
             transportPositionMilliseconds:
                 this.engine.transportPositionMilliseconds,
-            trackPositionFrames: this.tracker.positionFrames,
-            trackPositionMilliseconds: this.tracker.positionMilliseconds,
+            trackPositionFrames: isActive ? this.tracker.positionFrames : null,
+            trackPositionMilliseconds: isActive
+                ? this.tracker.positionMilliseconds
+                : null,
             starvationCount: this.engine.starvationCount,
         };
     }
@@ -104,12 +118,13 @@ export class PlaybackSession {
      * generation at the requested offset.
      */
     async seek(offsetSeconds: number): Promise<PlaybackSegment | null> {
-        if (this.activeTrackId === null) return null;
+        const seekTrackId = this.tracker.target?.trackId ?? this.activeTrackId;
+        if (seekTrackId === null) return null;
 
         const generation = ++this.requestedGeneration;
         return this.replaceStreamGeneration(
             generation,
-            this.activeTrackId,
+            seekTrackId,
             offsetSeconds,
         );
     }
@@ -137,12 +152,11 @@ export class PlaybackSession {
         await this.stream.abort();
         if (generation !== this.requestedGeneration) return null;
 
-        const boundary = this.createSeekBoundary();
+        this.activeGeneration = 0;
+        this.activeTrackId = null;
+        this.tracker.clearActive();
 
-        this.engine.seek(offsetSeconds);
-
-        const segment = this.tracker.commitTargetAtBoundary(boundary);
-        if (!segment) return null;
+        const boundary = this.createSeekBoundary(offsetSeconds);
 
         const didStart = await this.stream.start(
             this.createTrackUrl(trackId, offsetSeconds),
@@ -157,6 +171,16 @@ export class PlaybackSession {
             return null;
         }
 
+        const segment = this.tracker.commitTargetAtBoundary(boundary);
+        if (!segment) {
+            this.tracker.clear();
+            this.activeGeneration = 0;
+            this.activeTrackId = null;
+            this.engine.reset();
+            await this.stream.abort();
+            return null;
+        }
+
         this.activeGeneration = generation;
         this.activeTrackId = trackId;
         return segment;
@@ -168,9 +192,9 @@ export class PlaybackSession {
      * This boundary is aligned with the engine's monotonic transport clock,
      * not a hardware-confirmed audible timestamp.
      */
-    private createSeekBoundary(): PlaybackSegmentBoundary {
+    private createSeekBoundary(offsetSeconds: number): PlaybackSegmentBoundary {
         return {
-            startTransportFrame: this.engine.transportFrame,
+            startTransportFrame: this.engine.seek(offsetSeconds),
         };
     }
 

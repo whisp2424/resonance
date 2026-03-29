@@ -89,6 +89,13 @@ export class AudioStream {
      */
     private aborted = false;
 
+    /** True once the current session has written at least one PCM frame. */
+    private sessionHasWritten = false;
+
+    /** Resolves the pending session-start handshake. */
+    private sessionStartResolve: ((didWriteFrames: boolean) => void) | null =
+        null;
+
     constructor(ringBuffer: RingBuffer, callbacks: AudioStreamCallbacks) {
         this.ringBuffer = ringBuffer;
         this.callbacks = callbacks;
@@ -99,9 +106,10 @@ export class AudioStream {
      * buffer.
      *
      * Resolves once the session has either been superseded, failed to open, or
-     * successfully started its asynchronous write loop.
+     * successfully written its first PCM frames into the ring buffer.
      *
-     * Returns `true` once the stream opened and the write loop is running.
+     * Returns `true` once the stream opened and has written its first PCM
+     * frames for this session.
      * Returns `false` if the start was superseded by a newer session or if the
      * stream failed to open.
      *
@@ -165,6 +173,7 @@ export class AudioStream {
         this.stream = null;
         this.remainderBytes = new Uint8Array(0);
         this.samplesWritten = 0;
+        if (!this.sessionHasWritten) this.resolveSessionStart(false);
     }
 
     /**
@@ -192,6 +201,11 @@ export class AudioStream {
         this.aborted = false;
         this.remainderBytes = new Uint8Array(0);
         this.samplesWritten = 0;
+        this.sessionHasWritten = false;
+
+        const didStart = new Promise<boolean>((resolve) => {
+            this.sessionStartResolve = resolve;
+        });
 
         const stream = new PCMStream();
         this.stream = stream;
@@ -202,21 +216,25 @@ export class AudioStream {
             log(openResult.message, "AudioStream", "error");
             this.callbacks.onError();
             this.stream = null;
+            this.resolveSessionStart(false);
             return false;
         }
 
         if (sessionId !== this.latestSessionId || this.stream !== stream) {
             stream.abort();
+            this.resolveSessionStart(false);
             return false;
         }
 
         const writeLoop = this.runWriteLoop(sessionId, stream).finally(() => {
             if (this.writeLoopPromise === writeLoop)
                 this.writeLoopPromise = null;
+
+            if (!this.sessionHasWritten) this.resolveSessionStart(false);
         });
 
         this.writeLoopPromise = writeLoop;
-        return true;
+        return didStart;
     }
 
     /**
@@ -375,6 +393,8 @@ export class AudioStream {
         right: Float32Array,
         frames: number,
     ): Promise<void> {
+        if (frames <= 0) return;
+
         let offset = 0;
 
         while (!this.aborted) {
@@ -385,6 +405,11 @@ export class AudioStream {
             );
 
             if (writtenFrames > 0) {
+                if (!this.sessionHasWritten) {
+                    this.sessionHasWritten = true;
+                    this.resolveSessionStart(true);
+                }
+
                 this.samplesWritten += writtenFrames;
                 offset += writtenFrames;
 
@@ -395,6 +420,11 @@ export class AudioStream {
 
             if (offset >= frames) return;
         }
+    }
+
+    private resolveSessionStart(didWriteFrames: boolean): void {
+        this.sessionStartResolve?.(didWriteFrames);
+        this.sessionStartResolve = null;
     }
 }
 

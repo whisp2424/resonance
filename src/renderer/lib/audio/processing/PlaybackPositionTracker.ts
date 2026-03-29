@@ -176,6 +176,10 @@ export class PlaybackPositionTracker {
         this.targetSegment = null;
     }
 
+    clearActive(): void {
+        this.activeSegment = null;
+    }
+
     clear(): void {
         this.activeSegment = null;
         this.targetSegment = null;
