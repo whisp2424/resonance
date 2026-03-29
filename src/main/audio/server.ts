@@ -8,7 +8,13 @@ import Router from "find-my-way";
 
 const router = Router();
 
+const DEFAULT_SAMPLE_RATE = 44100;
+const MIN_SAMPLE_RATE = 8000;
+const MAX_SAMPLE_RATE = 192000;
+
 let _port: number | null = null;
+
+const activeProcesses = new Set<ReturnType<typeof spawn>>();
 
 router.on("GET", "/tracks/:id", async (req, res, params) => {
     if (!ffmpegPath) {
@@ -25,7 +31,7 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
 
     const trackId = Number(params.id);
 
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1");
     res.setHeader("Access-Control-Allow-Methods", "GET");
 
     if (isNaN(trackId)) {
@@ -34,8 +40,30 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
     }
 
     const url = new URL(req.url, "http://127.0.0.1");
-    const sampleRate = Number(url.searchParams.get("sampleRate") || 44100);
+    const sampleRate = Number(
+        url.searchParams.get("sampleRate") || DEFAULT_SAMPLE_RATE,
+    );
     const offset = Number(url.searchParams.get("offset") || 0);
+
+    if (!Number.isFinite(sampleRate)) {
+        res.writeHead(400).end("Invalid sample rate");
+        return;
+    }
+
+    if (
+        !Number.isInteger(sampleRate) ||
+        sampleRate < MIN_SAMPLE_RATE ||
+        sampleRate > MAX_SAMPLE_RATE
+    ) {
+        res.writeHead(400).end("Sample rate out of range");
+        return;
+    }
+
+    if (!Number.isFinite(offset) || offset < 0) {
+        res.writeHead(400).end("Invalid offset");
+        return;
+    }
+
     const result = await library.getTrack(trackId);
 
     if (!result.success) {
@@ -68,22 +96,86 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
         "pipe:1", // write to stdout
     ];
 
-    const ffmpeg = spawn(ffmpegPath, args);
+    const ffmpeg = spawn(ffmpegPath, args, {
+        stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    activeProcesses.add(ffmpeg);
+
+    let didStartStreaming = false;
+    let didRequestClose = false;
+    let stderrOutput = "";
+
+    function cleanupProcess(): void {
+        activeProcesses.delete(ffmpeg);
+    }
+
+    function closeProcess(): void {
+        if (didRequestClose) return;
+        didRequestClose = true;
+
+        if (!ffmpeg.killed) ffmpeg.kill();
+    }
 
     res.writeHead(200, {
         "Content-Type": "audio/pcm",
         "Transfer-Encoding": "chunked",
     });
 
+    ffmpeg.stdout.once("data", () => {
+        didStartStreaming = true;
+    });
+
     ffmpeg.stdout.pipe(res);
 
+    ffmpeg.stderr.on("data", (chunk: Buffer) => {
+        stderrOutput += chunk.toString();
+    });
+
     ffmpeg.on("error", (err) => {
+        cleanupProcess();
         log(getErrorMessage(err), "AudioServer", "error");
         if (!res.headersSent) res.writeHead(500).end(err.message);
     });
 
+    ffmpeg.on("close", (code, signal) => {
+        cleanupProcess();
+
+        if (didRequestClose) return;
+
+        if (code !== 0 && !didStartStreaming) {
+            const message = stderrOutput.trim() || "Audio decode failed";
+
+            if (!res.headersSent) {
+                res.writeHead(500).end(message);
+            } else if (!res.destroyed) {
+                res.destroy(new Error(message));
+            }
+
+            log(
+                `ffmpeg exited before streaming (code: ${String(code)}, signal: ${String(signal)}): ${message}`,
+                "AudioServer",
+                "error",
+            );
+            return;
+        }
+
+        if (code !== 0) {
+            const message = stderrOutput.trim() || "Audio decode failed";
+            log(
+                `ffmpeg exited during streaming (code: ${String(code)}, signal: ${String(signal)}): ${message}`,
+                "AudioServer",
+                "warning",
+            );
+
+            if (!res.destroyed) res.destroy(new Error(message));
+        }
+    });
+
     // if the client disconnects mid-stream, kill ffmpeg cleanly
-    req.on("close", () => ffmpeg.kill());
+    req.on("close", closeProcess);
+    res.on("close", closeProcess);
+    res.on("error", closeProcess);
 });
 
 const server = http.createServer((req, res) => {
@@ -112,6 +204,10 @@ export function startServer(): Promise<number> {
 
 export function stopServer(): Promise<void> {
     return new Promise((resolve, reject) => {
+        for (const process of activeProcesses) {
+            if (!process.killed) process.kill();
+        }
+
         server.close((err) => {
             if (err) {
                 log(getErrorMessage(err), "AudioServer", "error");
