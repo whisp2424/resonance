@@ -20,6 +20,14 @@ export class AudioEngine {
     private gainNode: GainNode | null = null;
 
     /**
+     * Number of starvation episodes reported by the worklet.
+     *
+     * An episode begins when the worklet does not have enough audio to fill a
+     * full render quantum and has to output at least some silence.
+     */
+    private starvationCountValue = 0;
+
+    /**
      * The transport clock shared with the audio worklet.
      *
      * The worklet increments this every time it successfully emits frames,
@@ -81,6 +89,7 @@ export class AudioEngine {
         this.transportView = new BigInt64Array(this.ringBuffer.transportBuffer);
         this.streamPositionBaseSeconds = 0;
         this.transportStartFrame = 0;
+        this.starvationCountValue = 0;
 
         await this.context.audioWorklet.addModule(this.processorPath);
 
@@ -98,6 +107,17 @@ export class AudioEngine {
             transportBuffer: this.ringBuffer.transportBuffer,
             capacity: this.ringBuffer.capacity,
         });
+
+        this.workletNode.port.onmessage = (event: MessageEvent<unknown>) => {
+            if (
+                typeof event.data === "object" &&
+                event.data !== null &&
+                "type" in event.data &&
+                event.data.type === "starvation"
+            ) {
+                this.starvationCountValue++;
+            }
+        };
 
         // wire the effects chain: worklet → gain → destination
         this.gainNode = this.context.createGain();
@@ -133,6 +153,7 @@ export class AudioEngine {
         this.transportView = null;
         this.streamPositionBaseSeconds = 0;
         this.transportStartFrame = 0;
+        this.starvationCountValue = 0;
     }
 
     /**
@@ -229,6 +250,18 @@ export class AudioEngine {
      */
     get consumedFrames(): number {
         return this.transportFrame - this.transportStartFrame;
+    }
+
+    /**
+     * Number of distinct starvation episodes reported by the worklet.
+     *
+     * Consecutive render quanta that are partially or fully padded with silence
+     * are counted once, not once per process callback. This is an observability
+     * signal for "the engine lacked enough audio to fill a full block", not a
+     * strict network or decode health metric.
+     */
+    get starvationCount(): number {
+        return this.starvationCountValue;
     }
 
     /**

@@ -52,6 +52,18 @@ export class AudioStream {
     private readonly ringBuffer: RingBuffer;
     private readonly callbacks: AudioStreamCallbacks;
 
+    /**
+     * Serializes session start requests so only one write loop can exist at a
+     * time.
+     */
+    private sessionQueue: Promise<void> = Promise.resolve();
+
+    /** The most recently requested session start. */
+    private latestSessionId = 0;
+
+    /** The currently running write loop, if any. */
+    private writeLoopPromise: Promise<void> | null = null;
+
     private stream: PCMStream | null = null;
 
     /**
@@ -97,34 +109,90 @@ export class AudioStream {
      * It is safe to call `abort()` at any point after `start()`.
      */
     async start(url: string): Promise<void> {
-        this.aborted = false;
-        this.remainderBytes = new Uint8Array(0);
-        this.samplesWritten = 0;
-        this.stream = new PCMStream();
+        // Preempt the currently active or opening session immediately so the
+        // latest request wins even if an older fetch is still opening.
+        this.abortActiveSession();
 
-        const openResult = await this.stream.open(url);
-        if (!openResult.success) {
-            if (this.aborted) return;
-            log(openResult.message, "AudioStream", "error");
-            this.callbacks.onError();
-            return;
-        }
+        const sessionId = ++this.latestSessionId;
 
-        this.runWriteLoop();
+        const startTask = this.sessionQueue.then(() =>
+            this.startSession(sessionId, url),
+        );
+        this.sessionQueue = startTask.catch(() => {});
+        return startTask;
     }
 
     /**
-     * Aborts the active stream and stops the write loop.
+     * Aborts the active stream and waits for the write loop to fully stop.
      *
      * Safe to call at any point — before, during, or after `start()`. The
      * remainder bytes are reset so a subsequent `start()` begins clean.
      */
-    abort(): void {
+    async abort(): Promise<void> {
+        this.latestSessionId++;
+        const activeLoop = this.writeLoopPromise;
+        this.abortActiveSession();
+        if (activeLoop) await activeLoop;
+    }
+
+    /**
+     * Aborts the active or opening session without invalidating future queued
+     * starts.
+     */
+    private abortActiveSession(): void {
         this.aborted = true;
         this.stream?.abort();
         this.stream = null;
         this.remainderBytes = new Uint8Array(0);
         this.samplesWritten = 0;
+    }
+
+    /**
+     * Stops any active session and waits for its write loop to fully exit.
+     */
+    private async stopActiveSession(): Promise<void> {
+        const activeLoop = this.writeLoopPromise;
+        this.abortActiveSession();
+        if (activeLoop) await activeLoop;
+    }
+
+    /**
+     * Starts a new streaming session after the previous one has fully stopped.
+     */
+    private async startSession(sessionId: number, url: string): Promise<void> {
+        if (sessionId !== this.latestSessionId) return;
+
+        await this.stopActiveSession();
+
+        if (sessionId !== this.latestSessionId) return;
+
+        this.aborted = false;
+        this.remainderBytes = new Uint8Array(0);
+        this.samplesWritten = 0;
+
+        const stream = new PCMStream();
+        this.stream = stream;
+
+        const openResult = await stream.open(url);
+        if (!openResult.success) {
+            if (this.aborted || this.stream !== stream) return;
+            log(openResult.message, "AudioStream", "error");
+            this.callbacks.onError();
+            this.stream = null;
+            return;
+        }
+
+        if (sessionId !== this.latestSessionId || this.stream !== stream) {
+            stream.abort();
+            return;
+        }
+
+        const writeLoop = this.runWriteLoop(sessionId, stream).finally(() => {
+            if (this.writeLoopPromise === writeLoop)
+                this.writeLoopPromise = null;
+        });
+
+        this.writeLoopPromise = writeLoop;
     }
 
     /**
@@ -138,15 +206,25 @@ export class AudioStream {
      * Exits when `onWriteEnd` returns null (queue exhausted) or `abort()` is
      * called.
      */
-    private async runWriteLoop(): Promise<void> {
-        while (!this.aborted && this.stream !== null) {
+    private async runWriteLoop(
+        sessionId: number,
+        initialStream: PCMStream,
+    ): Promise<void> {
+        let currentStream: PCMStream | null = initialStream;
+
+        while (
+            !this.aborted &&
+            sessionId === this.latestSessionId &&
+            currentStream !== null
+        ) {
             try {
-                for await (const chunk of this.stream) {
-                    if (this.aborted) return;
+                for await (const chunk of currentStream) {
+                    if (this.aborted || sessionId !== this.latestSessionId)
+                        return;
                     await this.writeChunk(chunk);
                 }
             } catch (err) {
-                if (this.aborted) return;
+                if (this.aborted || sessionId !== this.latestSessionId) return;
                 log(getErrorMessage(err), "AudioStream", "warning");
                 this.callbacks.onError();
                 return;
@@ -156,28 +234,34 @@ export class AudioStream {
             this.stream = null;
             this.remainderBytes = new Uint8Array(0);
 
-            if (this.aborted) return;
+            if (this.aborted || sessionId !== this.latestSessionId) return;
 
             const completedSamples = this.samplesWritten;
             this.samplesWritten = 0;
 
             const transition = this.callbacks.onWriteEnd(completedSamples);
             if (transition === null) return;
+            if (this.aborted || sessionId !== this.latestSessionId) return;
 
             // write the preloaded staging samples directly into the ring
             // buffer — these are the first ~5s of the next track, already
             // deinterleaved and ready. this is the gapless boundary.
             await this.writeStagingBuffer(transition.stagingData);
-            if (this.aborted) return;
+            if (this.aborted || sessionId !== this.latestSessionId) return;
 
             // open the continuation stream from where the staging buffer left
             // off and keep writing
-            this.stream = new PCMStream();
-            const openResult = await this.stream.open(transition.nextTrackUrl);
+            currentStream = new PCMStream();
+            this.stream = currentStream;
+            const openResult = await currentStream.open(
+                transition.nextTrackUrl,
+            );
+
             if (!openResult.success) {
-                if (this.aborted) return;
+                if (this.aborted || this.stream !== currentStream) return;
                 log(openResult.message, "AudioStream", "error");
                 this.callbacks.onError();
+                this.stream = null;
                 return;
             }
         }
@@ -214,8 +298,8 @@ export class AudioStream {
         if (frameCount === 0) return;
 
         // reinterpret as f32 samples. if the buffer isn't 4-byte aligned (can
-        // happen after the remainderBytes concatenation above), copy into a fresh
-        // ArrayBuffer first — Float32Array requires alignment.
+        // happen after the remainderBytes concatenation above), copy into a
+        // fresh ArrayBuffer first — Float32Array requires alignment.
         const alignedByteCount = frameCount * frameSize;
         const needsCopy = bytes.byteOffset % BYTES_PER_SAMPLE !== 0;
         const source = needsCopy ? bytes.slice(0, alignedByteCount) : bytes;

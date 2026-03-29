@@ -53,14 +53,17 @@ interface ProcessorInitMessage {
     capacity: number;
 }
 
+type ReadStatus = "full" | "partial" | "empty" | "flushed";
+
 /**
  * The audio worklet processor. Runs entirely on the audio thread, isolated
  * from the main thread and its event loop.
  *
  * On every process() call — which happens every 128 samples, driven by the
  * hardware clock — it reads 128 samples per channel from the ring buffer and
- * writes them to the output. If the buffer is starving, it outputs silence
- * and notifies the main thread so it can write more data.
+ * writes them to the output. If there is not enough audio for a full quantum,
+ * it pads with silence and notifies the main thread once per contiguous
+ * starvation episode.
  *
  * It starts silent and doesn't produce any output until the main thread has
  * initialized it with the shared memory references via port.postMessage().
@@ -80,6 +83,9 @@ class AudioProcessor extends AudioWorkletProcessor {
      * outputs silence.
      */
     private reader: RingBufferReader | null = null;
+
+    /** True while the processor is continuously outputting silence on underrun. */
+    private isStarving = false;
 
     constructor() {
         super();
@@ -107,10 +113,16 @@ class AudioProcessor extends AudioWorkletProcessor {
             return true;
         }
 
-        const didRead = this.reader.read(output, 128);
-        if (!didRead)
-            // buffer starved — notify the main thread
-            this.port.postMessage({ type: "starvation" });
+        const readStatus = this.reader.read(output, 128);
+
+        if (readStatus === "empty" || readStatus === "partial") {
+            if (!this.isStarving) {
+                this.isStarving = true;
+                this.port.postMessage({ type: "starvation" });
+            }
+        } else {
+            this.isStarving = false;
+        }
 
         // returning true keeps the processor alive. returning false would
         // cause the AudioContext to garbage collect it.
@@ -199,9 +211,12 @@ class RingBufferReader {
      * Reads a given number of samples per channel in the provided `output`
      * arrays and advances the read head.
      *
-     * If there isn't enough data, the output is filled with silence and this
-     * method returns false — the worklet should treat this as a starvation
-     * signal.
+     * If there is some data but fewer than `samples` available, the available
+     * frames are written first and the rest of the block is padded with
+     * silence. If there is no data at all, the full block is silence.
+     *
+     * The return value distinguishes full reads, partial tail reads, empty
+     * reads, and flush-race drops.
      *
      * Like the write path, a read may wrap around the end of the buffer and
      * continue from the beginning.
@@ -211,10 +226,19 @@ class RingBufferReader {
      * the read and output silence so the flushed position isn't overwritten
      * with a stale value.
      */
-    read(output: Float32Array[], samples: number): boolean {
-        if (this.availableSamples < samples) {
+    read(output: Float32Array[], samples: number): ReadStatus {
+        const availableSamples = this.availableSamples;
+
+        if (availableSamples === 0) {
             for (let ch = 0; ch < CHANNEL_COUNT; ch++) output[ch].fill(0);
-            return false;
+            return "empty";
+        }
+
+        const samplesToRead = Math.min(availableSamples, samples);
+        const needsSilencePadding = samplesToRead < samples;
+
+        if (needsSilencePadding) {
+            for (let ch = 0; ch < CHANNEL_COUNT; ch++) output[ch].fill(0);
         }
 
         const countBefore = Atomics.load(this.state, FLUSH_COUNT);
@@ -226,16 +250,19 @@ class RingBufferReader {
             /** The output array we're filling with samples. */
             const dst = output[ch];
 
-            if (samples <= spaceToEnd) {
+            if (samplesToRead <= spaceToEnd) {
                 dst.set(
-                    this.channels[ch].subarray(readHead, readHead + samples),
+                    this.channels[ch].subarray(
+                        readHead,
+                        readHead + samplesToRead,
+                    ),
                 );
             } else {
                 // wrap-around read — the available samples span the end of the
                 // array and continue from the beginning
                 dst.set(this.channels[ch].subarray(readHead, this.capacity));
                 dst.set(
-                    this.channels[ch].subarray(0, samples - spaceToEnd),
+                    this.channels[ch].subarray(0, samplesToRead - spaceToEnd),
                     spaceToEnd,
                 );
             }
@@ -247,16 +274,16 @@ class RingBufferReader {
         const countAfter = Atomics.load(this.state, FLUSH_COUNT);
         if (countAfter !== countBefore) {
             for (let ch = 0; ch < CHANNEL_COUNT; ch++) output[ch].fill(0);
-            return true;
+            return "flushed";
         }
 
         Atomics.store(
             this.state,
             READ_HEAD,
-            (readHead + samples) % this.capacity,
+            (readHead + samplesToRead) % this.capacity,
         );
 
-        Atomics.add(this.transport, TRANSPORT_FRAME, BigInt(samples));
-        return true;
+        Atomics.add(this.transport, TRANSPORT_FRAME, BigInt(samplesToRead));
+        return samplesToRead === samples ? "full" : "partial";
     }
 }
