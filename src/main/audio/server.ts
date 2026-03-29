@@ -31,7 +31,7 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
 
     const trackId = Number(params.id);
 
-    res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1");
+    res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET");
 
     if (isNaN(trackId)) {

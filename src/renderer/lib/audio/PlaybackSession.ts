@@ -138,6 +138,7 @@ export class PlaybackSession {
         this.activeTrackId = null;
         this.tracker.clear();
         this.stream.cancel();
+        await this.engine.pause();
         this.engine.reset();
         await this.stream.abort();
     }
@@ -167,15 +168,19 @@ export class PlaybackSession {
             this.tracker.clear();
             this.activeGeneration = 0;
             this.activeTrackId = null;
+            await this.engine.pause();
             this.engine.reset();
             return null;
         }
+
+        await this.engine.play();
 
         const segment = this.tracker.commitTargetAtBoundary(boundary);
         if (!segment) {
             this.tracker.clear();
             this.activeGeneration = 0;
             this.activeTrackId = null;
+            await this.engine.pause();
             this.engine.reset();
             await this.stream.abort();
             return null;
