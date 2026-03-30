@@ -1,3 +1,5 @@
+import type { ChildProcess } from "node:child_process";
+
 import { spawn } from "node:child_process";
 import http from "node:http";
 
@@ -13,8 +15,14 @@ const MIN_SAMPLE_RATE = 8000;
 const MAX_SAMPLE_RATE = 192000;
 
 let _port: number | null = null;
+let isStoppingServer = false;
 
-const activeProcesses = new Set<ReturnType<typeof spawn>>();
+interface ActiveStream {
+    process: ChildProcess;
+    closeResponse: () => void;
+}
+
+const activeStreams = new Set<ActiveStream>();
 
 router.on("GET", "/tracks/:id", async (req, res, params) => {
     if (!ffmpegPath) {
@@ -100,14 +108,29 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
         stdio: ["ignore", "pipe", "pipe"],
     });
 
-    activeProcesses.add(ffmpeg);
-
     let didStartStreaming = false;
     let didRequestClose = false;
     let stderrOutput = "";
 
+    function closeResponse(): void {
+        if (res.destroyed) return;
+        if (!res.headersSent) {
+            res.writeHead(204).end();
+            return;
+        }
+
+        res.destroy();
+    }
+
+    const activeStream: ActiveStream = {
+        process: ffmpeg,
+        closeResponse,
+    };
+
+    activeStreams.add(activeStream);
+
     function cleanupProcess(): void {
-        activeProcesses.delete(ffmpeg);
+        activeStreams.delete(activeStream);
     }
 
     function closeProcess(): void {
@@ -117,16 +140,21 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
         if (!ffmpeg.killed) ffmpeg.kill();
     }
 
-    res.writeHead(200, {
-        "Content-Type": "audio/pcm",
-        "Transfer-Encoding": "chunked",
-    });
-
     ffmpeg.stdout.once("data", () => {
         didStartStreaming = true;
     });
 
-    ffmpeg.stdout.pipe(res);
+    ffmpeg.stdout.once("data", (chunk: Buffer) => {
+        if (!res.headersSent) {
+            res.writeHead(200, {
+                "Content-Type": "audio/pcm",
+                "Transfer-Encoding": "chunked",
+            });
+        }
+
+        if (!res.destroyed) res.write(chunk);
+        ffmpeg.stdout.pipe(res);
+    });
 
     ffmpeg.stderr.on("data", (chunk: Buffer) => {
         stderrOutput += chunk.toString();
@@ -134,6 +162,7 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
 
     ffmpeg.on("error", (err) => {
         cleanupProcess();
+        if (isStoppingServer || didRequestClose) return;
         log(getErrorMessage(err), "AudioServer", "error");
         if (!res.headersSent) res.writeHead(500).end(err.message);
     });
@@ -141,7 +170,7 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
     ffmpeg.on("close", (code, signal) => {
         cleanupProcess();
 
-        if (didRequestClose) return;
+        if (didRequestClose || isStoppingServer) return;
 
         if (code !== 0 && !didStartStreaming) {
             const message = stderrOutput.trim() || "Audio decode failed";
@@ -157,6 +186,16 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
                 "AudioServer",
                 "error",
             );
+            return;
+        }
+
+        if (!didStartStreaming) {
+            if (!res.headersSent) {
+                res.writeHead(204).end();
+            } else if (!res.destroyed) {
+                res.end();
+            }
+
             return;
         }
 
@@ -189,30 +228,40 @@ export function getPort(): number {
 
 export function startServer(): Promise<number> {
     return new Promise((resolve, reject) => {
+        const handleError = (err: Error) => {
+            log(getErrorMessage(err), "AudioServer", "error");
+            reject(err);
+        };
+
+        server.once("error", handleError);
         server.listen(0, "127.0.0.1", () => {
+            server.removeListener("error", handleError);
             const address = server.address() as { port: number };
+            isStoppingServer = false;
             _port = address.port;
             log(`server listening on port ${_port}`, "AudioServer");
             resolve(_port);
-        });
-        server.on("error", (err) => {
-            log(getErrorMessage(err), "AudioServer", "error");
-            reject(err);
         });
     });
 }
 
 export function stopServer(): Promise<void> {
     return new Promise((resolve, reject) => {
-        for (const process of activeProcesses) {
-            if (!process.killed) process.kill();
+        isStoppingServer = true;
+
+        for (const stream of activeStreams) {
+            stream.closeResponse();
+            if (!stream.process.killed) stream.process.kill();
         }
 
         server.close((err) => {
             if (err) {
+                isStoppingServer = false;
                 log(getErrorMessage(err), "AudioServer", "error");
                 reject(err);
             } else {
+                _port = null;
+                isStoppingServer = false;
                 log("server stopped", "AudioServer");
                 resolve();
             }

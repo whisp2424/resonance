@@ -41,7 +41,16 @@ export class PCMStream {
             if (!response.ok)
                 return error(`Server responded with ${response.status}`);
 
-            if (!response.body) return error("Response body is empty");
+            if (!response.body) {
+                const emptyStream = new ReadableStream<Uint8Array>({
+                    start(controller) {
+                        controller.close();
+                    },
+                });
+
+                this.reader = emptyStream.getReader();
+                return ok(undefined);
+            }
 
             this.reader = response.body.getReader();
             return ok(undefined);

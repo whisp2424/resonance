@@ -106,7 +106,7 @@ export default function AudioTesting() {
             setServerPort(null);
             setSnapshot(IDLE_SNAPSHOT);
 
-            if (session) await session.stop();
+            if (session) await session.destroy();
             if (engine) await engine.destroy();
         },
         [],

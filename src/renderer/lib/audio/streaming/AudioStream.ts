@@ -1,7 +1,9 @@
 import type { RingBuffer } from "@renderer/lib/audio/processing/RingBuffer";
 import type { StagingBufferData } from "@renderer/lib/audio/processing/StagingBuffer";
+import type { Result } from "@shared/types/result";
 
 import { PCMStream } from "@renderer/lib/audio/streaming/PCMStream";
+import { error, ok } from "@shared/types/result";
 import { getErrorMessage, log } from "@shared/utils/logger";
 
 const CHANNEL_COUNT = 2;
@@ -34,8 +36,13 @@ export interface AudioStreamCallbacks {
      * Called when a stream fails to open, the track was not found, the server
      * was unreachable, or the request was rejected.
      */
-    onError: () => void;
+    onError: (message: string, samplesWritten: number) => void;
 }
+
+export type AudioStreamStartResult = Result<
+    "started" | "ended",
+    "failed" | "superseded"
+>;
 
 /**
  * Reads decoded PCM from a streaming HTTP source and writes it continuously
@@ -92,9 +99,13 @@ export class AudioStream {
     /** True once the current session has written at least one PCM frame. */
     private sessionHasWritten = false;
 
+    /** True when the current session ended cleanly before writing any frames. */
+    private sessionEndedWithoutFrames = false;
+
     /** Resolves the pending session-start handshake. */
-    private sessionStartResolve: ((didWriteFrames: boolean) => void) | null =
-        null;
+    private sessionStartResolve:
+        | ((result: AudioStreamStartResult) => void)
+        | null = null;
 
     constructor(ringBuffer: RingBuffer, callbacks: AudioStreamCallbacks) {
         this.ringBuffer = ringBuffer;
@@ -122,7 +133,7 @@ export class AudioStream {
      *
      * It is safe to call `abort()` at any point after `start()`.
      */
-    async start(url: string): Promise<boolean> {
+    async start(url: string): Promise<AudioStreamStartResult> {
         // Preempt the currently active or opening session immediately so the
         // latest request wins even if an older fetch is still opening.
         this.abortActiveSession();
@@ -173,7 +184,11 @@ export class AudioStream {
         this.stream = null;
         this.remainderBytes = new Uint8Array(0);
         this.samplesWritten = 0;
-        if (!this.sessionHasWritten) this.resolveSessionStart(false);
+        if (!this.sessionHasWritten) {
+            this.resolveSessionStart(
+                error("Stream start was superseded", "superseded"),
+            );
+        }
     }
 
     /**
@@ -191,19 +206,22 @@ export class AudioStream {
     private async startSession(
         sessionId: number,
         url: string,
-    ): Promise<boolean> {
-        if (sessionId !== this.latestSessionId) return false;
+    ): Promise<AudioStreamStartResult> {
+        if (sessionId !== this.latestSessionId)
+            return error("Stream start was superseded", "superseded");
 
         await this.stopActiveSession();
 
-        if (sessionId !== this.latestSessionId) return false;
+        if (sessionId !== this.latestSessionId)
+            return error("Stream start was superseded", "superseded");
 
         this.aborted = false;
         this.remainderBytes = new Uint8Array(0);
         this.samplesWritten = 0;
         this.sessionHasWritten = false;
+        this.sessionEndedWithoutFrames = false;
 
-        const didStart = new Promise<boolean>((resolve) => {
+        const didStart = new Promise<AudioStreamStartResult>((resolve) => {
             this.sessionStartResolve = resolve;
         });
 
@@ -212,25 +230,39 @@ export class AudioStream {
 
         const openResult = await stream.open(url);
         if (!openResult.success) {
-            if (this.aborted || this.stream !== stream) return false;
+            if (this.aborted || this.stream !== stream)
+                return error("Stream start was superseded", "superseded");
             log(openResult.message, "AudioStream", "error");
-            this.callbacks.onError();
+            this.callbacks.onError(openResult.message, this.samplesWritten);
             this.stream = null;
-            this.resolveSessionStart(false);
-            return false;
+            this.resolveSessionStart(error(openResult.message, "failed"));
+            return error(openResult.message, "failed");
         }
 
         if (sessionId !== this.latestSessionId || this.stream !== stream) {
             stream.abort();
-            this.resolveSessionStart(false);
-            return false;
+            this.resolveSessionStart(
+                error("Stream start was superseded", "superseded"),
+            );
+            return error("Stream start was superseded", "superseded");
         }
 
         const writeLoop = this.runWriteLoop(sessionId, stream).finally(() => {
             if (this.writeLoopPromise === writeLoop)
                 this.writeLoopPromise = null;
 
-            if (!this.sessionHasWritten) this.resolveSessionStart(false);
+            if (!this.sessionHasWritten) {
+                this.resolveSessionStart(
+                    this.aborted || sessionId !== this.latestSessionId
+                        ? error("Stream start was superseded", "superseded")
+                        : this.sessionEndedWithoutFrames
+                          ? ok("ended")
+                          : error(
+                                "Stream failed before writing any audio",
+                                "failed",
+                            ),
+                );
+            }
         });
 
         this.writeLoopPromise = writeLoop;
@@ -267,8 +299,12 @@ export class AudioStream {
                 }
             } catch (err) {
                 if (this.aborted || sessionId !== this.latestSessionId) return;
-                log(getErrorMessage(err), "AudioStream", "warning");
-                this.callbacks.onError();
+                const message = getErrorMessage(err);
+                log(message, "AudioStream", "warning");
+                this.callbacks.onError(message, this.samplesWritten);
+                if (!this.sessionHasWritten) {
+                    this.resolveSessionStart(error(message, "failed"));
+                }
                 return;
             }
 
@@ -282,7 +318,13 @@ export class AudioStream {
             this.samplesWritten = 0;
 
             const transition = this.callbacks.onWriteEnd(completedSamples);
-            if (transition === null) return;
+            if (transition === null) {
+                if (!this.sessionHasWritten && completedSamples === 0) {
+                    this.sessionEndedWithoutFrames = true;
+                }
+
+                return;
+            }
             if (this.aborted || sessionId !== this.latestSessionId) return;
 
             // write the preloaded staging samples directly into the ring
@@ -302,7 +344,7 @@ export class AudioStream {
             if (!openResult.success) {
                 if (this.aborted || this.stream !== currentStream) return;
                 log(openResult.message, "AudioStream", "error");
-                this.callbacks.onError();
+                this.callbacks.onError(openResult.message, this.samplesWritten);
                 this.stream = null;
                 return;
             }
@@ -407,7 +449,7 @@ export class AudioStream {
             if (writtenFrames > 0) {
                 if (!this.sessionHasWritten) {
                     this.sessionHasWritten = true;
-                    this.resolveSessionStart(true);
+                    this.resolveSessionStart(ok("started"));
                 }
 
                 this.samplesWritten += writtenFrames;
@@ -422,8 +464,8 @@ export class AudioStream {
         }
     }
 
-    private resolveSessionStart(didWriteFrames: boolean): void {
-        this.sessionStartResolve?.(didWriteFrames);
+    private resolveSessionStart(result: AudioStreamStartResult): void {
+        this.sessionStartResolve?.(result);
         this.sessionStartResolve = null;
     }
 }
