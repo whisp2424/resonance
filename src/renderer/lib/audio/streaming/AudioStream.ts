@@ -1,5 +1,4 @@
 import type { RingBuffer } from "@renderer/lib/audio/processing/RingBuffer";
-import type { StagingBufferData } from "@renderer/lib/audio/processing/StagingBuffer";
 import type { Result } from "@shared/types/result";
 
 import { PCMStream } from "@renderer/lib/audio/streaming/PCMStream";
@@ -9,34 +8,20 @@ import { getErrorMessage, log } from "@shared/utils/logger";
 const CHANNEL_COUNT = 2;
 const BYTES_PER_SAMPLE = Float32Array.BYTES_PER_ELEMENT;
 
-export interface TrackTransition {
-    /** Preloaded samples from the next track. */
-    stagingData: StagingBufferData;
-
-    /** Streaming URL for the track following the staging buffer. */
-    nextTrackUrl: string;
-}
-
 export interface AudioStreamCallbacks {
     /**
-     * Called when the current PCMStream exhausts cleanly — all of the track's
-     * PCM has been written into the ring buffer, but the worklet may not have
-     * consumed it yet.
+     * Called when the current PCMStream exhausts cleanly.
      *
-     * The `samplesWritten` parameter is the total number of samples per channel
-     * that were written for the completed track. Use this to compute the
-     * cumulative offset for the next track in the timeline.
-     *
-     * Return a `TrackTransition` to continue into the next track, or `null`
-     * if the queue is exhausted.
+     * The `framesWritten` parameter is the total number of PCM frames written
+     * for the completed track.
      */
-    onWriteEnd: (samplesWritten: number) => TrackTransition | null;
+    onWriteEnd: (framesWritten: number) => void;
 
     /**
      * Called when a stream fails to open, the track was not found, the server
      * was unreachable, or the request was rejected.
      */
-    onError: (message: string, samplesWritten: number) => void;
+    onError: (message: string, framesWritten: number) => void;
 }
 
 export type AudioStreamStartResult = Result<
@@ -48,12 +33,9 @@ export type AudioStreamStartResult = Result<
  * Reads decoded PCM from a streaming HTTP source and writes it continuously
  * into the ring buffer.
  *
- * AudioStream is the active pipeline for the current track. It owns the
- * PCMStream and is responsible for the track boundary handoff.
- *
- * When the current stream exhausts, it writes the preloaded staging buffer
- * samples directly into the ring buffer, then opens a continuation stream for
- * the next track and keeps writing without ever interrupting the write loop.
+ * AudioStream is the active PCM writer for a single track stream session.
+ * It owns one PCMStream at a time and serializes all writes into the ring
+ * buffer until the stream ends, errors, or is superseded.
  */
 export class AudioStream {
     private readonly ringBuffer: RingBuffer;
@@ -74,11 +56,11 @@ export class AudioStream {
     private stream: PCMStream | null = null;
 
     /**
-     * The total number of samples (per channel) written since the stream
-     * started or since the last callback. Reset to 0 when onWriteEnd is called,
-     * so each callback invocation reports samples for exactly one track.
+     * The total number of PCM frames written since the stream started or since
+     * the last callback. Reset to 0 when `onWriteEnd` is called, so each
+     * callback invocation reports frames for exactly one track.
      */
-    private samplesWritten = 0;
+    private framesWritten = 0;
 
     /**
      * Remainder bytes from the previous chunk that didn't align to a complete
@@ -99,9 +81,6 @@ export class AudioStream {
     /** True once the current session has written at least one PCM frame. */
     private sessionHasWritten = false;
 
-    /** True when the current session ended cleanly before writing any frames. */
-    private sessionEndedWithoutFrames = false;
-
     /** Resolves the pending session-start handshake. */
     private sessionStartResolve:
         | ((result: AudioStreamStartResult) => void)
@@ -119,22 +98,21 @@ export class AudioStream {
      * Resolves once the session has either been superseded, failed to open, or
      * successfully written its first PCM frames into the ring buffer.
      *
-     * Returns `true` once the stream opened and has written its first PCM
-     * frames for this session.
-     * Returns `false` if the start was superseded by a newer session or if the
-     * stream failed to open.
+     * Returns `started` once the stream opened and wrote its first PCM frames.
+     * Returns `ended` if the stream ended cleanly before any PCM frame was
+     * written. Returns an error result if the start was superseded or failed.
      *
      * If the stream fails to open, `onError` is called. Mid-stream failures are
-     * non-fatal and exit silently, letting the worklet output silence.
+     * also reported through `onError`, while the worklet continues outputting
+     * whatever audio is already buffered.
      *
-     * If the stream exhausts cleanly, `onWriteEnd` is called to get the next
-     * track's staging data and continuation URL. If `onWriteEnd` returns null,
-     * the loop exits quietly.
+     * If the stream exhausts cleanly, `onWriteEnd` is called and the loop
+     * exits quietly.
      *
      * It is safe to call `abort()` at any point after `start()`.
      */
     async start(url: string): Promise<AudioStreamStartResult> {
-        // Preempt the currently active or opening session immediately so the
+        // preempt the currently active or opening session immediately so the
         // latest request wins even if an older fetch is still opening.
         this.abortActiveSession();
 
@@ -143,10 +121,12 @@ export class AudioStream {
         const startTask = this.sessionQueue.then(() =>
             this.startSession(sessionId, url),
         );
+
         this.sessionQueue = startTask.then(
             () => {},
             () => {},
         );
+
         return startTask;
     }
 
@@ -183,7 +163,7 @@ export class AudioStream {
         this.stream?.abort();
         this.stream = null;
         this.remainderBytes = new Uint8Array(0);
-        this.samplesWritten = 0;
+        this.framesWritten = 0;
         if (!this.sessionHasWritten) {
             this.resolveSessionStart(
                 error("Stream start was superseded", "superseded"),
@@ -217,9 +197,8 @@ export class AudioStream {
 
         this.aborted = false;
         this.remainderBytes = new Uint8Array(0);
-        this.samplesWritten = 0;
+        this.framesWritten = 0;
         this.sessionHasWritten = false;
-        this.sessionEndedWithoutFrames = false;
 
         const didStart = new Promise<AudioStreamStartResult>((resolve) => {
             this.sessionStartResolve = resolve;
@@ -233,7 +212,7 @@ export class AudioStream {
             if (this.aborted || this.stream !== stream)
                 return error("Stream start was superseded", "superseded");
             log(openResult.message, "AudioStream", "error");
-            this.callbacks.onError(openResult.message, this.samplesWritten);
+            this.callbacks.onError(openResult.message, this.framesWritten);
             this.stream = null;
             this.resolveSessionStart(error(openResult.message, "failed"));
             return error(openResult.message, "failed");
@@ -244,6 +223,7 @@ export class AudioStream {
             this.resolveSessionStart(
                 error("Stream start was superseded", "superseded"),
             );
+
             return error("Stream start was superseded", "superseded");
         }
 
@@ -255,7 +235,7 @@ export class AudioStream {
                 this.resolveSessionStart(
                     this.aborted || sessionId !== this.latestSessionId
                         ? error("Stream start was superseded", "superseded")
-                        : this.sessionEndedWithoutFrames
+                        : this.framesWritten === 0
                           ? ok("ended")
                           : error(
                                 "Stream failed before writing any audio",
@@ -273,82 +253,37 @@ export class AudioStream {
      * The core write loop. Reads chunks from the current PCMStream, converts
      * and deinterleaves them, and writes into the ring buffer.
      *
-     * When the stream exhausts, calls `onWriteEnd` to get the staging buffer
-     * and continuation URL. Writes the staging samples first, then opens a
-     * new PCMStream for the continuation and loops back.
-     *
-     * Exits when `onWriteEnd` returns null (queue exhausted) or `abort()` is
-     * called.
+     * Exits when the stream ends, errors, or `abort()` is called.
      */
     private async runWriteLoop(
         sessionId: number,
         initialStream: PCMStream,
     ): Promise<void> {
-        let currentStream: PCMStream | null = initialStream;
-
-        while (
-            !this.aborted &&
-            sessionId === this.latestSessionId &&
-            currentStream !== null
-        ) {
-            try {
-                for await (const chunk of currentStream) {
-                    if (this.aborted || sessionId !== this.latestSessionId)
-                        return;
-                    await this.writeChunk(chunk);
-                }
-            } catch (err) {
+        try {
+            for await (const chunk of initialStream) {
                 if (this.aborted || sessionId !== this.latestSessionId) return;
-                const message = getErrorMessage(err);
-                log(message, "AudioStream", "warning");
-                this.callbacks.onError(message, this.samplesWritten);
-                if (!this.sessionHasWritten) {
-                    this.resolveSessionStart(error(message, "failed"));
-                }
-                return;
+                await this.writeChunk(chunk);
             }
-
-            // stream exhausted cleanly — current track is done
-            this.stream = null;
-            this.remainderBytes = new Uint8Array(0);
-
+        } catch (err) {
             if (this.aborted || sessionId !== this.latestSessionId) return;
-
-            const completedSamples = this.samplesWritten;
-            this.samplesWritten = 0;
-
-            const transition = this.callbacks.onWriteEnd(completedSamples);
-            if (transition === null) {
-                if (!this.sessionHasWritten && completedSamples === 0) {
-                    this.sessionEndedWithoutFrames = true;
-                }
-
-                return;
+            const message = getErrorMessage(err);
+            log(message, "AudioStream", "warning");
+            this.callbacks.onError(message, this.framesWritten);
+            if (!this.sessionHasWritten) {
+                this.resolveSessionStart(error(message, "failed"));
             }
-            if (this.aborted || sessionId !== this.latestSessionId) return;
-
-            // write the preloaded staging samples directly into the ring
-            // buffer — these are the first ~5s of the next track, already
-            // deinterleaved and ready. this is the gapless boundary.
-            await this.writeStagingBuffer(transition.stagingData);
-            if (this.aborted || sessionId !== this.latestSessionId) return;
-
-            // open the continuation stream from where the staging buffer left
-            // off and keep writing
-            currentStream = new PCMStream();
-            this.stream = currentStream;
-            const openResult = await currentStream.open(
-                transition.nextTrackUrl,
-            );
-
-            if (!openResult.success) {
-                if (this.aborted || this.stream !== currentStream) return;
-                log(openResult.message, "AudioStream", "error");
-                this.callbacks.onError(openResult.message, this.samplesWritten);
-                this.stream = null;
-                return;
-            }
+            return;
         }
+
+        this.stream = null;
+        this.remainderBytes = new Uint8Array(0);
+
+        if (this.aborted || sessionId !== this.latestSessionId) return;
+
+        const completedFrames = this.framesWritten;
+        this.framesWritten = 0;
+
+        this.callbacks.onWriteEnd(completedFrames);
     }
 
     /**
@@ -406,23 +341,6 @@ export class AudioStream {
     }
 
     /**
-     * Writes the preloaded staging buffer samples into the ring buffer.
-     *
-     * The staging buffer is already deinterleaved, so no conversion is needed.
-     * This is the hot path at the track boundary — we want to get these samples
-     * in as fast as possible so the worklet sees no gap.
-     */
-    private async writeStagingBuffer(
-        stagingData: StagingBufferData,
-    ): Promise<void> {
-        const { left, right, totalSamples } = stagingData;
-        await this.writeWithBackpressure(
-            left.subarray(0, totalSamples),
-            right.subarray(0, totalSamples),
-            totalSamples,
-        );
-    }
-    /**
      * Writes PCM frames to the ring buffer, retrying every 10ms until the full
      * chunk has been accepted or the stream is aborted.
      *
@@ -452,7 +370,7 @@ export class AudioStream {
                     this.resolveSessionStart(ok("started"));
                 }
 
-                this.samplesWritten += writtenFrames;
+                this.framesWritten += writtenFrames;
                 offset += writtenFrames;
 
                 if (offset >= frames) return;

@@ -70,6 +70,7 @@ export default function AudioTesting() {
     const [trackSummary, setTrackSummary] = useState<TrackSummary | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [eventLog, setEventLog] = useState<string[]>([]);
+    const sessionEventsUnsubscribeRef = useRef<(() => void) | null>(null);
 
     const selectedTrackId = useMemo(
         () => parseInteger(trackIdInput),
@@ -105,6 +106,8 @@ export default function AudioTesting() {
             engineRef.current = null;
             setServerPort(null);
             setSnapshot(IDLE_SNAPSHOT);
+            sessionEventsUnsubscribeRef.current?.();
+            sessionEventsUnsubscribeRef.current = null;
 
             if (session) await session.destroy();
             if (engine) await engine.destroy();
@@ -168,6 +171,25 @@ export default function AudioTesting() {
                 }
 
                 const session = new PlaybackSession(engine, port);
+                sessionEventsUnsubscribeRef.current = session.subscribeEvents(
+                    (event) => {
+                        switch (event.type) {
+                            case "ended":
+                                appendEvent(
+                                    `ended track ${String(event.trackId ?? "-")} at ${event.trackPositionFrames.toLocaleString()} frames`,
+                                );
+                                break;
+                            case "error":
+                                appendEvent(
+                                    `track ${String(event.trackId ?? "-")} failed: ${event.message}`,
+                                );
+                                break;
+                            case "stopped":
+                                appendEvent("playback stopped");
+                                break;
+                        }
+                    },
+                );
                 engineRef.current = engine;
                 sessionRef.current = session;
                 setServerPort(port);
@@ -204,11 +226,11 @@ export default function AudioTesting() {
             setErrorMessage(null);
 
             try {
-                const segment = await session.playTrack(
+                const didStart = await session.playTrack(
                     selectedTrackId,
                     playOffsetSeconds,
                 );
-                if (!segment) {
+                if (!didStart) {
                     setErrorMessage("Playback did not start.");
                     appendEvent("play request failed closed");
                 } else {
@@ -244,8 +266,8 @@ export default function AudioTesting() {
             setErrorMessage(null);
 
             try {
-                const segment = await session.seek(seekOffsetSeconds);
-                if (!segment) {
+                const didSeek = await session.seek(seekOffsetSeconds);
+                if (!didSeek) {
                     setErrorMessage("Seek failed or was superseded.");
                     appendEvent("seek request failed closed");
                 } else {
@@ -287,8 +309,8 @@ export default function AudioTesting() {
             setErrorMessage(null);
 
             try {
-                const result = await session.playTrack(999999999, 0);
-                if (!result) {
+                const didStart = await session.playTrack(999999999, 0);
+                if (!didStart) {
                     appendEvent(
                         "invalid track request failed closed as expected",
                     );

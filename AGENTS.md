@@ -57,9 +57,9 @@ Processes communicate **only** via typed IPC.
     │   │   └── *.ts        # Top-level hooks (useIpcListener, etc.)
     │   └── lib/            # Domain logic, state, and utilities
     │       ├── audio/      # Audio pipeline
-    │       │   ├── processing/ # AudioEngine, RingBuffer, StagingBuffer, TrackTimeline, AudioWorklet processor
+    │       │   ├── processing/ # Audio processing
     │       │   ├── state/      # Audio-related Zustand stores (audioStore)
-    │       │   └── streaming/  # PCM streaming (AudioStream, PCMStream, AudioServerClient)
+    │       │   └── streaming/  # PCM streaming
     │       ├── settings/   # Settings and theme Zustand stores
     │       ├── tabs/       # Tab registry and tabs Zustand store
     │       ├── titlebar/   # Titlebar Zustand store and hook
@@ -177,7 +177,7 @@ Resonance uses two complementary approaches based on data characteristics. Both 
 
 ### State Management
 
-Located in `src/renderer/lib/state/`:
+Located in `src/renderer/lib/settings/` and `src/renderer/lib/tabs/`:
 
 **Zustand Stores:**
 
@@ -196,7 +196,7 @@ Located in `src/renderer/lib/state/`:
 Use for small, configuration-like data that's needed immediately across the app:
 
 ```ts
-import { useSettingsStore } from "@renderer/lib/state/settingsStore";
+import { useSettingsStore } from "@renderer/lib/settings/settingsStore";
 
 // Reading state - synchronous, no loading states
 const settings = useSettingsStore((state) => state.settings);
