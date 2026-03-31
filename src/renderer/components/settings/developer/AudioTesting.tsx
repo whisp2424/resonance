@@ -47,11 +47,7 @@ interface TrackSummary {
 }
 
 export default function AudioTesting() {
-    const {
-        outputDevices,
-        isLoading,
-        error: outputDeviceError,
-    } = usePlaybackStore();
+    const { outputDevices } = usePlaybackStore();
 
     const engineRef = useRef<AudioEngine | null>(null);
     const sessionRef = useRef<PlaybackSession | null>(null);
@@ -439,7 +435,7 @@ export default function AudioTesting() {
                     <FieldLabel>Output Device</FieldLabel>
                     <Select
                         value={selectedOutputDeviceId}
-                        disabled={isLoading}
+                        disabled={outputDevices.length === 0}
                         onValueChange={(value) => {
                             if (value === null) return;
 
@@ -464,10 +460,9 @@ export default function AudioTesting() {
                         </SelectContent>
                     </Select>
                     <FieldDescription>
-                        {isLoading
+                        {outputDevices.length === 0
                             ? "Loading output devices..."
-                            : outputDeviceError ||
-                              "Switch outputs during playback to test sink routing."}
+                            : "Switch outputs during playback to test sink routing."}
                     </FieldDescription>
                 </Field>
             </div>

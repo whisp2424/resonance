@@ -86,6 +86,10 @@ export class AudioEngine {
         return this.ringBuffer;
     }
 
+    get audioContext(): AudioContext | null {
+        return this.context;
+    }
+
     /**
      * Creates the AudioContext, allocates the RingBuffer, loads the worklet
      * processor, and wires up the effects chain.
