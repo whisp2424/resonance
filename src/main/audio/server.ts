@@ -140,11 +140,9 @@ router.on("GET", "/tracks/:id", async (req, res, params) => {
         if (!ffmpeg.killed) ffmpeg.kill();
     }
 
-    ffmpeg.stdout.once("data", () => {
-        didStartStreaming = true;
-    });
-
     ffmpeg.stdout.once("data", (chunk: Buffer) => {
+        didStartStreaming = true;
+
         if (!res.headersSent) {
             res.writeHead(200, {
                 "Content-Type": "audio/pcm",
