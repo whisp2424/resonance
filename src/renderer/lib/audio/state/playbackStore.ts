@@ -74,6 +74,10 @@ let session: PlaybackSession | null = null;
 let pollInterval: number | null = null;
 const endedCallbacks = new Set<() => void>();
 
+// Last loaded track info — allows play() to resume after stop()
+let lastTrackId: number | null = null;
+let lastPositionMs = 0;
+
 function initPolling(): void {
     stopPolling();
     pollInterval = setInterval(() => {
@@ -132,6 +136,8 @@ export const usePlaybackStore = create<PlaybackStore>((set) => {
             session = null;
             engine?.destroy();
             engine = null;
+            lastTrackId = null;
+            lastPositionMs = 0;
             set({ isPlaying: false, positionMs: 0 });
         },
         load: async (trackId: number, positionMs?: number) => {
@@ -142,12 +148,29 @@ export const usePlaybackStore = create<PlaybackStore>((set) => {
             const success = await session.playTrack(trackId, offsetSeconds);
 
             if (success) {
-                set({ isPlaying: true, positionMs: positionMs ?? 0 });
+                lastTrackId = trackId;
+                lastPositionMs = positionMs ?? 0;
+                set({ isPlaying: true, positionMs: lastPositionMs });
                 initPolling();
             }
         },
         play: async () => {
             if (!engine) return;
+
+            // If the session was stopped, reload the last track
+            if (lastTrackId !== null && session?.currentTrackId === null) {
+                const offsetSeconds = lastPositionMs / 1000;
+                const success = await session.playTrack(
+                    lastTrackId,
+                    offsetSeconds,
+                );
+                if (success) {
+                    set({ isPlaying: true, positionMs: lastPositionMs });
+                    initPolling();
+                }
+                return;
+            }
+
             await engine.play();
             set({ isPlaying: true });
             initPolling();

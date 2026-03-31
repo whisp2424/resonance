@@ -49,8 +49,8 @@ interface QueueActions {
      */
     enqueue(trackIds: number[], options?: EnqueueOptions): Promise<void>;
 
-    /** Removes a track from the queue by index. */
-    remove(index: number): void;
+    /** Removes a track from the queue by index. If it was the current track, jumps to the next one. */
+    remove(index: number): Promise<void>;
 
     /** Moves a track from one index to another within the queue. */
     reorder(from: number, to: number): void;
@@ -113,8 +113,10 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
             const newEntries = createEntries(tracks);
             set({ entries: newEntries, currentEntryId: null });
 
-            if (playNow && newEntries.length > 0) {
+            if (newEntries.length > 0) {
                 await get().jump(0);
+            } else {
+                await usePlaybackStore.getState().stop();
             }
 
             return;
@@ -163,7 +165,10 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         }
     },
 
-    remove: (index: number) => {
+    remove: async (index: number) => {
+        let loadTrackId: number | null = null;
+        let shouldStop = false;
+
         set((state) => {
             const { entries, currentEntryId } = state;
             if (index < 0 || index >= entries.length) return state;
@@ -171,11 +176,29 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
             const removedEntry = entries[index];
             const newEntries = entries.filter((_, i) => i !== index);
 
-            const newCurrentId =
-                currentEntryId === removedEntry.id ? null : currentEntryId;
+            let newCurrentId = currentEntryId;
+            if (currentEntryId === removedEntry.id) {
+                if (newEntries.length === 0) {
+                    shouldStop = true;
+                    newCurrentId = null;
+                } else {
+                    const nextIndex =
+                        index < newEntries.length
+                            ? index
+                            : newEntries.length - 1;
+                    newCurrentId = newEntries[nextIndex].id;
+                    loadTrackId = newEntries[nextIndex].trackId;
+                }
+            }
 
             return { entries: newEntries, currentEntryId: newCurrentId };
         });
+
+        if (shouldStop) {
+            await usePlaybackStore.getState().stop();
+        } else if (loadTrackId !== null) {
+            await usePlaybackStore.getState().load(loadTrackId);
+        }
     },
 
     reorder: (from: number, to: number) => {
@@ -217,7 +240,10 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         const currentIndex = entries.findIndex((e) => e.id === currentEntryId);
         const nextIndex = currentIndex + 1;
 
-        if (nextIndex >= entries.length) return;
+        if (nextIndex >= entries.length) {
+            await usePlaybackStore.getState().stop();
+            return;
+        }
 
         await get().jump(nextIndex);
     },

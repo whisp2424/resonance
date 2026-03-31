@@ -1,5 +1,4 @@
-import type { PlaybackSessionSnapshot } from "@renderer/lib/audio/PlaybackSession";
-import type { TrackResult } from "@shared/types/library";
+import type { QueueEntry } from "@renderer/lib/audio/state/queueStore";
 
 import Button from "@renderer/components/ui/Button";
 import {
@@ -15,658 +14,416 @@ import {
     SelectValue,
 } from "@renderer/components/ui/Select";
 import TextInput from "@renderer/components/ui/TextInput";
-import { PlaybackSession } from "@renderer/lib/audio/PlaybackSession";
-import { AudioEngine } from "@renderer/lib/audio/processing/AudioEngine";
-import AudioProcessor from "@renderer/lib/audio/processing/audioProcessor?worker&url";
 import { usePlaybackStore } from "@renderer/lib/audio/state/playbackStore";
-import { getErrorMessage, log } from "@shared/utils/logger";
+import { useQueueStore } from "@renderer/lib/audio/state/queueStore";
+import { log } from "@shared/utils/logger";
 import clsx from "clsx";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
-const SNAPSHOT_INTERVAL_MS = 100;
-const SEEK_SPAM_DELAYS_MS = [0, 60, 120, 180, 240, 300];
-const IDLE_SNAPSHOT: PlaybackSessionSnapshot = {
-    state: "idle",
-    generation: 0,
-    activeTrackId: null,
-    pendingTrackId: null,
-    transportFrame: 0,
-    transportPositionFrames: 0,
-    transportPositionMilliseconds: 0,
-    trackPositionFrames: null,
-    trackPositionMilliseconds: null,
-    starvationCount: 0,
-};
-
-interface TrackSummary {
-    id: number;
-    title: string;
-    artist: string;
-    album: string;
-    durationMs: number | null;
-}
+import IconMoveDown from "~icons/lucide/arrow-down-0-1";
+import IconMoveUp from "~icons/lucide/arrow-up-0-1";
+import IconPause from "~icons/lucide/pause";
+import IconPlay from "~icons/lucide/play";
+import IconSkipBack from "~icons/lucide/skip-back";
+import IconSkipForward from "~icons/lucide/skip-forward";
+import IconX from "~icons/lucide/x";
 
 export default function AudioTesting() {
-    const { outputDevices } = usePlaybackStore();
-
-    const engineRef = useRef<AudioEngine | null>(null);
-    const sessionRef = useRef<PlaybackSession | null>(null);
-    const seekSpamRunRef = useRef(0);
+    const { isPlaying, positionMs, volume, outputDevices } = usePlaybackStore();
+    const { entries, currentEntryId } = useQueueStore();
 
     const [trackIdInput, setTrackIdInput] = useState("1");
-    const [playOffsetInput, setPlayOffsetInput] = useState("0");
-    const [seekOffsetInput, setSeekOffsetInput] = useState("30");
-    const [selectedOutputDeviceId, setSelectedOutputDeviceId] =
-        useState("default");
-    const [isInitializing, setIsInitializing] = useState(false);
-    const [isBusy, setIsBusy] = useState(false);
-    const [serverPort, setServerPort] = useState<number | null>(null);
-    const [snapshot, setSnapshot] =
-        useState<PlaybackSessionSnapshot>(IDLE_SNAPSHOT);
-    const [trackSummary, setTrackSummary] = useState<TrackSummary | null>(null);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [selectedDeviceId, setSelectedDeviceId] = useState("default");
     const [eventLog, setEventLog] = useState<string[]>([]);
-    const sessionEventsUnsubscribeRef = useRef<(() => void) | null>(null);
 
-    const selectedTrackId = useMemo(
-        () => parseInteger(trackIdInput),
-        [trackIdInput],
-    );
-    const playOffsetSeconds = useMemo(
-        () => parseNumber(playOffsetInput),
-        [playOffsetInput],
-    );
-    const seekOffsetSeconds = useMemo(
-        () => parseNumber(seekOffsetInput),
-        [seekOffsetInput],
-    );
+    // Scrubber drag state — while dragging, show the drag position instead of
+    // the live playback position so the thumb doesn't jump around.
+    const [scrubbing, setScrubbing] = useState(false);
+    const [scrubPositionMs, setScrubPositionMs] = useState(0);
+    const isScrubbing = useRef(false);
 
     const appendEvent = useCallback(function appendEvent(message: string) {
-        setEventLog((current) => [message, ...current].slice(0, 18));
+        setEventLog((prev) => [message, ...prev].slice(0, 20));
         log(message, "debug:audio", "info");
     }, []);
 
-    const syncSnapshot = useCallback(function syncSnapshot() {
-        const session = sessionRef.current;
-        setSnapshot(session ? session.snapshot : IDLE_SNAPSHOT);
-    }, []);
+    const currentIndex = entries.findIndex((e) => e.id === currentEntryId);
+    const currentEntry = currentIndex >= 0 ? entries[currentIndex] : null;
+    const durationSeconds = currentEntry?.track.track.duration ?? null;
+    const durationMs = durationSeconds !== null ? durationSeconds * 1000 : null;
 
-    const destroyAudioRuntime = useCallback(
-        async function destroyAudioRuntime() {
-            seekSpamRunRef.current++;
+    function formatMs(ms: number): string {
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes)}:${String(seconds).padStart(2, "0")}`;
+    }
 
-            const session = sessionRef.current;
-            const engine = engineRef.current;
+    async function handleEnqueue() {
+        const id = parseTrackId(trackIdInput);
+        if (id === null) return;
+        await useQueueStore.getState().enqueue([id]);
+        appendEvent(`enqueued track ${String(id)}`);
+    }
 
-            sessionRef.current = null;
-            engineRef.current = null;
-            setServerPort(null);
-            setSnapshot(IDLE_SNAPSHOT);
-            sessionEventsUnsubscribeRef.current?.();
-            sessionEventsUnsubscribeRef.current = null;
+    async function handlePlayNow() {
+        const id = parseTrackId(trackIdInput);
+        if (id === null) return;
+        await useQueueStore.getState().enqueue([id], { playNow: true });
+        appendEvent(`playing track ${String(id)} now`);
+    }
 
-            if (session) await session.destroy();
-            if (engine) await engine.destroy();
-        },
-        [],
-    );
+    async function handlePlayPause() {
+        const store = usePlaybackStore.getState();
+        if (isPlaying) {
+            store.pause();
+            appendEvent("paused");
+        } else {
+            await store.play();
+            appendEvent("resumed");
+        }
+    }
 
-    const applyOutputDevice = useCallback(
-        async function applyOutputDevice(deviceId: string) {
-            const engine = engineRef.current;
-            if (!engine) return;
+    async function handlePrevious() {
+        await useQueueStore.getState().previous();
+        appendEvent("previous");
+    }
 
-            const resolvedDeviceId = deviceId === "default" ? "" : deviceId;
+    async function handleNext() {
+        await useQueueStore.getState().next();
+        appendEvent("next");
+    }
 
-            const result = await engine.setOutputDevice(resolvedDeviceId);
-            if (!result.success) {
-                setErrorMessage(result.message);
-                appendEvent(`output device switch failed: ${result.message}`);
-                return;
-            }
+    function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
+        usePlaybackStore.getState().setVolume(Number(e.target.value));
+    }
 
-            try {
-                appendEvent(
-                    resolvedDeviceId
-                        ? `output device set to ${resolvedDeviceId}`
-                        : "output device reset to system default",
-                );
-            } catch (err) {
-                const message = getErrorMessage(err);
-                setErrorMessage(message);
-                appendEvent(`output device switch failed: ${message}`);
-            }
-        },
-        [appendEvent],
-    );
+    async function handleDeviceChange(value: string) {
+        setSelectedDeviceId(value);
+        const deviceId = value === "default" ? "" : value;
+        await usePlaybackStore.getState().setOutputDevice(deviceId);
+        appendEvent(`output device: ${value}`);
+    }
 
-    const ensureAudioRuntime = useCallback(
-        async function ensureAudioRuntime() {
-            if (sessionRef.current && engineRef.current)
-                return sessionRef.current;
+    async function handleJump(index: number) {
+        await useQueueStore.getState().jump(index);
+        appendEvent(`jumped to queue index ${String(index)}`);
+    }
 
-            setIsInitializing(true);
-            setErrorMessage(null);
+    async function handleRemove(index: number) {
+        await useQueueStore.getState().remove(index);
+        appendEvent(`removed queue index ${String(index)}`);
+    }
 
-            try {
-                const port = await electron.invoke("server:getPort");
-                const engine = new AudioEngine(AudioProcessor);
-                await engine.init();
+    function handleClearQueue() {
+        void useQueueStore.getState().enqueue([], { clearQueue: true });
+        appendEvent("cleared queue");
+    }
 
-                if (selectedOutputDeviceId !== "default") {
-                    const result = await engine.setOutputDevice(
-                        selectedOutputDeviceId,
-                    );
-
-                    if (!result.success) {
-                        setErrorMessage(result.message);
-                        appendEvent(
-                            `audio runtime output device failed: ${result.message}`,
-                        );
-                    }
-                }
-
-                const session = new PlaybackSession(engine, port);
-                sessionEventsUnsubscribeRef.current = session.subscribeEvents(
-                    (event) => {
-                        switch (event.type) {
-                            case "ended":
-                                appendEvent(
-                                    `ended track ${String(event.trackId ?? "-")} at ${event.trackPositionFrames.toLocaleString()} frames`,
-                                );
-                                break;
-                            case "error":
-                                appendEvent(
-                                    `track ${String(event.trackId ?? "-")} failed: ${event.message}`,
-                                );
-                                break;
-                            case "stopped":
-                                appendEvent("playback stopped");
-                                break;
-                        }
-                    },
-                );
-                engineRef.current = engine;
-                sessionRef.current = session;
-                setServerPort(port);
-                setSnapshot(session.snapshot);
-                appendEvent(
-                    `audio runtime initialized on port ${String(port)}`,
-                );
-
-                return session;
-            } catch (err) {
-                const message = getErrorMessage(err);
-                setErrorMessage(message);
-                appendEvent(`audio runtime init failed: ${message}`);
-                await destroyAudioRuntime();
-                return null;
-            } finally {
-                setIsInitializing(false);
-            }
-        },
-        [appendEvent, destroyAudioRuntime, selectedOutputDeviceId],
-    );
-
-    const handlePlay = useCallback(
-        async function handlePlay() {
-            if (selectedTrackId === null || playOffsetSeconds === null) {
-                setErrorMessage("Enter a valid track id and play offset.");
-                return;
-            }
-
-            const session = await ensureAudioRuntime();
-            if (!session) return;
-
-            setIsBusy(true);
-            setErrorMessage(null);
-
-            try {
-                const didStart = await session.playTrack(
-                    selectedTrackId,
-                    playOffsetSeconds,
-                );
-                if (!didStart) {
-                    setErrorMessage("Playback did not start.");
-                    appendEvent("play request failed closed");
-                } else {
-                    appendEvent(
-                        `play track ${String(selectedTrackId)} at ${playOffsetSeconds.toFixed(3)}s`,
-                    );
-                }
-                syncSnapshot();
-            } finally {
-                setIsBusy(false);
-            }
-        },
-        [
-            appendEvent,
-            ensureAudioRuntime,
-            playOffsetSeconds,
-            selectedTrackId,
-            syncSnapshot,
-        ],
-    );
-
-    const handleSeek = useCallback(
-        async function handleSeek() {
-            if (seekOffsetSeconds === null) {
-                setErrorMessage("Enter a valid seek offset.");
-                return;
-            }
-
-            const session = await ensureAudioRuntime();
-            if (!session) return;
-
-            setIsBusy(true);
-            setErrorMessage(null);
-
-            try {
-                const didSeek = await session.seek(seekOffsetSeconds);
-                if (!didSeek) {
-                    setErrorMessage("Seek failed or was superseded.");
-                    appendEvent("seek request failed closed");
-                } else {
-                    appendEvent(`seek to ${seekOffsetSeconds.toFixed(3)}s`);
-                }
-                syncSnapshot();
-            } finally {
-                setIsBusy(false);
-            }
-        },
-        [appendEvent, ensureAudioRuntime, seekOffsetSeconds, syncSnapshot],
-    );
-
-    const handleStop = useCallback(
-        async function handleStop() {
-            const session = sessionRef.current;
-            if (!session) return;
-
-            setIsBusy(true);
-            setErrorMessage(null);
-
-            try {
-                await session.stop();
-                appendEvent("stopped playback session");
-                syncSnapshot();
-            } finally {
-                setIsBusy(false);
-            }
-        },
-        [appendEvent, syncSnapshot],
-    );
-
-    const handleInvalidTrack = useCallback(
-        async function handleInvalidTrack() {
-            const session = await ensureAudioRuntime();
-            if (!session) return;
-
-            setIsBusy(true);
-            setErrorMessage(null);
-
-            try {
-                const didStart = await session.playTrack(999999999, 0);
-                if (!didStart) {
-                    appendEvent(
-                        "invalid track request failed closed as expected",
-                    );
-                }
-                syncSnapshot();
-            } finally {
-                setIsBusy(false);
-            }
-        },
-        [appendEvent, ensureAudioRuntime, syncSnapshot],
-    );
-
-    const handleSeekSpam = useCallback(
-        async function handleSeekSpam() {
-            const session = await ensureAudioRuntime();
-            if (!session) return;
-
-            const baseOffset = seekOffsetSeconds ?? 0;
-            const runId = ++seekSpamRunRef.current;
-            appendEvent("running seek stress sequence");
-
-            for (const [index, delay] of SEEK_SPAM_DELAYS_MS.entries()) {
-                window.setTimeout(() => {
-                    if (runId !== seekSpamRunRef.current) return;
-
-                    void session.seek(baseOffset + index * 1.25).then(() => {
-                        if (runId !== seekSpamRunRef.current) return;
-                        syncSnapshot();
-                    });
-                }, delay);
-            }
-        },
-        [appendEvent, ensureAudioRuntime, seekOffsetSeconds, syncSnapshot],
-    );
-
-    const handleReinitialize = useCallback(
-        async function handleReinitialize() {
-            setIsBusy(true);
-            setErrorMessage(null);
-
-            try {
-                await destroyAudioRuntime();
-                appendEvent("destroyed audio runtime");
-                await ensureAudioRuntime();
-                syncSnapshot();
-            } finally {
-                setIsBusy(false);
-            }
-        },
-        [appendEvent, destroyAudioRuntime, ensureAudioRuntime, syncSnapshot],
-    );
-
-    useEffect(
-        function pollSnapshotEffect() {
-            const intervalId = window.setInterval(() => {
-                syncSnapshot();
-            }, SNAPSHOT_INTERVAL_MS);
-
-            return () => {
-                window.clearInterval(intervalId);
-            };
-        },
-        [syncSnapshot],
-    );
-
-    useEffect(
-        function loadTrackSummaryEffect() {
-            let cancelled = false;
-
-            async function loadTrackSummary() {
-                if (selectedTrackId === null) {
-                    setTrackSummary(null);
-                    return;
-                }
-
-                const result = await electron.invoke("library:getTracks", [
-                    selectedTrackId,
-                ]);
-                if (cancelled) return;
-
-                const track = result.tracks[0];
-                if (!track) {
-                    setTrackSummary(null);
-                    return;
-                }
-
-                setTrackSummary(toTrackSummary(track));
-            }
-
-            void loadTrackSummary();
-
-            return () => {
-                cancelled = true;
-            };
-        },
-        [selectedTrackId],
-    );
-
-    useEffect(
-        function cleanupEffect() {
-            return () => {
-                void destroyAudioRuntime();
-            };
-        },
-        [destroyAudioRuntime],
-    );
+    function handleReorder(from: number, to: number) {
+        useQueueStore.getState().reorder(from, to);
+        appendEvent(`reordered ${String(from)} → ${String(to)}`);
+    }
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field name="trackId">
-                    <FieldLabel>Track ID</FieldLabel>
-                    <TextInput
-                        value={trackIdInput}
-                        onChange={(event) =>
-                            setTrackIdInput(event.target.value)
-                        }
-                    />
-                    <FieldDescription>
-                        Enter a library track id to drive the low-level playback
-                        session.
-                    </FieldDescription>
-                </Field>
-
-                <Field name="outputDevice">
-                    <FieldLabel>Output Device</FieldLabel>
-                    <Select
-                        value={selectedOutputDeviceId}
-                        disabled={outputDevices.length === 0}
-                        onValueChange={(value) => {
-                            if (value === null) return;
-
-                            setSelectedOutputDeviceId(value);
-                            void applyOutputDevice(value);
-                        }}>
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="System default" />
-                        </SelectTrigger>
-                        <SelectContent align="start">
-                            <SelectItem value="default">
-                                System default
-                            </SelectItem>
-                            {outputDevices.map((device) => (
-                                <SelectItem
-                                    key={device.deviceId}
-                                    value={device.deviceId}>
-                                    {device.label ||
-                                        `Unnamed device (${device.deviceId})`}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <FieldDescription>
-                        {outputDevices.length === 0
-                            ? "Loading output devices..."
-                            : "Switch outputs during playback to test sink routing."}
-                    </FieldDescription>
-                </Field>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field name="playOffset">
-                    <FieldLabel>Play Offset (seconds)</FieldLabel>
-                    <TextInput
-                        value={playOffsetInput}
-                        onChange={(event) =>
-                            setPlayOffsetInput(event.target.value)
-                        }
-                    />
-                </Field>
-
-                <Field name="seekOffset">
-                    <FieldLabel>Seek Offset (seconds)</FieldLabel>
-                    <TextInput
-                        value={seekOffsetInput}
-                        onChange={(event) =>
-                            setSeekOffsetInput(event.target.value)
-                        }
-                    />
-                </Field>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-                <Button
-                    disabled={isInitializing || isBusy}
-                    onClick={handlePlay}>
-                    Play Track
-                </Button>
-                <Button
-                    disabled={isInitializing || isBusy}
-                    onClick={handleSeek}>
-                    Seek
-                </Button>
-                <Button
-                    disabled={isInitializing || isBusy}
-                    onClick={handleStop}>
-                    Stop
-                </Button>
-                <Button
-                    variant="ghost"
-                    disabled={isInitializing || isBusy}
-                    onClick={handleSeekSpam}>
-                    Seek Spam
-                </Button>
-                <Button
-                    variant="ghost"
-                    disabled={isInitializing || isBusy}
-                    onClick={handleInvalidTrack}>
-                    Invalid Track
-                </Button>
-                <Button
-                    variant="ghost"
-                    disabled={isInitializing || isBusy}
-                    onClick={handleReinitialize}>
-                    Reinitialize
-                </Button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-                <section className="rounded-2xl border border-neutral-200/80 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-950/40">
-                    <h4 className="mb-3 text-lg font-medium">
-                        Session Diagnostics
-                    </h4>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <DiagnosticRow label="State" value={snapshot.state} />
-                        <DiagnosticRow
-                            label="Generation"
-                            value={String(snapshot.generation)}
-                        />
-                        <DiagnosticRow
-                            label="Active Track"
-                            value={formatNullableNumber(snapshot.activeTrackId)}
-                        />
-                        <DiagnosticRow
-                            label="Pending Track"
-                            value={formatNullableNumber(
-                                snapshot.pendingTrackId,
-                            )}
-                        />
-                        <DiagnosticRow
-                            label="Transport Frame"
-                            value={snapshot.transportFrame.toLocaleString()}
-                        />
-                        <DiagnosticRow
-                            label="Transport Position"
-                            value={`${snapshot.transportPositionMilliseconds.toLocaleString()} ms`}
-                        />
-                        <DiagnosticRow
-                            label="Track Position"
-                            value={formatNullableMilliseconds(
-                                snapshot.trackPositionMilliseconds,
-                            )}
-                        />
-                        <DiagnosticRow
-                            label="Starvation Count"
-                            value={snapshot.starvationCount.toLocaleString()}
-                        />
-                        <DiagnosticRow
-                            label="Server Port"
-                            value={formatNullableNumber(serverPort)}
-                        />
-                        <DiagnosticRow
-                            label="Runtime"
-                            value={
-                                engineRef.current ? "ready" : "not initialized"
-                            }
-                        />
-                    </div>
-
-                    {(trackSummary || errorMessage) && (
-                        <div className="mt-4 flex flex-col gap-2 border-t border-neutral-200/80 pt-4 dark:border-neutral-800">
-                            {trackSummary ? (
-                                <div className="rounded-xl bg-white/70 p-3 text-sm dark:bg-neutral-900/60">
-                                    <div className="font-medium">
-                                        {trackSummary.title}
-                                    </div>
-                                    <div className="opacity-70">
-                                        {trackSummary.artist} -{" "}
-                                        {trackSummary.album}
-                                    </div>
-                                    <div className="mt-1 text-xs opacity-60">
-                                        Track {String(trackSummary.id)}
-                                        {trackSummary.durationMs !== null
-                                            ? ` - ${trackSummary.durationMs.toLocaleString()} ms`
-                                            : ""}
-                                    </div>
-                                </div>
-                            ) : null}
-
-                            {errorMessage ? (
-                                <div className="rounded-xl border border-red-300/70 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-300">
-                                    {errorMessage}
-                                </div>
-                            ) : null}
+            {/* Player */}
+            <section className="flex flex-col gap-4 rounded-2xl border border-neutral-200/80 bg-neutral-50/80 p-5 dark:border-neutral-800 dark:bg-neutral-950/40">
+                {/* Track info */}
+                <div className="flex min-h-10 flex-col gap-0.5">
+                    {currentEntry ? (
+                        <>
+                            <div className="truncate text-sm font-medium">
+                                {currentEntry.track.track.title}
+                            </div>
+                            <div className="truncate text-xs opacity-50">
+                                {currentEntry.track.artist.name}
+                                {" — "}
+                                {currentEntry.track.album.title}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-sm opacity-40">
+                            Nothing playing
                         </div>
                     )}
-                </section>
+                </div>
 
-                <section className="rounded-2xl border border-neutral-200/80 bg-neutral-50/80 p-4 dark:border-neutral-800 dark:bg-neutral-950/40">
-                    <h4 className="mb-3 text-lg font-medium">Event Log</h4>
-                    <div className="flex max-h-72 flex-col gap-2 overflow-y-auto text-sm">
-                        {eventLog.length === 0 ? (
-                            <div className="opacity-60">No events yet.</div>
-                        ) : (
-                            eventLog.map((entry) => (
-                                <div
-                                    key={entry}
-                                    className={clsx(
-                                        "rounded-xl border border-neutral-200/80 bg-white/80 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900/70",
-                                    )}>
-                                    {entry}
-                                </div>
-                            ))
-                        )}
+                {/* Scrubber */}
+                <div className="flex flex-col gap-1">
+                    <input
+                        type="range"
+                        min={0}
+                        max={durationMs ?? 100}
+                        step={100}
+                        value={
+                            durationMs === null
+                                ? 0
+                                : scrubbing
+                                  ? scrubPositionMs
+                                  : positionMs
+                        }
+                        disabled={durationMs === null}
+                        className="h-1.5 w-full cursor-pointer accent-[var(--color-accent)] disabled:opacity-40"
+                        onMouseDown={() => {
+                            isScrubbing.current = true;
+                            setScrubbing(true);
+                            setScrubPositionMs(positionMs);
+                        }}
+                        onChange={(e) => {
+                            if (!isScrubbing.current) return;
+                            setScrubPositionMs(Number(e.target.value));
+                        }}
+                        onMouseUp={(e) => {
+                            const target = e.target as HTMLInputElement;
+                            const ms = Number(target.value);
+                            isScrubbing.current = false;
+                            setScrubbing(false);
+                            usePlaybackStore.getState().seek(ms);
+                            appendEvent(`seek to ${(ms / 1000).toFixed(1)}s`);
+                        }}
+                    />
+                    <div className="flex justify-between text-xs opacity-40">
+                        <span>
+                            {formatMs(scrubbing ? scrubPositionMs : positionMs)}
+                        </span>
+                        <span>
+                            {durationMs !== null
+                                ? formatMs(durationMs)
+                                : "--:--"}
+                        </span>
                     </div>
-                </section>
-            </div>
+                </div>
+
+                {/* Transport controls */}
+                <div className="flex items-center justify-center gap-2">
+                    <Button
+                        variant="ghost"
+                        className="size-9 rounded-full p-0"
+                        icon={<IconSkipBack />}
+                        disabled={currentIndex <= 0 && positionMs < 3000}
+                        onClick={handlePrevious}
+                    />
+                    <Button
+                        variant="primary"
+                        className="size-10 rounded-full p-0"
+                        icon={isPlaying ? <IconPause /> : <IconPlay />}
+                        onClick={handlePlayPause}
+                    />
+                    <Button
+                        variant="ghost"
+                        className="size-9 rounded-full p-0"
+                        icon={<IconSkipForward />}
+                        disabled={currentIndex >= entries.length - 1}
+                        onClick={handleNext}
+                    />
+                </div>
+
+                {/* Volume */}
+                <div className="flex items-center gap-3">
+                    <span className="text-xs opacity-40">Vol</span>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={volume}
+                        onChange={handleVolumeChange}
+                        className="h-1.5 w-full cursor-pointer accent-[var(--color-accent)]"
+                    />
+                    <span className="w-8 text-right text-xs opacity-40">
+                        {Math.round(volume * 100)}%
+                    </span>
+                </div>
+            </section>
+
+            {/* Queue */}
+            <section className="flex flex-col gap-3 rounded-2xl border border-neutral-200/80 bg-neutral-50/80 p-5 dark:border-neutral-800 dark:bg-neutral-950/40">
+                <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">
+                        Queue
+                        {entries.length > 0 && (
+                            <span className="ml-2 opacity-40">
+                                {entries.length}
+                            </span>
+                        )}
+                    </h4>
+                    {entries.length > 0 && (
+                        <Button
+                            variant="ghost"
+                            className="h-7 px-2 text-xs"
+                            onClick={handleClearQueue}>
+                            Clear
+                        </Button>
+                    )}
+                </div>
+
+                {entries.length === 0 ? (
+                    <div className="py-4 text-center text-sm opacity-40">
+                        Queue is empty
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-1">
+                        {entries.map((entry: QueueEntry, index: number) => (
+                            <QueueRow
+                                key={entry.id}
+                                entry={entry}
+                                index={index}
+                                isCurrent={entry.id === currentEntryId}
+                                isFirst={index === 0}
+                                isLast={index === entries.length - 1}
+                                onJump={handleJump}
+                                onRemove={handleRemove}
+                                onReorder={handleReorder}
+                            />
+                        ))}
+                    </div>
+                )}
+            </section>
+
+            {/* Controls */}
+            <Field name="enqueue">
+                <FieldLabel>Track ID</FieldLabel>
+                <div className="flex gap-2">
+                    <TextInput
+                        value={trackIdInput}
+                        onChange={(e) => setTrackIdInput(e.target.value)}
+                        placeholder="1"
+                    />
+                    <Button onClick={handleEnqueue}>Enqueue</Button>
+                    <Button variant="primary" onClick={handlePlayNow}>
+                        Play Now
+                    </Button>
+                </div>
+                <FieldDescription>
+                    Add a track ID to the queue.
+                </FieldDescription>
+            </Field>
+
+            <Field name="outputDevice">
+                <FieldLabel>Output Device</FieldLabel>
+                <Select
+                    value={selectedDeviceId}
+                    disabled={outputDevices.length === 0}
+                    onValueChange={(value) => {
+                        if (value === null) return;
+                        void handleDeviceChange(value);
+                    }}>
+                    <SelectTrigger className="w-full">
+                        <SelectValue placeholder="System default" />
+                    </SelectTrigger>
+                    <SelectContent align="start">
+                        <SelectItem value="default">System default</SelectItem>
+                        {outputDevices.map((device) => (
+                            <SelectItem
+                                key={device.deviceId}
+                                value={device.deviceId}>
+                                {device.label ||
+                                    `Unnamed device (${device.deviceId})`}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <FieldDescription>
+                    {outputDevices.length === 0
+                        ? "Loading output devices..."
+                        : "Switch outputs during playback to test sink routing."}
+                </FieldDescription>
+            </Field>
+
+            {/* Event log */}
+            <section className="rounded-2xl border border-neutral-200/80 bg-neutral-50/80 p-5 dark:border-neutral-800 dark:bg-neutral-950/40">
+                <h4 className="mb-3 text-sm font-medium">Event Log</h4>
+                <div className="flex max-h-48 flex-col gap-1.5 overflow-y-auto">
+                    {eventLog.length === 0 ? (
+                        <div className="text-sm opacity-40">No events yet.</div>
+                    ) : (
+                        eventLog.map((entry, i) => (
+                            <div
+                                key={i}
+                                className="rounded-lg border border-neutral-200/80 bg-white/80 px-3 py-1.5 font-mono text-xs dark:border-neutral-800 dark:bg-neutral-900/70">
+                                {entry}
+                            </div>
+                        ))
+                    )}
+                </div>
+            </section>
         </div>
     );
 }
 
-function DiagnosticRow({ label, value }: { label: string; value: string }) {
+interface QueueRowProps {
+    entry: QueueEntry;
+    index: number;
+    isCurrent: boolean;
+    isFirst: boolean;
+    isLast: boolean;
+    onJump: (index: number) => void;
+    onRemove: (index: number) => void;
+    onReorder: (from: number, to: number) => void;
+}
+
+function QueueRow({
+    entry,
+    index,
+    isCurrent,
+    isFirst,
+    isLast,
+    onJump,
+    onRemove,
+    onReorder,
+}: QueueRowProps) {
     return (
-        <div className="rounded-xl bg-white/70 px-3 py-2 dark:bg-neutral-900/60">
-            <div className="text-xs opacity-60">{label}</div>
-            <div className="text-sm font-medium">{value}</div>
+        <div
+            className={clsx(
+                "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+                isCurrent
+                    ? "bg-[color-mix(in_oklab,var(--color-accent)_10%,transparent)] text-[var(--color-accent)]"
+                    : "hover:bg-neutral-100 dark:hover:bg-neutral-800/60",
+            )}>
+            <div className="flex shrink-0 flex-col gap-0.5">
+                <button
+                    className={clsx(
+                        "rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-40 hover:opacity-100 disabled:pointer-events-none disabled:opacity-0",
+                    )}
+                    disabled={isFirst}
+                    onClick={() => onReorder(index, index - 1)}>
+                    <IconMoveUp className="size-3.5" />
+                </button>
+                <button
+                    className={clsx(
+                        "rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-40 hover:opacity-100 disabled:pointer-events-none disabled:opacity-0",
+                    )}
+                    disabled={isLast}
+                    onClick={() => onReorder(index, index + 1)}>
+                    <IconMoveDown className="size-3.5" />
+                </button>
+            </div>
+            <button
+                className="flex min-w-0 flex-1 flex-col gap-0.5 text-left"
+                onClick={() => onJump(index)}>
+                <span className="truncate leading-tight font-medium">
+                    {entry.track.track.title}
+                </span>
+                <span
+                    className={clsx(
+                        "truncate text-xs leading-tight",
+                        isCurrent ? "opacity-70" : "opacity-40",
+                    )}>
+                    {entry.track.artist.name}
+                </span>
+            </button>
+            <button
+                className="shrink-0 rounded-md p-1 opacity-0 transition-opacity group-hover:opacity-40 hover:opacity-100"
+                onClick={() => onRemove(index)}>
+                <IconX className="size-3.5" />
+            </button>
         </div>
     );
 }
 
-function parseInteger(value: string): number | null {
-    if (value.trim() === "") return null;
-
-    const parsed = Number(value);
+function parseTrackId(value: string): number | null {
+    const parsed = Number(value.trim());
     if (!Number.isInteger(parsed) || parsed <= 0) return null;
     return parsed;
-}
-
-function parseNumber(value: string): number | null {
-    if (value.trim() === "") return null;
-
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed < 0) return null;
-    return parsed;
-}
-
-function toTrackSummary(track: TrackResult): TrackSummary {
-    return {
-        id: track.track.id,
-        title: track.track.title,
-        artist: track.artist.name,
-        album: track.album.title,
-        durationMs: track.track.duration,
-    };
-}
-
-function formatNullableNumber(value: number | null): string {
-    return value === null ? "-" : value.toLocaleString();
-}
-
-function formatNullableMilliseconds(value: number | null): string {
-    return value === null ? "-" : `${value.toLocaleString()} ms`;
 }
