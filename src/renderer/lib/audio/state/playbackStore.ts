@@ -71,30 +71,46 @@ const loadDevices = async (
 
 let engine: AudioEngine | null = null;
 let session: PlaybackSession | null = null;
-let pollInterval: number | null = null;
+let animationFrameId: number | null = null;
+let lastPositionUpdateMs = 0;
 const endedCallbacks = new Set<() => void>();
 
 // Last loaded track info — allows play() to resume after stop()
 let lastTrackId: number | null = null;
 let lastPositionMs = 0;
 
+function positionTick(): void {
+    if (!session) return;
+    const snapshot = session.snapshot;
+    if (snapshot.trackPositionMilliseconds !== null) {
+        usePlaybackStore.setState({
+            positionMs: snapshot.trackPositionMilliseconds,
+        });
+    }
+}
+
+function rafCallback(timestamp: number): void {
+    if (!session) return;
+
+    if (timestamp - lastPositionUpdateMs >= POLL_INTERVAL_MS) {
+        positionTick();
+        lastPositionUpdateMs = timestamp;
+    }
+
+    animationFrameId = requestAnimationFrame(rafCallback);
+}
+
 function initPolling(): void {
     stopPolling();
-    pollInterval = setInterval(() => {
-        if (!session) return;
-        const snapshot = session.snapshot;
-        if (snapshot.trackPositionMilliseconds !== null) {
-            usePlaybackStore.setState({
-                positionMs: snapshot.trackPositionMilliseconds,
-            });
-        }
-    }, POLL_INTERVAL_MS);
+    positionTick();
+    lastPositionUpdateMs = performance.now();
+    animationFrameId = requestAnimationFrame(rafCallback);
 }
 
 function stopPolling(): void {
-    if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
+    if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
     }
 }
 

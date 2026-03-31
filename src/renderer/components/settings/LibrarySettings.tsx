@@ -95,26 +95,47 @@ export function LibrarySettings() {
             if (!isMountedRef.current) return;
             const progress = await electron.invoke("library:getScanProgress");
             if (isMountedRef.current) {
-                setLibraryState((prev) => ({
-                    activeScans: (() => {
-                        const next = new Map(prev.activeScans);
-                        for (const [sourceId, data] of progress)
-                            next.set(sourceId, data);
-                        return next;
-                    })(),
-                    libraryStatusLoaded: true,
-                }));
+                const activeScans = new Map<
+                    number,
+                    { processed: number; total: number }
+                >();
+                for (const [sourceId, data] of progress)
+                    activeScans.set(sourceId, data);
+                setLibraryState({ activeScans, libraryStatusLoaded: true });
             }
         }
 
         fetchProgress();
-        const interval = setInterval(fetchProgress, 500);
 
         return () => {
             isMountedRef.current = false;
-            clearInterval(interval);
         };
     }, []);
+
+    const hasActiveScans = libraryState.activeScans.size > 0;
+
+    useEffect(() => {
+        if (!hasActiveScans) return;
+
+        async function fetchProgress() {
+            if (!isMountedRef.current) return;
+            const progress = await electron.invoke("library:getScanProgress");
+            if (isMountedRef.current) {
+                setLibraryState((prev) => {
+                    const next = new Map(prev.activeScans);
+                    for (const [sourceId, data] of progress)
+                        next.set(sourceId, data);
+                    return { ...prev, activeScans: next };
+                });
+            }
+        }
+
+        const interval = setInterval(fetchProgress, 500);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [hasActiveScans]);
 
     useIpcListener(
         "library:onScanStart",

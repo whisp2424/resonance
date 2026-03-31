@@ -1,6 +1,5 @@
 import type { FSWatcher } from "chokidar";
 
-import { platform } from "@electron-toolkit/utils";
 import { db } from "@main/database";
 import { scanner } from "@main/library/MediaScanner";
 import { sourcesTable } from "@shared/database/schema";
@@ -9,7 +8,6 @@ import { watch } from "chokidar";
 import pc from "picocolors";
 
 const DEBOUNCE_MS = 1000;
-const USE_POLLING = platform.isWindows;
 
 class SourceWatcher {
     private watchers = new Map<number, FSWatcher>();
@@ -21,7 +19,6 @@ class SourceWatcher {
         const watcher = watch(sourcePath, {
             persistent: true,
             ignoreInitial: true,
-            usePolling: USE_POLLING,
         });
 
         watcher.on("add", () => this.onFileChange(sourceId));
