@@ -2,16 +2,16 @@ import { AudioEngine } from "@renderer/lib/audio/processing/AudioEngine";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import { create } from "zustand";
 
-interface AudioState {
+interface PlaybackState {
     outputDevices: MediaDeviceInfo[];
     isLoading: boolean;
     error: string | null;
 }
 
-export type AudioStore = AudioState;
+export type PlaybackStore = PlaybackState;
 
 const loadDevices = async (
-    set: (state: Partial<AudioState>) => void,
+    set: (state: Partial<PlaybackState>) => void,
 ): Promise<void> => {
     set({ isLoading: true, error: null });
     try {
@@ -26,11 +26,11 @@ const loadDevices = async (
             error: errorMessage,
             isLoading: false,
         });
-        log(errorMessage, "audioStore", "error");
+        log(errorMessage, "playbackStore", "error");
     }
 };
 
-export const useAudioStore = create<AudioStore>((set) => {
+export const usePlaybackStore = create<PlaybackStore>((set) => {
     loadDevices(set);
 
     if (typeof navigator !== "undefined" && navigator.mediaDevices) {

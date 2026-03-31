@@ -18,7 +18,7 @@ import TextInput from "@renderer/components/ui/TextInput";
 import { PlaybackSession } from "@renderer/lib/audio/PlaybackSession";
 import { AudioEngine } from "@renderer/lib/audio/processing/AudioEngine";
 import AudioProcessor from "@renderer/lib/audio/processing/audioProcessor?worker&url";
-import { useAudioStore } from "@renderer/lib/audio/state/audioStore";
+import { usePlaybackStore } from "@renderer/lib/audio/state/playbackStore";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import clsx from "clsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -51,7 +51,7 @@ export default function AudioTesting() {
         outputDevices,
         isLoading,
         error: outputDeviceError,
-    } = useAudioStore();
+    } = usePlaybackStore();
 
     const engineRef = useRef<AudioEngine | null>(null);
     const sessionRef = useRef<PlaybackSession | null>(null);
