@@ -28,7 +28,10 @@ interface PlaybackActions {
      * This method is used internally by the stores, consumers should interact
      * with the queue API instead.
      */
-    load(trackId: number, positionMs?: number): Promise<void>;
+    load(
+        trackId: number,
+        options?: { positionMs?: number; shouldPlay?: boolean },
+    ): Promise<void>;
 
     /** Resumes playback after a pause. */
     play(): Promise<void>;
@@ -53,6 +56,9 @@ interface PlaybackActions {
 
     /** Subscribes to track-ended events, returns an unsubscribe function. */
     onTrackEnded(callback: () => void): () => void;
+
+    /** Updates the current track metadata without affecting playback. */
+    setTrack(trackId: number, positionMs: number): void;
 }
 
 export type PlaybackStore = PlaybackState & PlaybackActions;
@@ -102,7 +108,6 @@ function rafCallback(timestamp: number): void {
 
 function initPolling(): void {
     stopPolling();
-    positionTick();
     lastPositionUpdateMs = performance.now();
     animationFrameId = requestAnimationFrame(rafCallback);
 }
@@ -124,6 +129,8 @@ async function initRuntime(): Promise<void> {
     session = new PlaybackSession(engine, port);
     session.subscribeEvents((event: PlaybackSessionEvent) => {
         if (event.type === "ended") {
+            lastPositionMs = 0;
+            usePlaybackStore.setState({ isPlaying: false, positionMs: 0 });
             for (const callback of endedCallbacks) callback();
         }
     });
@@ -156,38 +163,54 @@ export const usePlaybackStore = create<PlaybackStore>((set) => {
             lastPositionMs = 0;
             set({ isPlaying: false, positionMs: 0 });
         },
-        load: async (trackId: number, positionMs?: number) => {
+        load: async (
+            trackId: number,
+            options?: { positionMs?: number; shouldPlay?: boolean },
+        ) => {
+            const { positionMs = 0, shouldPlay = true } = options ?? {};
+
+            lastTrackId = trackId;
+            lastPositionMs = positionMs;
+
+            if (!shouldPlay) {
+                set({ isPlaying: false, positionMs });
+                return;
+            }
+
             await initRuntime();
             if (!session) return;
 
-            const offsetSeconds = positionMs ? positionMs / 1000 : 0;
+            const offsetSeconds = positionMs / 1000;
             const success = await session.playTrack(trackId, offsetSeconds);
 
             if (success) {
-                lastTrackId = trackId;
-                lastPositionMs = positionMs ?? 0;
-                set({ isPlaying: true, positionMs: lastPositionMs });
+                set({ isPlaying: true, positionMs });
                 initPolling();
             }
         },
         play: async () => {
-            if (!engine) return;
+            if (lastTrackId === null) return;
 
-            // If the session was stopped, reload the last track
-            if (lastTrackId !== null && session?.currentTrackId === null) {
+            await initRuntime();
+            if (!session) return;
+
+            // if the session was stopped, reload the last track
+            if (session.currentTrackId === null) {
                 const offsetSeconds = lastPositionMs / 1000;
                 const success = await session.playTrack(
                     lastTrackId,
                     offsetSeconds,
                 );
+
                 if (success) {
                     set({ isPlaying: true, positionMs: lastPositionMs });
                     initPolling();
                 }
+
                 return;
             }
 
-            await engine.play();
+            await engine!.play();
             set({ isPlaying: true });
             initPolling();
         },
@@ -197,9 +220,12 @@ export const usePlaybackStore = create<PlaybackStore>((set) => {
             set({ isPlaying: false });
         },
         seek: (positionMs: number) => {
+            if (lastTrackId === null) return;
+            lastPositionMs = positionMs;
+            set({ positionMs });
+
             if (!session || !engine) return;
             session.seek(positionMs / 1000);
-            set({ positionMs });
         },
         stop: async () => {
             if (!session) return;
@@ -225,6 +251,10 @@ export const usePlaybackStore = create<PlaybackStore>((set) => {
             return () => {
                 endedCallbacks.delete(callback);
             };
+        },
+        setTrack: (trackId: number, positionMs: number) => {
+            lastTrackId = trackId;
+            lastPositionMs = positionMs;
         },
     };
 });

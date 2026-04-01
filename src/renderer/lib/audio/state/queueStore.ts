@@ -66,9 +66,18 @@ interface QueueActions {
      * track, depending on the circumstances.
      */
     previous(): Promise<void>;
+
+    /** Restores the queue from persisted state. */
+    restore(options: RestoreQueueOptions): Promise<void>;
 }
 
 export type QueueStore = QueueState & QueueActions;
+
+export interface RestoreQueueOptions {
+    trackIds: number[];
+    currentEntryIndex: number | null;
+    positionMs: number;
+}
 
 async function fetchTrackResults(trackIds: number[]): Promise<TrackResult[]> {
     if (trackIds.length === 0) return [];
@@ -264,8 +273,67 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
 
         await get().jump(currentIndex - 1);
     },
+
+    restore: async (options: RestoreQueueOptions) => {
+        const { trackIds, currentEntryIndex, positionMs } = options;
+
+        if (trackIds.length === 0) {
+            set({ entries: [], currentEntryId: null });
+            return;
+        }
+
+        const tracks = await fetchTrackResults(trackIds);
+
+        if (tracks.length === 0) {
+            log("all persisted tracks were invalid", "queueStore", "warning");
+            set({ entries: [], currentEntryId: null });
+            return;
+        }
+
+        const newEntries = createEntries(tracks);
+
+        let newCurrentId: number | null = null;
+        let jumpToIndex: number | null = null;
+
+        if (
+            currentEntryIndex !== null &&
+            currentEntryIndex >= 0 &&
+            currentEntryIndex < newEntries.length
+        ) {
+            newCurrentId = newEntries[currentEntryIndex]!.id;
+            jumpToIndex = currentEntryIndex;
+        } else if (newEntries.length > 0) {
+            newCurrentId = newEntries[0]!.id;
+            jumpToIndex = 0;
+        }
+
+        set({ entries: newEntries, currentEntryId: newCurrentId });
+
+        if (jumpToIndex !== null) {
+            const entry = newEntries[jumpToIndex]!;
+            const playbackStore = usePlaybackStore.getState();
+            await playbackStore.load(entry.trackId, {
+                positionMs,
+                shouldPlay: false,
+            });
+        }
+    },
 }));
 
 usePlaybackStore.getState().onTrackEnded(() => {
-    void useQueueStore.getState().next();
+    const { entries, currentEntryId } = useQueueStore.getState();
+
+    if (currentEntryId !== null) {
+        const currentIndex = entries.findIndex((e) => e.id === currentEntryId);
+        if (currentIndex === entries.length - 1) {
+            const firstEntry = entries[0];
+            useQueueStore.setState({ currentEntryId: firstEntry?.id ?? null });
+
+            if (firstEntry)
+                usePlaybackStore.getState().setTrack(firstEntry.trackId, 0);
+            return;
+        }
+    }
+
+    useQueueStore.getState().next();
 });

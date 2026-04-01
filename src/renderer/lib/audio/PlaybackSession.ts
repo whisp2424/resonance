@@ -350,7 +350,7 @@ export class PlaybackSession {
 
         this.state.track.terminal = transition;
         this.publishSnapshot();
-        void this.watchTerminalBoundary(
+        this.watchTerminalBoundary(
             this.state.track.request,
             ++this.terminalWatcherId,
         );
@@ -366,7 +366,7 @@ export class PlaybackSession {
 
         this.state.track.terminal = transition;
         this.publishSnapshot();
-        void this.watchTerminalBoundary(
+        this.watchTerminalBoundary(
             this.state.track.request,
             ++this.terminalWatcherId,
         );

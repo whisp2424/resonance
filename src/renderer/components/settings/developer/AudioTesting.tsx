@@ -16,9 +16,8 @@ import {
 import TextInput from "@renderer/components/ui/TextInput";
 import { usePlaybackStore } from "@renderer/lib/audio/state/playbackStore";
 import { useQueueStore } from "@renderer/lib/audio/state/queueStore";
-import { log } from "@shared/utils/logger";
 import clsx from "clsx";
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import IconMoveDown from "~icons/lucide/arrow-down-0-1";
 import IconMoveUp from "~icons/lucide/arrow-up-0-1";
@@ -34,18 +33,12 @@ export default function AudioTesting() {
 
     const [trackIdInput, setTrackIdInput] = useState("1");
     const [selectedDeviceId, setSelectedDeviceId] = useState("default");
-    const [eventLog, setEventLog] = useState<string[]>([]);
 
     // Scrubber drag state — while dragging, show the drag position instead of
     // the live playback position so the thumb doesn't jump around.
     const [scrubbing, setScrubbing] = useState(false);
     const [scrubPositionMs, setScrubPositionMs] = useState(0);
     const isScrubbing = useRef(false);
-
-    const appendEvent = useCallback(function appendEvent(message: string) {
-        setEventLog((prev) => [message, ...prev].slice(0, 20));
-        log(message, "debug:audio", "info");
-    }, []);
 
     const currentIndex = entries.findIndex((e) => e.id === currentEntryId);
     const currentEntry = currentIndex >= 0 ? entries[currentIndex] : null;
@@ -63,35 +56,29 @@ export default function AudioTesting() {
         const id = parseTrackId(trackIdInput);
         if (id === null) return;
         await useQueueStore.getState().enqueue([id]);
-        appendEvent(`enqueued track ${String(id)}`);
     }
 
     async function handlePlayNow() {
         const id = parseTrackId(trackIdInput);
         if (id === null) return;
         await useQueueStore.getState().enqueue([id], { playNow: true });
-        appendEvent(`playing track ${String(id)} now`);
     }
 
     async function handlePlayPause() {
         const store = usePlaybackStore.getState();
         if (isPlaying) {
             store.pause();
-            appendEvent("paused");
         } else {
             await store.play();
-            appendEvent("resumed");
         }
     }
 
     async function handlePrevious() {
         await useQueueStore.getState().previous();
-        appendEvent("previous");
     }
 
     async function handleNext() {
         await useQueueStore.getState().next();
-        appendEvent("next");
     }
 
     function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -102,27 +89,22 @@ export default function AudioTesting() {
         setSelectedDeviceId(value);
         const deviceId = value === "default" ? "" : value;
         await usePlaybackStore.getState().setOutputDevice(deviceId);
-        appendEvent(`output device: ${value}`);
     }
 
     async function handleJump(index: number) {
         await useQueueStore.getState().jump(index);
-        appendEvent(`jumped to queue index ${String(index)}`);
     }
 
     async function handleRemove(index: number) {
         await useQueueStore.getState().remove(index);
-        appendEvent(`removed queue index ${String(index)}`);
     }
 
     function handleClearQueue() {
-        void useQueueStore.getState().enqueue([], { clearQueue: true });
-        appendEvent("cleared queue");
+        useQueueStore.getState().enqueue([], { clearQueue: true });
     }
 
     function handleReorder(from: number, to: number) {
         useQueueStore.getState().reorder(from, to);
-        appendEvent(`reordered ${String(from)} → ${String(to)}`);
     }
 
     return (
@@ -164,7 +146,7 @@ export default function AudioTesting() {
                                   : positionMs
                         }
                         disabled={durationMs === null}
-                        className="h-1.5 w-full cursor-pointer accent-[var(--color-accent)] disabled:opacity-40"
+                        className="h-1.5 w-full cursor-pointer accent-(--color-accent) disabled:opacity-40"
                         onMouseDown={() => {
                             isScrubbing.current = true;
                             setScrubbing(true);
@@ -174,13 +156,12 @@ export default function AudioTesting() {
                             if (!isScrubbing.current) return;
                             setScrubPositionMs(Number(e.target.value));
                         }}
-                        onMouseUp={(e) => {
+                        onMouseUp={async (e) => {
                             const target = e.target as HTMLInputElement;
                             const ms = Number(target.value);
                             isScrubbing.current = false;
                             setScrubbing(false);
-                            usePlaybackStore.getState().seek(ms);
-                            appendEvent(`seek to ${(ms / 1000).toFixed(1)}s`);
+                            await usePlaybackStore.getState().seek(ms);
                         }}
                     />
                     <div className="flex justify-between text-xs opacity-40">
@@ -229,7 +210,7 @@ export default function AudioTesting() {
                         step="0.01"
                         value={volume}
                         onChange={handleVolumeChange}
-                        className="h-1.5 w-full cursor-pointer accent-[var(--color-accent)]"
+                        className="h-1.5 w-full cursor-pointer accent-(--color-accent)"
                     />
                     <span className="w-8 text-right text-xs opacity-40">
                         {Math.round(volume * 100)}%
@@ -307,7 +288,7 @@ export default function AudioTesting() {
                     disabled={outputDevices.length === 0}
                     onValueChange={(value) => {
                         if (value === null) return;
-                        void handleDeviceChange(value);
+                        handleDeviceChange(value);
                     }}>
                     <SelectTrigger className="w-full">
                         <SelectValue placeholder="System default" />
@@ -330,24 +311,6 @@ export default function AudioTesting() {
                         : "Switch outputs during playback to test sink routing."}
                 </FieldDescription>
             </Field>
-
-            {/* Event log */}
-            <section className="rounded-2xl border border-neutral-200/80 bg-neutral-50/80 p-5 dark:border-neutral-800 dark:bg-neutral-950/40">
-                <h4 className="mb-3 text-sm font-medium">Event Log</h4>
-                <div className="flex max-h-48 flex-col gap-1.5 overflow-y-auto">
-                    {eventLog.length === 0 ? (
-                        <div className="text-sm opacity-40">No events yet.</div>
-                    ) : (
-                        eventLog.map((entry, i) => (
-                            <div
-                                key={i}
-                                className="rounded-lg border border-neutral-200/80 bg-white/80 px-3 py-1.5 font-mono text-xs dark:border-neutral-800 dark:bg-neutral-900/70">
-                                {entry}
-                            </div>
-                        ))
-                    )}
-                </div>
-            </section>
         </div>
     );
 }
@@ -378,7 +341,7 @@ function QueueRow({
             className={clsx(
                 "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
                 isCurrent
-                    ? "bg-[color-mix(in_oklab,var(--color-accent)_10%,transparent)] text-[var(--color-accent)]"
+                    ? "bg-[color-mix(in_oklab,var(--color-accent)_10%,transparent)] text-(--color-accent)"
                     : "hover:bg-neutral-100 dark:hover:bg-neutral-800/60",
             )}>
             <div className="flex shrink-0 flex-col gap-0.5">

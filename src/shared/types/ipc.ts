@@ -1,5 +1,6 @@
 import type { WindowRoute } from "@shared/constants/routes";
 import type { MediaSource } from "@shared/database/schema";
+import type { PlaybackState } from "@shared/schema/playback";
 import type { Settings } from "@shared/schema/settings";
 import type { DialogOptions, DialogResult } from "@shared/types/dialog";
 import type {
@@ -74,6 +75,9 @@ export type MainIpcHandleEvents = {
     "library:getTracks": (ids: number[]) => GetTracksResult;
 
     "server:getPort": () => number;
+
+    "playback:get": () => PlaybackState;
+    "playback:set": (playbackState: PlaybackState) => void;
 };
 
 export type MainIpcListenEvents = {
