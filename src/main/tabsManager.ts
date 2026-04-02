@@ -33,6 +33,11 @@ class TabsManager {
                 return null;
             }
 
+            // arktype schema uses loose params to support multiple tab types,
+            // therefore, the inferred type doesn't match TabDescriptor.
+
+            // casting here is acceptable, as we validate against the schema first.
+
             this.tabsCache = tabsResult as unknown as TabDescriptor[];
             this.activeIdCache = jsonData.activeId ?? null;
 
