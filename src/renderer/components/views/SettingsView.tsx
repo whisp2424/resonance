@@ -2,6 +2,7 @@ import type { SideBarItem } from "@renderer/components/ui/SideBar";
 import type { ComponentType } from "react";
 
 import { AppearanceSettings } from "@renderer/components/settings/AppearanceSettings";
+import { AudioSettings } from "@renderer/components/settings/AudioSettings";
 import { DeveloperSettings } from "@renderer/components/settings/DeveloperSettings";
 import { LibrarySettings } from "@renderer/components/settings/LibrarySettings";
 import SideBar from "@renderer/components/ui/SideBar";
@@ -11,11 +12,13 @@ import { useEffect, useState } from "react";
 
 import IconAppearance from "~icons/lucide/brush";
 import IconCode from "~icons/lucide/code";
+import IconHeadphones from "~icons/lucide/headphones";
 import IconLibrary from "~icons/lucide/library-big";
 
 const CATEGORY_COMPONENTS: Record<string, ComponentType> = {
     appearance: AppearanceSettings,
     library: LibrarySettings,
+    audio: AudioSettings,
 };
 
 const SIDEBAR_CATEGORIES: SideBarItem[] = [
@@ -28,6 +31,11 @@ const SIDEBAR_CATEGORIES: SideBarItem[] = [
         id: "library",
         label: "Library",
         icon: <IconLibrary className="size-full" />,
+    },
+    {
+        id: "audio",
+        label: "Audio",
+        icon: <IconHeadphones className="size-full" />,
     },
 ];
 
