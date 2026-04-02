@@ -24,6 +24,11 @@ interface ActiveStream {
 
 const activeStreams = new Set<ActiveStream>();
 
+router.on("GET", "/health", (_, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.writeHead(200).end(JSON.stringify({ status: "ok" }));
+});
+
 router.on("GET", "/tracks/:id", async (req, res, params) => {
     if (!ffmpegPath) {
         const status = 500;
