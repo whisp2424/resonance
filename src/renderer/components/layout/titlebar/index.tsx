@@ -27,11 +27,9 @@ export default function TitleBar() {
                 {!isFullscreen && (
                     <div
                         className={twMerge(
-                            clsx(
-                                "flex h-full flex-row items-center justify-end",
-                                !isWindowFocused &&
-                                    "text-black/50 dark:text-white/50",
-                            ),
+                            "flex h-full flex-row items-center justify-end",
+                            !isWindowFocused &&
+                                "text-black/50 dark:text-white/50",
                         )}>
                         <WindowControls
                             windowId={windowId}

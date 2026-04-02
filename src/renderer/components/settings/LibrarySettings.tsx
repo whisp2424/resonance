@@ -37,7 +37,7 @@ function SourceItem({
     return (
         <div className="flex items-center justify-between pl-1">
             <div className="flex flex-row items-center gap-4">
-                <IconFolder className="opacity-20" />
+                <IconFolder className="size-5 opacity-40" />
                 <div className="flex flex-col">
                     <h2>{source.displayName}</h2>
                     <span className="text-xs opacity-50">{source.path}</span>

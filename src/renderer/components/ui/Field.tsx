@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { Field as BaseField } from "@base-ui/react/field";
-import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
 
 const FieldRoot = BaseField.Root;
@@ -16,7 +15,7 @@ function FieldLabel({
 }) {
     return (
         <BaseField.Label
-            className={twMerge(clsx("mb-1.5 block text-sm", className))}
+            className={twMerge("mb-1.5 block text-sm", className)}
             {...props}>
             {children}
         </BaseField.Label>
@@ -33,7 +32,7 @@ function FieldDescription({
 }) {
     return (
         <BaseField.Description
-            className={twMerge(clsx("mt-1.5 text-sm opacity-50", className))}
+            className={twMerge("mt-1.5 text-sm opacity-50", className)}
             {...props}>
             {children}
         </BaseField.Description>
@@ -51,10 +50,8 @@ function FieldError({
     return (
         <BaseField.Error
             className={twMerge(
-                clsx(
-                    "mt-1.5 text-xs text-red-500 dark:text-red-400",
-                    className,
-                ),
+                "mt-1.5 text-xs text-red-500 dark:text-red-400",
+                className,
             )}
             {...props}>
             {children}
