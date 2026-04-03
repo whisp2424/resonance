@@ -1,5 +1,6 @@
 import TitleBar from "@renderer/components/layout/titlebar";
 import AddSourceView from "@renderer/components/views/AddSourceView";
+import AudioInfoView from "@renderer/components/views/AudioInfoView";
 import MainView from "@renderer/components/views/MainView";
 import { useOperatingSystem } from "@renderer/hooks/useOperatingSystem";
 import {
@@ -57,6 +58,7 @@ export default function App() {
             <Routes>
                 <Route path={ROUTES.HOME} element={<MainView />} />
                 <Route path={ROUTES.ADD_SOURCE} element={<AddSourceView />} />
+                <Route path={ROUTES.AUDIO_INFO} element={<AudioInfoView />} />
                 <Route path={ROUTES.NOT_FOUND} element={null} />
             </Routes>
         </div>

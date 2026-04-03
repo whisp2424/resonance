@@ -56,4 +56,15 @@ export const WINDOW_POLICIES: Record<
         resizable: false,
         modal: true,
     }),
+    "/audio-info": createPolicy({
+        width: 600,
+        height: 600,
+        minWidth: 600,
+        minHeight: 400,
+        maxWidth: 600,
+        fullscreenable: false,
+        maximizable: false,
+        resizable: true,
+        modal: true,
+    }),
 };

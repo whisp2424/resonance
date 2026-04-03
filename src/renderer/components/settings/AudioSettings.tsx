@@ -52,7 +52,16 @@ export function AudioSettings() {
             <SettingsRow
                 title="Audio information"
                 description="Inspect audio processing and decoding details">
-                <Button>Open</Button>
+                <Button
+                    onClick={() => {
+                        electron.invoke(
+                            "window:new",
+                            "/audio-info",
+                            "audioInfo",
+                        );
+                    }}>
+                    Open
+                </Button>
             </SettingsRow>
             <SettingsSection title="Device settings" className="mt-4">
                 <SettingsSelectField
