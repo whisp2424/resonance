@@ -1,11 +1,5 @@
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@renderer/components/ui/Select";
+import { SettingsSelectField } from "@renderer/components/settings/SettingsSelectField";
 import { useSetting } from "@renderer/hooks/settings/useSetting";
 
 export function AppearanceSettings() {
@@ -26,59 +20,25 @@ export function AppearanceSettings() {
 
     return (
         <SettingsCategory title="Appearance">
-            <div className="flex flex-row items-center justify-between gap-8">
-                <div>
-                    <span>App theme</span>
-                    <p className="text-sm opacity-50">
-                        Toggle between light and dark theme
-                    </p>
-                </div>
-                {appTheme !== undefined && (
-                    <Select
-                        items={themeSelectItems}
-                        value={appTheme}
-                        onValueChange={(newValue) => {
-                            if (newValue) setAppTheme(newValue);
-                        }}>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {themeSelectItems.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
-            </div>
+            <SettingsSelectField
+                title="App theme"
+                description="Toggle between light and dark theme"
+                items={themeSelectItems}
+                value={appTheme}
+                onValueChange={(newValue) => {
+                    setAppTheme(newValue);
+                }}
+            />
 
-            <div className="flex flex-row items-center justify-between gap-8">
-                <div>
-                    <span>Tray icon</span>
-                    <p className="text-sm opacity-50">Pick a tray icon color</p>
-                </div>
-                {trayIcon !== undefined && (
-                    <Select
-                        items={trayIconSelectItems}
-                        value={trayIcon}
-                        onValueChange={(newValue) => {
-                            if (newValue) setTrayIcon(newValue);
-                        }}>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {trayIconSelectItems.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
-            </div>
+            <SettingsSelectField
+                title="Tray icon"
+                description="Pick a tray icon color"
+                items={trayIconSelectItems}
+                value={trayIcon}
+                onValueChange={(newValue) => {
+                    setTrayIcon(newValue);
+                }}
+            />
         </SettingsCategory>
     );
 }

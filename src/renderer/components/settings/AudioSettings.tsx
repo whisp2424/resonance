@@ -1,12 +1,8 @@
 import { SettingsCategory } from "@renderer/components/settings/SettingsCategory";
+import { SettingsRow } from "@renderer/components/settings/SettingsRow";
+import { SettingsSection } from "@renderer/components/settings/SettingsSection";
+import { SettingsSelectField } from "@renderer/components/settings/SettingsSelectField";
 import Button from "@renderer/components/ui/Button";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@renderer/components/ui/Select";
 import { useSetting } from "@renderer/hooks/settings/useSetting";
 import { usePlaybackStore } from "@renderer/lib/audio/state/playbackStore";
 import { useMemo } from "react";
@@ -25,7 +21,6 @@ export function AudioSettings() {
     const [outputDeviceId, setOutputDeviceId] = useSetting(
         "audio.output.deviceId",
     );
-
     const [outputNotifyChanges, setOutputNotifyChanges] = useSetting(
         "audio.output.notifyChanges",
     );
@@ -54,76 +49,35 @@ export function AudioSettings() {
 
     return (
         <SettingsCategory title="Audio">
-            <div className="flex flex-row items-center justify-between gap-8">
-                <div>
-                    <div>Audio information</div>
-                    <p className="text-sm opacity-50">
-                        Inspect audio processing and decoding details
-                    </p>
-                </div>
+            <SettingsRow
+                title="Audio information"
+                description="Inspect audio processing and decoding details">
                 <Button>Open</Button>
-            </div>
-            <div className="flex flex-1 flex-col gap-6">
-                <h2 className="mt-4 text-xl font-light opacity-60">
-                    Device settings
-                </h2>
-                <div className="flex flex-col gap-3">
-                    <div>
-                        <div>Audio device</div>
-                        <p className="text-sm opacity-50">
-                            Select the primary audio device to be used for audio
-                            output
-                        </p>
-                    </div>
-                    <Select
-                        items={audioDeviceItems}
-                        value={outputDeviceId ?? "default"}
-                        onValueChange={(newValue) => {
-                            if (newValue === null) return;
-                            setOutputDeviceId(newValue);
-                            usePlaybackStore
-                                .getState()
-                                .setOutputDevice(newValue);
-                        }}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="System default" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {audioDeviceItems.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex flex-row items-center justify-between gap-8">
-                    <div>
-                        <div>Device change notifications</div>
-                        <p className="text-sm opacity-50">
-                            Notify me when the audio device has changed
-                        </p>
-                    </div>
-                    <Select
-                        items={outputNotifyChangesItems}
-                        value={outputNotifyChanges ?? "none"}
-                        onValueChange={(newValue) => {
-                            if (newValue === null) return;
-                            setOutputNotifyChanges(newValue);
-                        }}>
-                        <SelectTrigger className="min-w-32">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {outputNotifyChangesItems.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
+            </SettingsRow>
+            <SettingsSection title="Device settings" className="mt-4">
+                <SettingsSelectField
+                    title="Audio device"
+                    description="Select the primary audio device to be used for audio output"
+                    items={audioDeviceItems}
+                    value={outputDeviceId}
+                    layout="stacked"
+                    placeholder="System default"
+                    onValueChange={(newValue) => {
+                        setOutputDeviceId(newValue);
+                        usePlaybackStore.getState().setOutputDevice(newValue);
+                    }}
+                />
+
+                <SettingsSelectField
+                    title="Device change notifications"
+                    description="Notify me when the audio device has changed"
+                    items={outputNotifyChangesItems}
+                    value={outputNotifyChanges}
+                    onValueChange={(newValue) => {
+                        setOutputNotifyChanges(newValue);
+                    }}
+                />
+            </SettingsSection>
         </SettingsCategory>
     );
 }
