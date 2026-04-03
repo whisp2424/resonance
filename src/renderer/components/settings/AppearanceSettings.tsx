@@ -28,7 +28,7 @@ export function AppearanceSettings() {
         <SettingsCategory title="Appearance">
             <div className="flex flex-row items-center justify-between gap-8">
                 <div>
-                    <h2>App theme</h2>
+                    <span>App theme</span>
                     <p className="text-sm opacity-50">
                         Toggle between light and dark theme
                     </p>
@@ -56,7 +56,7 @@ export function AppearanceSettings() {
 
             <div className="flex flex-row items-center justify-between gap-8">
                 <div>
-                    <h2>Tray icon</h2>
+                    <span>Tray icon</span>
                     <p className="text-sm opacity-50">Pick a tray icon color</p>
                 </div>
                 {trayIcon !== undefined && (
