@@ -9,6 +9,7 @@ export const settingsSchema = type({
     audio: {
         output: {
             deviceId: "string",
+            notifyChanges: "'none' | 'startup' | 'always'",
         },
     },
 });
@@ -25,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
     audio: {
         output: {
             deviceId: "default",
+            notifyChanges: "none",
         },
     },
 };
