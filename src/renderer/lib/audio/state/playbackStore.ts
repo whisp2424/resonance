@@ -40,7 +40,7 @@ interface PlaybackActions {
     pause(): void;
 
     /** Seeks to a position within the current track. */
-    seek(positionMs: number): void;
+    seek(positionMs: number): Promise<void>;
 
     /** Stops playback and resets the current track. */
     stop(): void;
@@ -219,13 +219,15 @@ export const usePlaybackStore = create<PlaybackStore>((set) => {
             stopPolling();
             set({ isPlaying: false });
         },
-        seek: (positionMs: number) => {
+        seek: async (positionMs: number) => {
             if (lastTrackId === null) return;
             lastPositionMs = positionMs;
             set({ positionMs });
 
             if (!session || !engine) return;
-            session.seek(positionMs / 1000);
+            await session.seek(positionMs / 1000, {
+                shouldPlay: usePlaybackStore.getState().isPlaying,
+            });
         },
         stop: async () => {
             if (!session) return;

@@ -264,7 +264,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         const positionMs = usePlaybackStore.getState().positionMs;
 
         if (positionMs > REWIND_THRESHOLD_MS) {
-            usePlaybackStore.getState().seek(0);
+            await usePlaybackStore.getState().seek(0);
             return;
         }
 

@@ -217,12 +217,16 @@ export class PlaybackSession {
         );
     }
 
-    async seek(offsetSeconds: number): Promise<boolean> {
+    async seek(
+        offsetSeconds: number,
+        options?: { shouldPlay?: boolean },
+    ): Promise<boolean> {
         const trackId = this.getCurrentRequest()?.trackId;
         if (trackId == null) return false;
 
         return this.replaceWithRequest(
             this.createRequest(trackId, offsetSeconds),
+            options,
         );
     }
 
@@ -249,7 +253,11 @@ export class PlaybackSession {
         };
     }
 
-    private async replaceWithRequest(request: TrackRequest): Promise<boolean> {
+    private async replaceWithRequest(
+        request: TrackRequest,
+        options?: { shouldPlay?: boolean },
+    ): Promise<boolean> {
+        const { shouldPlay = true } = options ?? {};
         this.cancelTerminalWatcher();
         this.state = { type: "opening", request };
         this.publishSnapshot();
@@ -276,11 +284,13 @@ export class PlaybackSession {
             return true;
         }
 
-        try {
-            await this.engine.play();
-        } catch (err) {
-            await this.handleResumeFailure(activeTrack, err);
-            return false;
+        if (shouldPlay) {
+            try {
+                await this.engine.play();
+            } catch (err) {
+                await this.handleResumeFailure(activeTrack, err);
+                return false;
+            }
         }
 
         this.publishSnapshot();
