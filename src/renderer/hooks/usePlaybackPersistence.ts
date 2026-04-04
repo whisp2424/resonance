@@ -71,9 +71,9 @@ export async function restorePlaybackState(): Promise<Result<PlaybackState>> {
         usePlaybackStore.setState({
             isPlaying: false, // persisted state unused for now
             positionMs: persisted.positionMs,
-            volume: persisted.volume,
         });
 
+        usePlaybackStore.getState().setVolume(persisted.volume);
         initPositionPersistenceLoop();
         return ok(persisted);
     } catch (err) {

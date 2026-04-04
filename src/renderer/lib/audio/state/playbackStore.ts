@@ -125,6 +125,7 @@ async function initRuntime(): Promise<void> {
     const port = await electron.invoke("server:getPort");
     engine = new AudioEngine(AudioProcessor);
     await engine.init();
+    engine.volume = usePlaybackStore.getState().volume;
 
     session = new PlaybackSession(engine, port);
     session.subscribeEvents((event: PlaybackSessionEvent) => {
