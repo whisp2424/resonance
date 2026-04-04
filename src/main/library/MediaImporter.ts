@@ -32,14 +32,6 @@ import { eq, sql } from "drizzle-orm";
 import { fileTypeFromFile } from "file-type";
 import { parseFile } from "music-metadata";
 
-interface ImportCache {
-    artists: Map<string, number>;
-    albumArtists: Map<string, number>;
-    albums: Map<string, number>;
-    discs: Map<string, number>;
-    genres: Map<string, number>;
-}
-
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export interface ParsedTrack {
@@ -50,23 +42,7 @@ export interface ParsedTrack {
 
 export type ParseResult = Result<ParsedTrack, "invalid_file" | "parse_failed">;
 
-function createCache(): ImportCache {
-    return {
-        artists: new Map(),
-        albumArtists: new Map(),
-        albums: new Map(),
-        discs: new Map(),
-        genres: new Map(),
-    };
-}
-
 export class MediaImporter {
-    private cache: ImportCache = createCache();
-
-    resetCache(): void {
-        this.cache = createCache();
-    }
-
     private async validateFile(absolutePath: string): Promise<Stats> {
         const stats = await stat(absolutePath);
         if (!stats.isFile()) throw new Error("Not a regular file");
@@ -136,9 +112,6 @@ export class MediaImporter {
         sortName: string | undefined,
         musicbrainzArtistId: string | undefined,
     ): Result<number> {
-        const cached = this.cache.artists.get(name);
-        if (cached !== undefined) return ok(cached);
-
         try {
             const existing = tx
                 .select({ id: artistsTable.id })
@@ -147,10 +120,7 @@ export class MediaImporter {
                 .limit(1)
                 .all();
 
-            if (existing.length > 0) {
-                this.cache.artists.set(name, existing[0].id);
-                return ok(existing[0].id);
-            }
+            if (existing.length > 0) return ok(existing[0].id);
 
             const newArtist: NewArtist = {
                 name,
@@ -168,9 +138,7 @@ export class MediaImporter {
                 .returning({ id: artistsTable.id })
                 .all();
 
-            const id = inserted[0].id;
-            this.cache.artists.set(name, id);
-            return ok(id);
+            return ok(inserted[0].id);
         } catch (err) {
             return error(getErrorMessage(err));
         }
@@ -182,9 +150,6 @@ export class MediaImporter {
         sortName: string | undefined,
         musicbrainzArtistId: string | undefined,
     ): Result<number> {
-        const cached = this.cache.albumArtists.get(name);
-        if (cached !== undefined) return ok(cached);
-
         try {
             const existing = tx
                 .select({ id: albumArtistsTable.id })
@@ -193,10 +158,7 @@ export class MediaImporter {
                 .limit(1)
                 .all();
 
-            if (existing.length > 0) {
-                this.cache.albumArtists.set(name, existing[0].id);
-                return ok(existing[0].id);
-            }
+            if (existing.length > 0) return ok(existing[0].id);
 
             const newAlbumArtist: NewAlbumArtist = {
                 name,
@@ -214,9 +176,7 @@ export class MediaImporter {
                 .returning({ id: albumArtistsTable.id })
                 .all();
 
-            const id = inserted[0].id;
-            this.cache.albumArtists.set(name, id);
-            return ok(id);
+            return ok(inserted[0].id);
         } catch (err) {
             return error(getErrorMessage(err));
         }
@@ -236,10 +196,6 @@ export class MediaImporter {
         musicbrainzAlbumId: string | undefined,
         musicbrainzReleaseGroupId: string | undefined,
     ): Result<number> {
-        const key = `${albumArtistId}:${title}`;
-        const cached = this.cache.albums.get(key);
-        if (cached !== undefined) return ok(cached);
-
         try {
             const existing = tx
                 .select({ id: albumsTable.id })
@@ -250,10 +206,7 @@ export class MediaImporter {
                 .limit(1)
                 .all();
 
-            if (existing.length > 0) {
-                this.cache.albums.set(key, existing[0].id);
-                return ok(existing[0].id);
-            }
+            if (existing.length > 0) return ok(existing[0].id);
 
             const newAlbum: NewAlbum = {
                 albumArtistId,
@@ -279,9 +232,7 @@ export class MediaImporter {
                 .returning({ id: albumsTable.id })
                 .all();
 
-            const id = inserted[0].id;
-            this.cache.albums.set(key, id);
-            return ok(id);
+            return ok(inserted[0].id);
         } catch (err) {
             return error(getErrorMessage(err));
         }
@@ -293,10 +244,6 @@ export class MediaImporter {
         discNumber: number,
         discSubtitle: string | undefined,
     ): Result<number> {
-        const key = `${albumId}:${discNumber}`;
-        const cached = this.cache.discs.get(key);
-        if (cached !== undefined) return ok(cached);
-
         try {
             const existing = tx
                 .select({ id: discsTable.id })
@@ -307,10 +254,7 @@ export class MediaImporter {
                 .limit(1)
                 .all();
 
-            if (existing.length > 0) {
-                this.cache.discs.set(key, existing[0].id);
-                return ok(existing[0].id);
-            }
+            if (existing.length > 0) return ok(existing[0].id);
 
             const newDisc: NewDisc = {
                 albumId,
@@ -328,18 +272,13 @@ export class MediaImporter {
                 .returning({ id: discsTable.id })
                 .all();
 
-            const id = inserted[0].id;
-            this.cache.discs.set(key, id);
-            return ok(id);
+            return ok(inserted[0].id);
         } catch (err) {
             return error(getErrorMessage(err));
         }
     }
 
     private getOrCreateGenre(tx: Transaction, name: string): Result<number> {
-        const cached = this.cache.genres.get(name);
-        if (cached !== undefined) return ok(cached);
-
         try {
             const existing = tx
                 .select({ id: genresTable.id })
@@ -348,10 +287,7 @@ export class MediaImporter {
                 .limit(1)
                 .all();
 
-            if (existing.length > 0) {
-                this.cache.genres.set(name, existing[0].id);
-                return ok(existing[0].id);
-            }
+            if (existing.length > 0) return ok(existing[0].id);
 
             const newGenre: NewGenre = { name };
 
@@ -365,9 +301,7 @@ export class MediaImporter {
                 .returning({ id: genresTable.id })
                 .all();
 
-            const id = inserted[0].id;
-            this.cache.genres.set(name, id);
-            return ok(id);
+            return ok(inserted[0].id);
         } catch (err) {
             return error(getErrorMessage(err));
         }

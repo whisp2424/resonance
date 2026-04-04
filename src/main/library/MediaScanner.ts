@@ -203,8 +203,6 @@ export class MediaScanner {
         state.running = true;
         state.cancelled = false;
         state.processed = 0;
-        importer.resetCache();
-
         const fileProcessingQueue = new PQueue({
             concurrency: PARSE_CONCURRENCY,
         });
