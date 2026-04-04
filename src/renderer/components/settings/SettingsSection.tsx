@@ -15,7 +15,7 @@ export function SettingsSection({
 }: SettingsSectionProps) {
     return (
         <section className={twMerge("flex flex-col gap-4", className)}>
-            <h2 className="text-xl font-light opacity-60">{title}</h2>
+            <h2 className="text-xl font-[350] opacity-60">{title}</h2>
             {children}
         </section>
     );

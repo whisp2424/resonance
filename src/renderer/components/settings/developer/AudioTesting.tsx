@@ -42,8 +42,7 @@ export default function AudioTesting() {
 
     const currentIndex = entries.findIndex((e) => e.id === currentEntryId);
     const currentEntry = currentIndex >= 0 ? entries[currentIndex] : null;
-    const durationSeconds = currentEntry?.track.track.duration ?? null;
-    const durationMs = durationSeconds !== null ? durationSeconds * 1000 : null;
+    const durationMs = currentEntry?.track.track.durationMs;
 
     function formatMs(ms: number): string {
         const totalSeconds = Math.floor(ms / 1000);
@@ -169,9 +168,7 @@ export default function AudioTesting() {
                             {formatMs(scrubbing ? scrubPositionMs : positionMs)}
                         </span>
                         <span>
-                            {durationMs !== null
-                                ? formatMs(durationMs)
-                                : "--:--"}
+                            {durationMs ? formatMs(durationMs) : "--:--"}
                         </span>
                     </div>
                 </div>
