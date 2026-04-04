@@ -81,7 +81,7 @@ let animationFrameId: number | null = null;
 let lastPositionUpdateMs = 0;
 const endedCallbacks = new Set<() => void>();
 
-// Last loaded track info — allows play() to resume after stop()
+// Last loaded track info — allows play() to restart the current track.
 let lastTrackId: number | null = null;
 let lastPositionMs = 0;
 
@@ -231,10 +231,11 @@ export const usePlaybackStore = create<PlaybackStore>((set) => {
             });
         },
         stop: async () => {
-            if (!session) return;
             stopPolling();
-            await session.stop();
+            lastPositionMs = 0;
             set({ isPlaying: false, positionMs: 0 });
+            if (!session) return;
+            await session.stop();
         },
         setVolume: (volume: number) => {
             if (engine) engine.volume = volume;
