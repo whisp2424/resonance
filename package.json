@@ -12,7 +12,10 @@
             "prettier --write"
         ],
         "*.{js,ts,jsx,tsx}": [
-            "eslint --fix --max-warnings=0"
+            "eslint --cache --fix --max-warnings=0"
+        ],
+        "*.{ts,tsx}": [
+            "tsc-files --noEmit"
         ]
     },
     "scripts": {
@@ -101,6 +104,7 @@
         "react-router-dom": "^7.13.0",
         "tailwind-merge": "^3.4.1",
         "tailwindcss": "^4.1.18",
+        "tsc-files": "^1.1.4",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.55.0",
         "unplugin-icons": "^23.0.1",
