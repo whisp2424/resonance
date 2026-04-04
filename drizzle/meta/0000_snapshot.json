@@ -1,7 +1,7 @@
 {
     "version": "6",
     "dialect": "sqlite",
-    "id": "ed638360-c218-4df4-b585-16a04ae0c55a",
+    "id": "74fc3f1e-9617-41da-b489-6f1072cfb9eb",
     "prevId": "00000000-0000-0000-0000-000000000000",
     "tables": {
         "album_artists": {
@@ -19,6 +19,20 @@
                     "type": "text",
                     "primaryKey": false,
                     "notNull": true,
+                    "autoincrement": false
+                },
+                "sortName": {
+                    "name": "sortName",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "musicbrainzArtistId": {
+                    "name": "musicbrainzArtistId",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
                     "autoincrement": false
                 }
             },
@@ -58,8 +72,57 @@
                     "notNull": true,
                     "autoincrement": false
                 },
+                "sortTitle": {
+                    "name": "sortTitle",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
                 "releaseDate": {
                     "name": "releaseDate",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "originalDate": {
+                    "name": "originalDate",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "releaseStatus": {
+                    "name": "releaseStatus",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "releaseType": {
+                    "name": "releaseType",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "label": {
+                    "name": "label",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "musicbrainzAlbumId": {
+                    "name": "musicbrainzAlbumId",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "musicbrainzReleaseGroupId": {
+                    "name": "musicbrainzReleaseGroupId",
                     "type": "text",
                     "primaryKey": false,
                     "notNull": false,
@@ -132,6 +195,13 @@
                     "primaryKey": false,
                     "notNull": false,
                     "autoincrement": false
+                },
+                "musicbrainzArtistId": {
+                    "name": "musicbrainzArtistId",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
                 }
             },
             "indexes": {
@@ -200,6 +270,36 @@
             "uniqueConstraints": {},
             "checkConstraints": {}
         },
+        "genres": {
+            "name": "genres",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "autoincrement": true
+                },
+                "name": {
+                    "name": "name",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "autoincrement": false
+                }
+            },
+            "indexes": {
+                "genres_name_unique": {
+                    "name": "genres_name_unique",
+                    "columns": ["name"],
+                    "isUnique": true
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "checkConstraints": {}
+        },
         "media_sources": {
             "name": "media_sources",
             "columns": {
@@ -252,6 +352,65 @@
             "uniqueConstraints": {},
             "checkConstraints": {}
         },
+        "track_genres": {
+            "name": "track_genres",
+            "columns": {
+                "trackId": {
+                    "name": "trackId",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "autoincrement": false
+                },
+                "genreId": {
+                    "name": "genreId",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "autoincrement": false
+                }
+            },
+            "indexes": {
+                "idx_track_genres_track": {
+                    "name": "idx_track_genres_track",
+                    "columns": ["trackId"],
+                    "isUnique": false
+                },
+                "idx_track_genres_genre": {
+                    "name": "idx_track_genres_genre",
+                    "columns": ["genreId"],
+                    "isUnique": false
+                },
+                "track_genres_trackId_genreId_unique": {
+                    "name": "track_genres_trackId_genreId_unique",
+                    "columns": ["trackId", "genreId"],
+                    "isUnique": true
+                }
+            },
+            "foreignKeys": {
+                "track_genres_trackId_tracks_id_fk": {
+                    "name": "track_genres_trackId_tracks_id_fk",
+                    "tableFrom": "track_genres",
+                    "tableTo": "tracks",
+                    "columnsFrom": ["trackId"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                },
+                "track_genres_genreId_genres_id_fk": {
+                    "name": "track_genres_genreId_genres_id_fk",
+                    "tableFrom": "track_genres",
+                    "tableTo": "genres",
+                    "columnsFrom": ["genreId"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "checkConstraints": {}
+        },
         "tracks": {
             "name": "tracks",
             "columns": {
@@ -290,11 +449,25 @@
                     "notNull": true,
                     "autoincrement": false
                 },
+                "relativePath": {
+                    "name": "relativePath",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "autoincrement": false
+                },
                 "title": {
                     "name": "title",
                     "type": "text",
                     "primaryKey": false,
                     "notNull": true,
+                    "autoincrement": false
+                },
+                "sortTitle": {
+                    "name": "sortTitle",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
                     "autoincrement": false
                 },
                 "trackNumber": {
@@ -304,36 +477,64 @@
                     "notNull": false,
                     "autoincrement": false
                 },
-                "duration": {
-                    "name": "duration",
+                "modifiedAt": {
+                    "name": "modifiedAt",
                     "type": "integer",
                     "primaryKey": false,
                     "notNull": false,
                     "autoincrement": false
                 },
-                "relativePath": {
-                    "name": "relativePath",
+                "container": {
+                    "name": "container",
                     "type": "text",
                     "primaryKey": false,
                     "notNull": true,
                     "autoincrement": false
                 },
-                "fileFormat": {
-                    "name": "fileFormat",
+                "codec": {
+                    "name": "codec",
                     "type": "text",
                     "primaryKey": false,
-                    "notNull": false,
+                    "notNull": true,
                     "autoincrement": false
                 },
-                "bitrate": {
-                    "name": "bitrate",
+                "channels": {
+                    "name": "channels",
                     "type": "integer",
                     "primaryKey": false,
                     "notNull": false,
                     "autoincrement": false
                 },
-                "sampleRate": {
-                    "name": "sampleRate",
+                "durationMs": {
+                    "name": "durationMs",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "samples": {
+                    "name": "samples",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "lossless": {
+                    "name": "lossless",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "bitrateKbps": {
+                    "name": "bitrateKbps",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "sampleRateHz": {
+                    "name": "sampleRateHz",
                     "type": "integer",
                     "primaryKey": false,
                     "notNull": false,
@@ -346,9 +547,72 @@
                     "notNull": false,
                     "autoincrement": false
                 },
-                "modifiedAt": {
-                    "name": "modifiedAt",
+                "bpm": {
+                    "name": "bpm",
                     "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "key": {
+                    "name": "key",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "replayGainTrackGain": {
+                    "name": "replayGainTrackGain",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "replayGainTrackPeak": {
+                    "name": "replayGainTrackPeak",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "replayGainAlbumGain": {
+                    "name": "replayGainAlbumGain",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "replayGainAlbumPeak": {
+                    "name": "replayGainAlbumPeak",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "isrc": {
+                    "name": "isrc",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "acoustidId": {
+                    "name": "acoustidId",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "musicbrainzRecordingId": {
+                    "name": "musicbrainzRecordingId",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false,
+                    "autoincrement": false
+                },
+                "musicbrainzTrackId": {
+                    "name": "musicbrainzTrackId",
+                    "type": "text",
                     "primaryKey": false,
                     "notNull": false,
                     "autoincrement": false

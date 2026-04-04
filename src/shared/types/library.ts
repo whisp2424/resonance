@@ -3,6 +3,7 @@ import type {
     AlbumArtist,
     Artist,
     Disc,
+    Genre,
     MediaSource,
     Track,
 } from "@shared/database/schema";
@@ -32,6 +33,7 @@ export interface TrackResult {
     album: Album;
     albumArtist: AlbumArtist;
     disc: Disc;
+    genres: Genre[];
 }
 
 export type AbsoluteTrack = Track & { absolutePath: string };

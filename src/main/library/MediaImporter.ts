@@ -1,10 +1,14 @@
+// TODO: album cover artwork parsing
+
 import type { Stats } from "node:fs";
 import type {
     NewAlbum,
     NewAlbumArtist,
     NewArtist,
     NewDisc,
+    NewGenre,
     NewTrack,
+    NewTrackGenre,
 } from "@shared/database/schema";
 import type { Result } from "@shared/types/result";
 import type { IAudioMetadata } from "music-metadata";
@@ -18,6 +22,8 @@ import {
     albumsTable,
     artistsTable,
     discsTable,
+    genresTable,
+    trackGenresTable,
     tracksTable,
 } from "@shared/database/schema";
 import { error, ok } from "@shared/types/result";
@@ -31,6 +37,7 @@ interface ImportCache {
     albumArtists: Map<string, number>;
     albums: Map<string, number>;
     discs: Map<string, number>;
+    genres: Map<string, number>;
 }
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -49,6 +56,7 @@ function createCache(): ImportCache {
         albumArtists: new Map(),
         albums: new Map(),
         discs: new Map(),
+        genres: new Map(),
     };
 }
 
@@ -126,6 +134,7 @@ export class MediaImporter {
         tx: Transaction,
         name: string,
         sortName: string | undefined,
+        musicbrainzArtistId: string | undefined,
     ): Result<number> {
         const cached = this.cache.artists.get(name);
         if (cached !== undefined) return ok(cached);
@@ -143,7 +152,11 @@ export class MediaImporter {
                 return ok(existing[0].id);
             }
 
-            const newArtist: NewArtist = { name, sortName };
+            const newArtist: NewArtist = {
+                name,
+                sortName,
+                musicbrainzArtistId,
+            };
 
             const inserted = tx
                 .insert(artistsTable)
@@ -166,6 +179,8 @@ export class MediaImporter {
     private getOrCreateAlbumArtist(
         tx: Transaction,
         name: string,
+        sortName: string | undefined,
+        musicbrainzArtistId: string | undefined,
     ): Result<number> {
         const cached = this.cache.albumArtists.get(name);
         if (cached !== undefined) return ok(cached);
@@ -183,7 +198,12 @@ export class MediaImporter {
                 return ok(existing[0].id);
             }
 
-            const newAlbumArtist: NewAlbumArtist = { name };
+            const newAlbumArtist: NewAlbumArtist = {
+                name,
+                sortName,
+                musicbrainzArtistId,
+            };
+
             const inserted = tx
                 .insert(albumArtistsTable)
                 .values(newAlbumArtist)
@@ -204,12 +224,19 @@ export class MediaImporter {
 
     private getOrCreateAlbum(
         tx: Transaction,
-        title: string,
         albumArtistId: number,
+        title: string,
+        sortTitle: string | undefined,
         totalTracks: number | undefined,
         releaseDate: string | undefined,
+        originalDate: string | undefined,
+        releaseStatus: string | undefined,
+        releaseType: string | undefined,
+        label: string | undefined,
+        musicbrainzAlbumId: string | undefined,
+        musicbrainzReleaseGroupId: string | undefined,
     ): Result<number> {
-        const key = `${albumArtistId}|${title}`;
+        const key = `${albumArtistId}:${title}`;
         const cached = this.cache.albums.get(key);
         if (cached !== undefined) return ok(cached);
 
@@ -229,10 +256,17 @@ export class MediaImporter {
             }
 
             const newAlbum: NewAlbum = {
-                title,
                 albumArtistId,
+                title,
+                sortTitle,
                 totalTracks,
                 releaseDate,
+                originalDate,
+                releaseStatus,
+                releaseType,
+                label,
+                musicbrainzAlbumId,
+                musicbrainzReleaseGroupId,
             };
 
             const inserted = tx
@@ -259,7 +293,7 @@ export class MediaImporter {
         discNumber: number,
         discSubtitle: string | undefined,
     ): Result<number> {
-        const key = `${albumId}|${discNumber}`;
+        const key = `${albumId}:${discNumber}`;
         const cached = this.cache.discs.get(key);
         if (cached !== undefined) return ok(cached);
 
@@ -302,28 +336,74 @@ export class MediaImporter {
         }
     }
 
+    private getOrCreateGenre(tx: Transaction, name: string): Result<number> {
+        const cached = this.cache.genres.get(name);
+        if (cached !== undefined) return ok(cached);
+
+        try {
+            const existing = tx
+                .select({ id: genresTable.id })
+                .from(genresTable)
+                .where(eq(genresTable.name, name))
+                .limit(1)
+                .all();
+
+            if (existing.length > 0) {
+                this.cache.genres.set(name, existing[0].id);
+                return ok(existing[0].id);
+            }
+
+            const newGenre: NewGenre = { name };
+
+            const inserted = tx
+                .insert(genresTable)
+                .values(newGenre)
+                .onConflictDoUpdate({
+                    target: genresTable.name,
+                    set: { name },
+                })
+                .returning({ id: genresTable.id })
+                .all();
+
+            const id = inserted[0].id;
+            this.cache.genres.set(name, id);
+            return ok(id);
+        } catch (err) {
+            return error(getErrorMessage(err));
+        }
+    }
+
+    // TODO: multiple artist parsing
     private saveTrack(
         tx: Transaction,
         sourceId: number,
         track: ParsedTrack,
-    ): Result<boolean> {
+    ): Result<
+        void,
+        "invalid_duration" | "invalid_container" | "invalid_sample_rate"
+    > {
         const { file, metadata, mtime } = track;
         const common = metadata.common;
         const format = metadata.format;
 
+        // simple parsing for now, we rely on the single artist string
         const artistName = common.artist || "unknown";
         const artistResult = this.getOrCreateArtist(
             tx,
             artistName,
             common.artistsort,
+            common.musicbrainz_artistid?.[0],
         );
 
         if (!artistResult.success) return artistResult;
 
+        // simple parsing for now, we rely on the single album artist string
         const albumArtistName = common.albumartist || artistName || "unknown";
         const albumArtistResult = this.getOrCreateAlbumArtist(
             tx,
             albumArtistName,
+            common.albumartistsort,
+            common.musicbrainz_albumartistid?.[0],
         );
 
         if (!albumArtistResult.success) return albumArtistResult;
@@ -331,10 +411,17 @@ export class MediaImporter {
         const albumTitle = common.album || "unknown";
         const albumResult = this.getOrCreateAlbum(
             tx,
-            albumTitle,
             albumArtistResult.data,
+            albumTitle,
+            common.albumsort,
             common.track.of ?? undefined,
             common.date || (common.year ? String(common.year) : undefined),
+            common.originaldate,
+            common.releasestatus,
+            common.releasetype?.[0],
+            common.label?.[0],
+            common.musicbrainz_albumid,
+            common.musicbrainz_releasegroupid,
         );
 
         if (!albumResult.success) return albumResult;
@@ -353,37 +440,114 @@ export class MediaImporter {
 
         if (!discResult.success) return discResult;
 
-        const title = common.title || file;
-        const trackNumber = common.track.no;
-        const duration = format.duration
-            ? Math.round(format.duration)
-            : undefined;
+        if (!format.duration)
+            return error(
+                "Total duration couldn't be parsed for this track",
+                "invalid_duration",
+            );
+
+        if (!format.container)
+            return error(
+                "Couldn't parse container format for this track",
+                "invalid_container",
+            );
+
+        if (!format.sampleRate)
+            return error(
+                "Couldn't parse sample rate for this track",
+                "invalid_sample_rate",
+            );
 
         const newTrack: NewTrack = {
+            // relationships
             sourceId,
             albumId: albumResult.data,
-            artistId: artistResult.data,
             discId: discResult.data,
-            title,
-            trackNumber,
-            duration,
+            artistId: artistResult.data,
+
+            // basic track info
             relativePath: file,
-            fileFormat: format.container,
-            bitrate: format.bitrate,
-            sampleRate: format.sampleRate,
-            bitDepth: format.bitsPerSample,
+            title: common.title || file,
+            sortTitle: common.titlesort,
+            trackNumber: common.track.no ?? undefined,
             modifiedAt: mtime,
+
+            // audio properties
+            container: format.container,
+            codec: format.codec ?? format.container,
+            channels: format.numberOfChannels,
+            durationMs: Math.round(format.duration * 1000),
+            samples: format.numberOfSamples,
+            lossless: format.lossless,
+            bitrateKbps:
+                format.bitrate != null
+                    ? Math.round(format.bitrate / 1000)
+                    : undefined,
+            sampleRateHz: format.sampleRate,
+            bitDepth: format.bitsPerSample,
+            bpm: common.bpm != null ? Math.round(common.bpm) : undefined,
+            key: common.key,
+
+            // replaygain
+            replayGainTrackGain:
+                common.replaygain_track_gain?.dB != null
+                    ? Math.round(common.replaygain_track_gain.dB * 100)
+                    : undefined,
+            replayGainTrackPeak:
+                common.replaygain_track_peak?.ratio != null
+                    ? Math.round(common.replaygain_track_peak.ratio * 1_000_000)
+                    : undefined,
+            replayGainAlbumGain:
+                common.replaygain_album_gain?.dB != null
+                    ? Math.round(common.replaygain_album_gain.dB * 100)
+                    : undefined,
+            replayGainAlbumPeak:
+                common.replaygain_album_peak?.ratio != null
+                    ? Math.round(common.replaygain_album_peak.ratio * 1_000_000)
+                    : undefined,
+
+            // identifiers
+            isrc: common.isrc?.[0],
+            acoustidId: common.acoustid_id,
+            musicbrainzRecordingId: common.musicbrainz_recordingid,
+            musicbrainzTrackId: common.musicbrainz_trackid,
         };
 
         try {
-            tx.insert(tracksTable)
+            const inserted = tx
+                .insert(tracksTable)
                 .values(newTrack)
                 .onConflictDoUpdate({
                     target: [tracksTable.sourceId, tracksTable.relativePath],
                     set: newTrack,
                 })
-                .run();
-            return ok(true);
+                .returning({ id: tracksTable.id })
+                .all();
+
+            const trackId = inserted[0].id;
+
+            if (common.genre && common.genre.length > 0) {
+                tx.delete(trackGenresTable)
+                    .where(eq(trackGenresTable.trackId, trackId))
+                    .run();
+
+                for (const genreName of common.genre) {
+                    const genreResult = this.getOrCreateGenre(tx, genreName);
+                    if (!genreResult.success) continue;
+
+                    const newTrackGenre: NewTrackGenre = {
+                        trackId,
+                        genreId: genreResult.data,
+                    };
+
+                    tx.insert(trackGenresTable)
+                        .values(newTrackGenre)
+                        .onConflictDoNothing()
+                        .run();
+                }
+            }
+
+            return ok(undefined);
         } catch (err) {
             return error(getErrorMessage(err));
         }

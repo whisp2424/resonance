@@ -1,6 +1,8 @@
 CREATE TABLE `album_artists` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`name` text NOT NULL
+	`name` text NOT NULL,
+	`sortName` text,
+	`musicbrainzArtistId` text
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `album_artists_name_unique` ON `album_artists` (`name`);--> statement-breakpoint
@@ -8,7 +10,14 @@ CREATE TABLE `albums` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`albumArtistId` integer NOT NULL,
 	`title` text NOT NULL,
+	`sortTitle` text,
 	`releaseDate` text,
+	`originalDate` text,
+	`releaseStatus` text,
+	`releaseType` text,
+	`label` text,
+	`musicbrainzAlbumId` text,
+	`musicbrainzReleaseGroupId` text,
 	`totalTracks` integer,
 	`totalLength` integer,
 	`artworkPath` text,
@@ -19,7 +28,8 @@ CREATE UNIQUE INDEX `albums_title_albumArtistId_unique` ON `albums` (`title`,`al
 CREATE TABLE `artists` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
-	`sortName` text
+	`sortName` text,
+	`musicbrainzArtistId` text
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `artists_name_unique` ON `artists` (`name`);--> statement-breakpoint
@@ -32,6 +42,12 @@ CREATE TABLE `discs` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `discs_albumId_discNumber_unique` ON `discs` (`albumId`,`discNumber`);--> statement-breakpoint
+CREATE TABLE `genres` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`name` text NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `genres_name_unique` ON `genres` (`name`);--> statement-breakpoint
 CREATE TABLE `media_sources` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`path` text NOT NULL,
@@ -41,21 +57,46 @@ CREATE TABLE `media_sources` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `media_sources_path_unique` ON `media_sources` (`path`);--> statement-breakpoint
+CREATE TABLE `track_genres` (
+	`trackId` integer NOT NULL,
+	`genreId` integer NOT NULL,
+	FOREIGN KEY (`trackId`) REFERENCES `tracks`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`genreId`) REFERENCES `genres`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `idx_track_genres_track` ON `track_genres` (`trackId`);--> statement-breakpoint
+CREATE INDEX `idx_track_genres_genre` ON `track_genres` (`genreId`);--> statement-breakpoint
+CREATE UNIQUE INDEX `track_genres_trackId_genreId_unique` ON `track_genres` (`trackId`,`genreId`);--> statement-breakpoint
 CREATE TABLE `tracks` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`sourceId` integer NOT NULL,
 	`albumId` integer,
 	`discId` integer,
 	`artistId` integer NOT NULL,
-	`title` text NOT NULL,
-	`trackNumber` integer,
-	`duration` integer,
 	`relativePath` text NOT NULL,
-	`fileFormat` text,
-	`bitrate` integer,
-	`sampleRate` integer,
-	`bitDepth` integer,
+	`title` text NOT NULL,
+	`sortTitle` text,
+	`trackNumber` integer,
 	`modifiedAt` integer,
+	`container` text NOT NULL,
+	`codec` text NOT NULL,
+	`channels` integer,
+	`durationMs` integer,
+	`samples` integer,
+	`lossless` integer,
+	`bitrateKbps` integer,
+	`sampleRateHz` integer,
+	`bitDepth` integer,
+	`bpm` integer,
+	`key` text,
+	`replayGainTrackGain` integer,
+	`replayGainTrackPeak` integer,
+	`replayGainAlbumGain` integer,
+	`replayGainAlbumPeak` integer,
+	`isrc` text,
+	`acoustidId` text,
+	`musicbrainzRecordingId` text,
+	`musicbrainzTrackId` text,
 	`playCount` integer DEFAULT 0 NOT NULL,
 	FOREIGN KEY (`sourceId`) REFERENCES `media_sources`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`albumId`) REFERENCES `albums`(`id`) ON UPDATE no action ON DELETE cascade,

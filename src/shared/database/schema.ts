@@ -21,6 +21,7 @@ export const artistsTable = sqliteTable(
         id: int().primaryKey({ autoIncrement: true }),
         name: text().notNull(),
         sortName: text(),
+        musicbrainzArtistId: text(),
     },
     (table) => [unique().on(table.name)],
 );
@@ -33,6 +34,8 @@ export const albumArtistsTable = sqliteTable(
     {
         id: int().primaryKey({ autoIncrement: true }),
         name: text().notNull(),
+        sortName: text(),
+        musicbrainzArtistId: text(),
     },
     (table) => [unique().on(table.name)],
 );
@@ -47,8 +50,21 @@ export const albumsTable = sqliteTable(
         albumArtistId: int()
             .notNull()
             .references(() => albumArtistsTable.id, { onDelete: "cascade" }),
+
+        // metadata
         title: text().notNull(),
+        sortTitle: text(),
         releaseDate: text(),
+        originalDate: text(),
+        releaseStatus: text(),
+        releaseType: text(),
+        label: text(),
+
+        // identifiers
+        musicbrainzAlbumId: text(),
+        musicbrainzReleaseGroupId: text(),
+
+        // properties
         totalTracks: int(),
         totalLength: int(),
         artworkPath: text(),
@@ -66,6 +82,7 @@ export const discsTable = sqliteTable(
         albumId: int()
             .notNull()
             .references(() => albumsTable.id, { onDelete: "cascade" }),
+
         discNumber: int().notNull(),
         discSubtitle: text(),
     },
@@ -79,6 +96,8 @@ export const tracksTable = sqliteTable(
     "tracks",
     {
         id: int().primaryKey({ autoIncrement: true }),
+
+        // relationships
         sourceId: int()
             .notNull()
             .references(() => sourcesTable.id, { onDelete: "cascade" }),
@@ -89,15 +108,40 @@ export const tracksTable = sqliteTable(
         artistId: int()
             .notNull()
             .references(() => artistsTable.id, { onDelete: "cascade" }),
-        title: text().notNull(),
-        trackNumber: int(),
-        duration: int(),
+
+        // basic track info
         relativePath: text().notNull(),
-        fileFormat: text(),
-        bitrate: int(),
-        sampleRate: int(),
-        bitDepth: int(),
+        title: text().notNull(),
+        sortTitle: text(),
+        trackNumber: int(),
         modifiedAt: int(),
+
+        // audio properties
+        container: text().notNull(),
+        codec: text().notNull(),
+        channels: int(),
+        durationMs: int().notNull(),
+        samples: int(),
+        lossless: int({ mode: "boolean" }),
+        bitrateKbps: int(),
+        sampleRateHz: int(),
+        bitDepth: int(),
+        bpm: int(),
+        key: text(),
+
+        // replaygain
+        replayGainTrackGain: int(),
+        replayGainTrackPeak: int(),
+        replayGainAlbumGain: int(),
+        replayGainAlbumPeak: int(),
+
+        // identifiers
+        isrc: text(),
+        acoustidId: text(),
+        musicbrainzRecordingId: text(),
+        musicbrainzTrackId: text(),
+
+        // track stats
         playCount: int().notNull().default(0),
     },
     (table) => [
@@ -116,3 +160,35 @@ export const tracksTable = sqliteTable(
 
 export type Track = typeof tracksTable.$inferSelect;
 export type NewTrack = typeof tracksTable.$inferInsert;
+
+export const genresTable = sqliteTable(
+    "genres",
+    {
+        id: int().primaryKey({ autoIncrement: true }),
+        name: text().notNull(),
+    },
+    (table) => [unique().on(table.name)],
+);
+
+export type Genre = typeof genresTable.$inferSelect;
+export type NewGenre = typeof genresTable.$inferInsert;
+
+export const trackGenresTable = sqliteTable(
+    "track_genres",
+    {
+        trackId: int()
+            .notNull()
+            .references(() => tracksTable.id, { onDelete: "cascade" }),
+        genreId: int()
+            .notNull()
+            .references(() => genresTable.id, { onDelete: "cascade" }),
+    },
+    (table) => [
+        unique().on(table.trackId, table.genreId),
+        index("idx_track_genres_track").on(table.trackId),
+        index("idx_track_genres_genre").on(table.genreId),
+    ],
+);
+
+export type TrackGenre = typeof trackGenresTable.$inferSelect;
+export type NewTrackGenre = typeof trackGenresTable.$inferInsert;

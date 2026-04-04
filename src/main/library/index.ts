@@ -3,6 +3,7 @@ import type {
     AlbumArtist,
     Artist,
     Disc,
+    Genre,
     MediaSource,
     Track,
 } from "@shared/database/schema";
@@ -26,7 +27,9 @@ import {
     albumsTable,
     artistsTable,
     discsTable,
+    genresTable,
     sourcesTable,
+    trackGenresTable,
     tracksTable,
 } from "@shared/database/schema";
 import { error, ok } from "@shared/types/result";
@@ -49,6 +52,7 @@ function toTrackResult(row: {
     album: Album;
     albumArtist: AlbumArtist;
     disc: Disc;
+    genres: Genre[];
 }): TrackResult {
     return {
         absolutePath: join(row.source.path, row.track.relativePath),
@@ -58,6 +62,7 @@ function toTrackResult(row: {
         album: row.album,
         albumArtist: row.albumArtist,
         disc: row.disc,
+        genres: row.genres,
     };
 }
 
@@ -166,7 +171,13 @@ class LibraryManager {
             if (result.length === 0)
                 return error(`Track ID ${trackId} not found`, "not_found");
 
-            return ok(toTrackResult(result[0]));
+            const genresMap = await this.fetchGenresForTracks([trackId]);
+            return ok(
+                toTrackResult({
+                    ...result[0],
+                    genres: genresMap.get(trackId) ?? [],
+                }),
+            );
         } catch (err) {
             return error(getErrorMessage(err));
         }
@@ -196,6 +207,9 @@ class LibraryManager {
                 .where(inArray(tracksTable.id, ids));
 
             const found = new Map(rows.map((r) => [r.track.id, r]));
+            const genresMap = await this.fetchGenresForTracks(
+                rows.map((r) => r.track.id),
+            );
 
             const tracks: TrackResult[] = [];
             const errors: { trackId: number; error: string }[] = [];
@@ -203,7 +217,12 @@ class LibraryManager {
             for (const id of ids) {
                 const row = found.get(id);
                 if (row) {
-                    tracks.push(toTrackResult(row));
+                    tracks.push(
+                        toTrackResult({
+                            ...row,
+                            genres: genresMap.get(id) ?? [],
+                        }),
+                    );
                 } else {
                     errors.push({
                         trackId: id,
@@ -220,6 +239,33 @@ class LibraryManager {
                 errors: ids.map((id) => ({ trackId: id, error: message })),
             };
         }
+    }
+
+    private async fetchGenresForTracks(
+        trackIds: number[],
+    ): Promise<Map<number, Genre[]>> {
+        if (trackIds.length === 0) return new Map();
+
+        const rows = await db
+            .select({
+                trackId: trackGenresTable.trackId,
+                genre: genresTable,
+            })
+            .from(trackGenresTable)
+            .innerJoin(
+                genresTable,
+                eq(trackGenresTable.genreId, genresTable.id),
+            )
+            .where(inArray(trackGenresTable.trackId, trackIds));
+
+        const map = new Map<number, Genre[]>();
+        for (const { trackId, genre } of rows) {
+            const existing = map.get(trackId);
+            if (existing) existing.push(genre);
+            else map.set(trackId, [genre]);
+        }
+
+        return map;
     }
 
     async scanAll(): Promise<void> {
