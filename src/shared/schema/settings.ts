@@ -5,7 +5,16 @@ const audioOutputDeviceSchema = type({
     label: "string",
 });
 
+/**
+ * The canonical settings schema.
+ *
+ * For additive fields, update this schema and DEFAULT_SETTINGS together.
+ *
+ * If older persisted data would no longer normalize into this shape
+ * correctly, add a migration step in `SettingsManager`.
+ */
 export const settingsSchema = type({
+    schemaVersion: "1",
     lastCategory: "string",
     appearance: {
         appTheme: "'system' | 'light' | 'dark'",
@@ -28,6 +37,7 @@ export type Settings = typeof settingsSchema.infer;
 export type SettingsKey = keyof Settings;
 
 export const DEFAULT_SETTINGS: Settings = {
+    schemaVersion: 1,
     lastCategory: "about",
     appearance: {
         appTheme: "system",

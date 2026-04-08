@@ -18,11 +18,27 @@ import writeFile from "write-file-atomic";
 import product from "@main/../../build/product.json" with { type: "json" };
 
 const SETTINGS_FILE = join(app.getPath("userData"), "settings.json");
+const CURRENT_SETTINGS_VERSION = DEFAULT_SETTINGS.schemaVersion;
+
 type SettingsKey = keyof Settings;
+
+class UnsupportedSettingsVersionError extends Error {
+    constructor(_version: number) {
+        super(
+            `The existing settings file is made for a newer version of ${product.name.short}, and is not supported by the current version`,
+        );
+        this.name = "UnsupportedSettingsVersionError";
+    }
+}
 
 interface ListenerEntry {
     callback: (settings: Settings, key?: SettingsKey) => void;
     key?: SettingsKey;
+}
+
+interface NormalizedSettingsResult {
+    settings: Settings;
+    didChange: boolean;
 }
 
 class SettingsManager {
@@ -44,10 +60,15 @@ class SettingsManager {
         try {
             const rawData = await readFile(SETTINGS_FILE, "utf-8");
             const jsonData = JSON.parse(rawData);
-            const result = settingsSchema(jsonData);
-            if (result instanceof type.errors) throw new Error(result.summary);
-            this.settingsCache = result;
-            return this.settingsCache;
+            const result = this.normalizeSettings(jsonData);
+
+            if (result.didChange) {
+                await this.write(result.settings);
+                return this.get();
+            }
+
+            this.settingsCache = result.settings;
+            return result.settings;
         } catch (err) {
             if ((err as NodeJS.ErrnoException).code === "ENOENT") {
                 await this.write(DEFAULT_SETTINGS);
@@ -162,21 +183,23 @@ class SettingsManager {
         try {
             const data = await readFile(SETTINGS_FILE, "utf-8");
             const parsed = JSON.parse(data);
-            const result = settingsSchema(parsed);
+            const result = this.normalizeSettings(parsed);
 
-            if (result instanceof type.errors) {
-                windowManager.emitEvent("settings:onError", result.summary);
+            if (result.didChange) {
+                await this.write(result.settings);
                 return;
             }
 
             const oldSettings = this.settingsCache;
-            this.settingsCache = result;
+            this.settingsCache = result.settings;
+
             let changedKey: SettingsKey | undefined;
+
             if (oldSettings) {
                 for (const key of Object.keys(oldSettings) as SettingsKey[]) {
                     if (
                         JSON.stringify(oldSettings[key]) !==
-                        JSON.stringify(result[key])
+                        JSON.stringify(result.settings[key])
                     ) {
                         changedKey = key;
                         break;
@@ -187,12 +210,85 @@ class SettingsManager {
             this.emitChanges(this.settingsCache, changedKey);
             windowManager.emitEvent("settings:onChanged", this.settingsCache);
         } catch (err) {
-            const msg =
+            const message =
                 err instanceof SyntaxError
                     ? "External settings file is invalid JSON"
-                    : err;
-            windowManager.emitEvent("settings:onError", msg);
+                    : getErrorMessage(err);
+            windowManager.emitEvent("settings:onError", message);
         }
+    }
+
+    private normalizeSettings(raw: unknown): NormalizedSettingsResult {
+        const normalized = this.migrateSettings(raw);
+        const result = settingsSchema(normalized);
+        if (result instanceof type.errors) throw new Error(result.summary);
+
+        return {
+            settings: result,
+            didChange: JSON.stringify(raw) !== JSON.stringify(result),
+        };
+    }
+
+    private migrateSettings(raw: unknown): Settings {
+        const source = this.getSettingsRecord(raw);
+        const sourceVersion = this.getSchemaVersion(source);
+
+        if (sourceVersion > CURRENT_SETTINGS_VERSION)
+            throw new UnsupportedSettingsVersionError(sourceVersion);
+
+        let migrated = this.upgradeSettingsToCurrentSchema(
+            source,
+            sourceVersion,
+        );
+
+        migrated = {
+            ...migrated,
+            schemaVersion: CURRENT_SETTINGS_VERSION,
+        };
+
+        const result = settingsSchema(migrated);
+        if (result instanceof type.errors) throw new Error(result.summary);
+        return result;
+    }
+
+    private upgradeSettingsToCurrentSchema(
+        source: Record<string, unknown>,
+        sourceVersion: number,
+    ): Record<string, unknown> {
+        // settings migrations go here
+
+        // usually, additive changes do not need extra migration logic, and are
+        // merged naturally. writing migrations should only be necessary when
+        // the canonical schema is updated in an incompatible way
+
+        if (sourceVersion === CURRENT_SETTINGS_VERSION)
+            return deepMerge(DEFAULT_SETTINGS, source);
+
+        return deepMerge(DEFAULT_SETTINGS, source);
+    }
+
+    private getSchemaVersion(source: Record<string, unknown>): number {
+        const version = source.schemaVersion;
+        if (version === undefined) return 0;
+
+        if (
+            typeof version !== "number" ||
+            !Number.isInteger(version) ||
+            version < 0
+        ) {
+            throw new Error(
+                "settings.schemaVersion must be a non-negative integer",
+            );
+        }
+
+        return version;
+    }
+
+    private getSettingsRecord(raw: unknown): Record<string, unknown> {
+        if (!raw || typeof raw !== "object" || Array.isArray(raw))
+            throw new Error("Settings file must contain a JSON object");
+
+        return raw as Record<string, unknown>;
     }
 }
 
@@ -205,11 +301,15 @@ export async function initializeSettings(): Promise<Settings> {
         return settings;
     } catch (err) {
         const message = getErrorMessage(err);
+        const unsupportedVersion =
+            err instanceof UnsupportedSettingsVersionError;
 
         let result = dialog.showMessageBoxSync({
             type: "error",
             title: product.name.short,
-            message: "Failed to load settings",
+            message: unsupportedVersion
+                ? "Unsupported settings file"
+                : "Failed to load settings",
             detail: message,
             buttons: ["Reset to defaults", "Open settings file", "Quit"],
             defaultId: 0,
@@ -239,7 +339,9 @@ export async function initializeSettings(): Promise<Settings> {
                     result = dialog.showMessageBoxSync({
                         type: "error",
                         title: product.name.short,
-                        message: "Failed to load settings",
+                        message: unsupportedVersion
+                            ? "Unsupported settings file"
+                            : "Failed to load settings",
                         detail: message,
                         buttons: [
                             "Reset to defaults",
