@@ -26,7 +26,7 @@ export function SettingsRow({
                 clsx(
                     "gap-8",
                     layout === "inline"
-                        ? "flex flex-row items-center justify-between"
+                        ? "flex flex-row items-start justify-between"
                         : "flex flex-col gap-3",
                 ),
                 className,

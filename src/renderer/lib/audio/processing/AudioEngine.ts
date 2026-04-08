@@ -2,11 +2,11 @@ import type { Result } from "@shared/types/result";
 
 import { RingBuffer } from "@renderer/lib/audio/processing/RingBuffer";
 import { error, ok } from "@shared/types/result";
+import { getErrorMessage } from "@shared/utils/logger";
 
-export type SetOutputDeviceResult = Result<
-    void,
-    "not_initialized" | "set_failed"
->;
+export type SetOutputDeviceResult = Result<void, "not_initialized">;
+
+type AudioSinkTarget = string | { type: "none" };
 
 /**
  * Owns the AudioContext, RingBuffer, AudioWorkletNode, and GainNode.
@@ -180,30 +180,34 @@ export class AudioEngine {
 
     /**
      * Routes audio output to the given device.
-     * Passing an empty string will use the default output.
      *
-     * Returns a structured result so callers can handle missing engine
-     * initialization and runtime sink errors safely.
+     * Passing an empty string will use the default output, while passing
+     * `"none"` will route the output to a virtual sink, with no audio
+     * output.
      */
     async setOutputDevice(deviceId: string): Promise<SetOutputDeviceResult> {
-        if (!this.context) {
+        if (!this.context)
             return error("Audio engine is not initialized", "not_initialized");
-        }
 
         const sinkAwareContext = this.context as AudioContext & {
-            setSinkId(id: string): Promise<void>;
+            setSinkId(id: AudioSinkTarget): Promise<void>;
         };
 
         try {
-            await sinkAwareContext.setSinkId(
-                deviceId === "default" ? "" : deviceId,
-            );
+            if (deviceId === "default") {
+                await sinkAwareContext.setSinkId("");
+                return ok(undefined);
+            }
+
+            if (deviceId === "none") {
+                await sinkAwareContext.setSinkId({ type: "none" });
+                return ok(undefined);
+            }
+
+            await sinkAwareContext.setSinkId(deviceId);
             return ok(undefined);
         } catch (err) {
-            return error(
-                err instanceof Error ? err.message : String(err),
-                "set_failed",
-            );
+            return error(getErrorMessage(err));
         }
     }
 

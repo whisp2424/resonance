@@ -1,6 +1,9 @@
 import type { TrackResult } from "@shared/types/library";
 
-import { usePlaybackStore } from "@renderer/lib/audio/state/playbackStore";
+import {
+    getPlaybackRuntime,
+    usePlaybackStore,
+} from "@renderer/lib/audio/state/playbackStore";
 import { log } from "@shared/utils/logger";
 import { create } from "zustand";
 
@@ -206,22 +209,20 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         if (shouldStop) {
             await usePlaybackStore.getState().stop();
         } else if (loadTrackId !== null) {
-            await usePlaybackStore.getState().load(loadTrackId);
+            await getPlaybackRuntime().loadTrack(loadTrackId);
         }
     },
 
     reorder: (from: number, to: number) => {
         set((state) => {
             const { entries, currentEntryId } = state;
-            if (
-                from < 0 ||
-                from >= entries.length ||
-                to < 0 ||
-                to >= entries.length ||
-                from === to
-            ) {
+
+            const isFromOutOfBounds = from < 0 || from >= entries.length;
+            const isToOutOfBounds = to < 0 || to >= entries.length;
+            const isSameIndex = from === to;
+
+            if (isFromOutOfBounds || isToOutOfBounds || isSameIndex)
                 return state;
-            }
 
             const newEntries = [...entries];
             const [moved] = newEntries.splice(from, 1);
@@ -236,8 +237,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         if (index < 0 || index >= entries.length) return;
 
         const entry = entries[index];
-        const playbackStore = usePlaybackStore.getState();
-        await playbackStore.load(entry.trackId);
+        await getPlaybackRuntime().loadTrack(entry.trackId);
 
         set({ currentEntryId: entry.id });
     },
@@ -311,8 +311,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
 
         if (jumpToIndex !== null) {
             const entry = newEntries[jumpToIndex]!;
-            const playbackStore = usePlaybackStore.getState();
-            await playbackStore.load(entry.trackId, {
+            await getPlaybackRuntime().loadTrack(entry.trackId, {
                 positionMs,
                 shouldPlay: false,
             });
@@ -320,7 +319,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
     },
 }));
 
-usePlaybackStore.getState().onTrackEnded(() => {
+getPlaybackRuntime().onTrackEnded(() => {
     const { entries, currentEntryId } = useQueueStore.getState();
 
     if (currentEntryId !== null) {
@@ -330,7 +329,7 @@ usePlaybackStore.getState().onTrackEnded(() => {
             useQueueStore.setState({ currentEntryId: firstEntry?.id ?? null });
 
             if (firstEntry)
-                usePlaybackStore.getState().setTrack(firstEntry.trackId, 0);
+                getPlaybackRuntime().setTrack(firstEntry.trackId, 0);
             return;
         }
     }

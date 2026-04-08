@@ -30,6 +30,7 @@ export function SettingsSelectField<Value extends string>({
     value,
     placeholder,
     layout,
+    triggerClassName,
     onValueChange,
 }: SettingsSelectFieldProps<Value>) {
     const fallbackValue = items[0]?.value;
@@ -44,7 +45,7 @@ export function SettingsSelectField<Value extends string>({
                     if (newValue === null) return;
                     void onValueChange?.(newValue);
                 }}>
-                <SelectTrigger className="min-w-32">
+                <SelectTrigger className={triggerClassName}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>

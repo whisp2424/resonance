@@ -16,6 +16,7 @@ import {
 import TextInput from "@renderer/components/ui/TextInput";
 import { usePlaybackStore } from "@renderer/lib/audio/state/playbackStore";
 import { useQueueStore } from "@renderer/lib/audio/state/queueStore";
+import { useSettingsStore } from "@renderer/lib/settings/settingsStore";
 import clsx from "clsx";
 import { useRef, useState } from "react";
 
@@ -86,8 +87,9 @@ export default function AudioTesting() {
 
     async function handleDeviceChange(value: string) {
         setSelectedDeviceId(value);
-        const deviceId = value === "default" ? "" : value;
-        await usePlaybackStore.getState().setOutputDevice(deviceId);
+        await useSettingsStore
+            .getState()
+            .updateSetting("audio.output.deviceId", value);
     }
 
     async function handleJump(index: number) {
