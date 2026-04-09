@@ -1,7 +1,9 @@
+import { useSettingsStore } from "@renderer/lib/settings/settingsStore";
 import {
     HIDE_DELAY_MS,
     useTitleBarStore,
 } from "@renderer/lib/titlebar/titlebarStore";
+import { DEFAULT_SETTINGS } from "@shared/schema/settings";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const ANIMATION_DURATION_MS = 300;
@@ -12,7 +14,13 @@ const easeOutCubic = (t: number): number => 1 - (1 - t) ** 3;
 export function useTitleBar(isFullscreen: boolean) {
     const [isActive, setIsActive] = useState(false);
     const isLocked = useTitleBarStore((state) => state.isVisible);
+    const autoHideTitleBar = useSettingsStore(
+        (state) =>
+            state.settings?.appearance.autoHideTitleBar ??
+            DEFAULT_SETTINGS.appearance.autoHideTitleBar,
+    );
     const [fullHeight, setFullHeight] = useState(40);
+    const shouldAutoHide = isFullscreen && autoHideTitleBar;
 
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const animationRef = useRef<number | null>(null);
@@ -23,7 +31,7 @@ export function useTitleBar(isFullscreen: boolean) {
         targetHeight: 0,
     });
 
-    const prevFullscreenRef = useRef(isFullscreen);
+    const prevShouldAutoHideRef = useRef(shouldAutoHide);
     const prevLockedRef = useRef(isLocked);
 
     useEffect(() => {
@@ -110,7 +118,7 @@ export function useTitleBar(isFullscreen: boolean) {
             animationRef.current = requestAnimationFrame(animateHeight);
         };
 
-        if (isFullscreen) {
+        if (shouldAutoHide) {
             if (isActive) {
                 startAnimation(fullHeight);
                 startHideTimer();
@@ -130,7 +138,7 @@ export function useTitleBar(isFullscreen: boolean) {
                 animationRef.current = null;
             }
         };
-    }, [isFullscreen, isActive, fullHeight, clearHideTimer, startHideTimer]);
+    }, [shouldAutoHide, isActive, fullHeight, clearHideTimer, startHideTimer]);
 
     useEffect(() => {
         return () => {
@@ -157,38 +165,39 @@ export function useTitleBar(isFullscreen: boolean) {
     }, [startHideTimer]);
 
     useEffect(() => {
-        const wasFullscreen = prevFullscreenRef.current;
+        const wasAutoHide = prevShouldAutoHideRef.current;
         const wasLocked = prevLockedRef.current;
-        const didEnterFullscreen = isFullscreen && !wasFullscreen;
-        const didExitFullscreen = !isFullscreen && wasFullscreen;
-        const didLockWhileFullscreen = isFullscreen && isLocked && !wasLocked;
-        const didUnlockWhileFullscreen = isFullscreen && !isLocked && wasLocked;
+        const didEnableAutoHide = shouldAutoHide && !wasAutoHide;
+        const didDisableAutoHide = !shouldAutoHide && wasAutoHide;
+        const didLockWhileAutoHide = shouldAutoHide && isLocked && !wasLocked;
+        const didUnlockWhileAutoHide = shouldAutoHide && !isLocked && wasLocked;
 
-        if (didEnterFullscreen || didLockWhileFullscreen) {
+        if (didEnableAutoHide || didLockWhileAutoHide) {
             queueMicrotask(activate);
-        } else if (didExitFullscreen) {
+        } else if (didDisableAutoHide) {
             queueMicrotask(() => setIsActive(false));
-        } else if (didUnlockWhileFullscreen) {
+        } else if (didUnlockWhileAutoHide) {
             queueMicrotask(deactivate);
         }
 
-        prevFullscreenRef.current = isFullscreen;
+        prevShouldAutoHideRef.current = shouldAutoHide;
         prevLockedRef.current = isLocked;
-    }, [isFullscreen, isLocked, activate, deactivate]);
+    }, [shouldAutoHide, isLocked, activate, deactivate]);
 
     const handleMouseEnter = useCallback(() => {
         isMouseOverRef.current = true;
-        if (isFullscreen) setIsActive(true);
+        if (shouldAutoHide) setIsActive(true);
         clearHideTimer();
-    }, [isFullscreen, clearHideTimer]);
+    }, [shouldAutoHide, clearHideTimer]);
 
     const handleMouseLeave = useCallback(() => {
         isMouseOverRef.current = false;
-        if (isFullscreen && isActive && !isLocked) startHideTimer();
-    }, [isFullscreen, isActive, isLocked, startHideTimer]);
+        if (shouldAutoHide && isActive && !isLocked) startHideTimer();
+    }, [shouldAutoHide, isActive, isLocked, startHideTimer]);
 
     return {
-        isActive,
+        isVisible: !shouldAutoHide || isActive,
+        showFullscreenTrigger: shouldAutoHide,
         fullHeight,
         handleMouseEnter,
         handleMouseLeave,

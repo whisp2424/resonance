@@ -18,6 +18,7 @@ export const settingsSchema = type({
     lastCategory: "string",
     appearance: {
         appTheme: "'system' | 'light' | 'dark'",
+        autoHideTitleBar: "boolean",
         trayIcon: "'auto' | 'light' | 'dark'",
     },
     audio: {
@@ -41,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
     lastCategory: "about",
     appearance: {
         appTheme: "system",
+        autoHideTitleBar: true,
         trayIcon: "auto",
     },
     audio: {
