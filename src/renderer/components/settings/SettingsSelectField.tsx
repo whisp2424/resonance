@@ -19,6 +19,8 @@ interface SettingsSelectFieldProps<Value extends string> {
     value?: Value;
     placeholder?: string;
     layout?: "inline" | "stacked";
+    disabled?: boolean;
+    contentClassName?: string;
     triggerClassName?: string;
     onValueChange?: (value: Value) => void | Promise<void>;
 }
@@ -30,6 +32,8 @@ export function SettingsSelectField<Value extends string>({
     value,
     placeholder,
     layout,
+    disabled,
+    contentClassName,
     triggerClassName,
     onValueChange,
 }: SettingsSelectFieldProps<Value>) {
@@ -37,7 +41,11 @@ export function SettingsSelectField<Value extends string>({
     if (!fallbackValue) return null;
 
     return (
-        <SettingsRow title={title} description={description} layout={layout}>
+        <SettingsRow
+            title={title}
+            description={description}
+            layout={layout}
+            contentClassName={contentClassName}>
             <Select
                 items={items}
                 value={value ?? fallbackValue}
@@ -45,7 +53,7 @@ export function SettingsSelectField<Value extends string>({
                     if (newValue === null) return;
                     void onValueChange?.(newValue);
                 }}>
-                <SelectTrigger className={triggerClassName}>
+                <SelectTrigger disabled={disabled} className={triggerClassName}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>

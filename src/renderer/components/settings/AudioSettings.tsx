@@ -9,6 +9,9 @@ import { Switch } from "@renderer/components/ui/Switch";
 import { useSetting } from "@renderer/hooks/settings/useSetting";
 import { usePlaybackStore } from "@renderer/lib/audio/state/playbackStore";
 import { DEFAULT_SETTINGS } from "@shared/schema/settings";
+import { clsx } from "clsx";
+
+import IconNoAudio from "~icons/lucide/headphone-off";
 
 const outputNotifyChangesItems = [
     { label: "None", value: "none" },
@@ -59,7 +62,7 @@ function buildAudioDeviceItems(
     const disconnectedKnownDevices = knownDevices
         .filter((device) => !connectedDeviceIds.has(device.id))
         .map((device) => ({
-            label: `${device.label} (Disconnected)`,
+            label: `${device.label} (disconnected)`,
             value: device.id,
         }));
 
@@ -96,16 +99,20 @@ export function AudioSettings() {
     const [knownDevices] = useSetting("audio.output.knownDevices");
 
     const outputDevices = usePlaybackStore((state) => state.outputDevices);
+
+    const knownOutputDevices =
+        knownDevices ?? DEFAULT_SETTINGS.audio.output.knownDevices;
+
     const audioDeviceItems = buildAudioDeviceItems(
         outputDevices,
-        knownDevices ?? DEFAULT_SETTINGS.audio.output.knownDevices,
+        knownOutputDevices,
     );
+
     const selectedOutputDeviceId = audioDeviceItems.some(
         (device) => device.value === outputDeviceId,
     )
         ? outputDeviceId
         : "default";
-    const showsDisconnectOptions = outputDeviceId !== "default";
 
     return (
         <SettingsCategory title="Audio">
@@ -136,41 +143,22 @@ export function AudioSettings() {
                     }}
                 />
 
-                {showsDisconnectOptions && (
-                    <>
-                        <SettingsSelectField
-                            title="Device disconnection behavior"
-                            description="Choose what happens when the selected output device is disconnected"
-                            items={onDisconnectRoutingItems}
-                            value={onDisconnectRouting}
-                            onValueChange={(newValue) => {
-                                setOnDisconnectRouting(newValue);
-                            }}
-                        />
-
-                        <SettingsRow
-                            title="Pause when device disconnects"
-                            description="If enabled, playback will be paused after the current audio device is disconnected">
-                            <Switch
-                                checked={pauseOnDisconnect ?? false}
-                                onCheckedChange={(checked) => {
-                                    setPauseOnDisconnect(checked);
-                                }}
-                            />
-                        </SettingsRow>
-
-                        <SettingsRow
-                            title="Resume when device reconnects"
-                            description="If enabled, playback will continue once the previously disconnected device is reconnected">
-                            <Switch
-                                checked={resumeOnReconnect ?? false}
-                                onCheckedChange={(checked) => {
-                                    setResumeOnReconnect(checked);
-                                }}
-                            />
-                        </SettingsRow>
-                    </>
-                )}
+                {selectedOutputDeviceId !== "default" &&
+                    !outputDevices.some(
+                        (device) => device.deviceId === selectedOutputDeviceId,
+                    ) && (
+                        <div className="flex flex-col gap-1 rounded-lg border border-neutral-300 bg-black/4 p-4 dark:border-neutral-800 dark:bg-white/2">
+                            <div className="flex flex-row items-center gap-2 text-sm lowercase opacity-60">
+                                <IconNoAudio className="size-4" />
+                                Audio output unavailable
+                            </div>
+                            <p className="text-sm opacity-80">
+                                Audio is currently not playing through any
+                                device. To re-enable audio, reconnect the
+                                selected device, or switch to a different one.
+                            </p>
+                        </div>
+                    )}
 
                 <SettingsSelectField
                     title="Device change notifications"
@@ -183,6 +171,59 @@ export function AudioSettings() {
                         setOutputNotifyChanges(newValue);
                     }}
                 />
+
+                <SettingsSelectField
+                    title="Device disconnection behavior"
+                    description="Choose what happens when the selected output device is disconnected"
+                    items={onDisconnectRoutingItems}
+                    value={onDisconnectRouting}
+                    disabled={selectedOutputDeviceId === "default"}
+                    contentClassName={clsx(
+                        selectedOutputDeviceId === "default" && "opacity-50",
+                    )}
+                    onValueChange={(newValue) => {
+                        setOnDisconnectRouting(newValue);
+                    }}
+                />
+
+                <SettingsRow
+                    title="Pause when device disconnects"
+                    contentClassName={clsx(
+                        !!(selectedOutputDeviceId === "default") &&
+                            "opacity-50",
+                    )}
+                    description="If enabled, playback will be paused after the current audio device is disconnected">
+                    <Switch
+                        checked={pauseOnDisconnect ?? false}
+                        disabled={!!(selectedOutputDeviceId === "default")}
+                        onCheckedChange={(checked) => {
+                            setPauseOnDisconnect(checked);
+                        }}
+                    />
+                </SettingsRow>
+
+                <SettingsRow
+                    title="Resume when device reconnects"
+                    contentClassName={clsx(
+                        !(
+                            !(selectedOutputDeviceId === "default") &&
+                            (pauseOnDisconnect ?? false)
+                        ) && "opacity-50",
+                    )}
+                    description="If enabled, playback will continue once the previously disconnected device is reconnected">
+                    <Switch
+                        checked={resumeOnReconnect ?? false}
+                        disabled={
+                            !(
+                                !(selectedOutputDeviceId === "default") &&
+                                (pauseOnDisconnect ?? false)
+                            )
+                        }
+                        onCheckedChange={(checked) => {
+                            setResumeOnReconnect(checked);
+                        }}
+                    />
+                </SettingsRow>
             </SettingsSection>
         </SettingsCategory>
     );

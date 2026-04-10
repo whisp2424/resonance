@@ -396,7 +396,7 @@ export class PlaybackRuntime {
             if (!settings) return outputDevices;
 
             // index currently connected named devices so we can refresh labels
-            // for known outputs and append newly discovered ones.m
+            // for known outputs and preserve the current selection if it drops.
             const discovered = new Map(
                 outputDevices
                     .filter(
@@ -410,24 +410,21 @@ export class PlaybackRuntime {
                     ]),
             );
 
-            // keep the existing known-device order while replacing entries whose
-            // labels were refreshed by the latest device enumeration
-            const knownDevices = settings.knownDevices.map((knownDevice) => {
-                const nextDevice = discovered.get(knownDevice.id);
-                if (!nextDevice) return knownDevice;
+            const selectedKnownDevice = settings.knownDevices.find(
+                (knownDevice) => knownDevice.id === settings.deviceId,
+            );
 
-                discovered.delete(knownDevice.id);
-                return nextDevice.label === knownDevice.label
-                    ? knownDevice
-                    : nextDevice;
-            });
+            const preservedSelectedDevice =
+                settings.deviceId !== "default" &&
+                !discovered.has(settings.deviceId) &&
+                selectedKnownDevice
+                    ? [selectedKnownDevice]
+                    : [];
 
-            // whatever is still left in the map represents a newly seen output,
-            // so append it after the existing known devices
-            const nextKnownDevices =
-                discovered.size === 0
-                    ? knownDevices
-                    : [...knownDevices, ...discovered.values()];
+            const nextKnownDevices = [
+                ...discovered.values(),
+                ...preservedSelectedDevice,
+            ];
 
             // persist only when the known-device snapshot actually changed.
             const didKnownDevicesChange =
