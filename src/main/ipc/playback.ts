@@ -1,7 +1,7 @@
 import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
-import { playbackManager } from "@main/playbackManager";
+import { playbackManager } from "@main/state/playback";
 
 export function registerPlaybackHandlers(
     ipc: IpcListener<MainIpcHandleEvents>,

@@ -15,7 +15,11 @@ export const windowStateSchema = type({
 
 export type WindowState = typeof windowStateSchema.infer;
 
-const WINDOW_STATE_FILE = join(app.getPath("userData"), "windows.json");
+const WINDOW_STATE_FILE_PATH = join(
+    app.getPath("userData"),
+    "state",
+    "windows.json",
+);
 
 type WindowStates = Record<string, WindowState>;
 
@@ -23,7 +27,7 @@ class WindowStateManager {
     private stateCache: WindowStates = {};
 
     private async write(state: WindowStates): Promise<void> {
-        await writeFile(WINDOW_STATE_FILE, JSON.stringify(state), {
+        await writeFile(WINDOW_STATE_FILE_PATH, JSON.stringify(state), {
             encoding: "utf-8",
         });
 
@@ -34,7 +38,7 @@ class WindowStateManager {
         let rawData: string;
 
         try {
-            rawData = await readFile(WINDOW_STATE_FILE, "utf-8");
+            rawData = await readFile(WINDOW_STATE_FILE_PATH, "utf-8");
         } catch {
             this.stateCache = {};
             return this.stateCache;

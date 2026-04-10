@@ -20,13 +20,13 @@ import { registerTabHandlers } from "@main/ipc/tabs";
 import { registerWindowHandlers } from "@main/ipc/window";
 import { library } from "@main/library";
 import { APP_MENU } from "@main/menu";
-import { playbackManager } from "@main/playbackManager";
-import { initializeSettings, settingsManager } from "@main/settingsManager";
-import { tabsManager } from "@main/tabsManager";
-import { validateBounds } from "@main/window/validateBounds";
-import { windowManager } from "@main/window/windowManager";
-import { DEFAULT_OPTIONS } from "@main/window/windowPolicies";
-import { windowStateManager } from "@main/windowState";
+import { playbackManager } from "@main/state/playback";
+import { initializeSettings, settingsManager } from "@main/state/settings";
+import { tabsManager } from "@main/state/tabs";
+import { windowStateManager } from "@main/state/windows";
+import { validateBounds } from "@main/windows/validateBounds";
+import { windowManager } from "@main/windows/windowManager";
+import { DEFAULT_OPTIONS } from "@main/windows/windowPolicies";
 import { getErrorMessage, log } from "@shared/utils/logger";
 import {
     BrowserWindow,

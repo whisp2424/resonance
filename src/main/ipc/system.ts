@@ -3,7 +3,7 @@ import type { MainIpcHandleEvents } from "@shared/types/ipc";
 import type { SystemPreferences } from "electron";
 
 import { platform } from "@electron-toolkit/utils";
-import { windowManager } from "@main/window/windowManager";
+import { windowManager } from "@main/windows/windowManager";
 
 let lastAccentColor: string | null = null;
 

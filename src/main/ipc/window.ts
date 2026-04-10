@@ -1,7 +1,7 @@
 import type { IpcListener } from "@electron-toolkit/typed-ipc/main";
 import type { MainIpcHandleEvents } from "@shared/types/ipc";
 
-import { windowManager } from "@main/window/windowManager";
+import { windowManager } from "@main/windows/windowManager";
 
 export function registerWindowHandlers(ipc: IpcListener<MainIpcHandleEvents>) {
     ipc.handle("window:close", (_, id) => {

@@ -3,10 +3,10 @@ import type { SettingsPath } from "@shared/types/ipc";
 import type { DeepPartial, PathValue } from "@shared/types/utils";
 import type { FSWatcher } from "chokidar";
 
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
-import { windowManager } from "@main/window/windowManager";
+import { windowManager } from "@main/windows/windowManager";
 import { DEFAULT_SETTINGS, settingsSchema } from "@shared/schema/settings";
 import { getErrorMessage } from "@shared/utils/logger";
 import { deepMerge, setDeep } from "@shared/utils/object";
@@ -17,7 +17,12 @@ import writeFile from "write-file-atomic";
 
 import product from "@main/../../build/product.json" with { type: "json" };
 
-const SETTINGS_FILE = join(app.getPath("userData"), "settings.json");
+const SETTINGS_FILE_PATH = join(
+    app.getPath("userData"),
+    "state",
+    "settings.json",
+);
+
 const CURRENT_SETTINGS_VERSION = DEFAULT_SETTINGS.schemaVersion;
 
 type SettingsKey = keyof Settings;
@@ -58,7 +63,7 @@ class SettingsManager {
 
     async load(): Promise<Settings> {
         try {
-            const rawData = await readFile(SETTINGS_FILE, "utf-8");
+            const rawData = await readFile(SETTINGS_FILE_PATH, "utf-8");
             const jsonData = JSON.parse(rawData);
             const result = this.normalizeSettings(jsonData);
 
@@ -97,13 +102,7 @@ class SettingsManager {
         path: P,
         value: PathValue<Settings, P>,
     ): Promise<SettingsKey | undefined> {
-        const updated = settingsSchema(
-            setDeep(
-                this.get() as unknown as Record<string, unknown>,
-                path,
-                value,
-            ),
-        );
+        const updated = settingsSchema(setDeep(this.get(), path, value));
 
         if (updated instanceof type.errors) throw new Error(updated.summary);
         return await this.write(updated);
@@ -113,8 +112,8 @@ class SettingsManager {
         this.isWriting = true;
         try {
             await writeFile(
-                SETTINGS_FILE,
-                JSON.stringify(DEFAULT_SETTINGS, null, 2),
+                SETTINGS_FILE_PATH,
+                JSON.stringify(DEFAULT_SETTINGS, null, 4),
                 { encoding: "utf-8" },
             );
             this.settingsCache = DEFAULT_SETTINGS;
@@ -127,7 +126,7 @@ class SettingsManager {
 
     startWatcher(): void {
         if (this.fileWatcher) return;
-        this.fileWatcher = watch(SETTINGS_FILE, { ignoreInitial: true });
+        this.fileWatcher = watch(SETTINGS_FILE_PATH, { ignoreInitial: true });
         this.fileWatcher.on("change", () => this.onExternalChanges());
     }
 
@@ -143,11 +142,17 @@ class SettingsManager {
         let changedKey: SettingsKey | undefined;
         try {
             const oldSettings = this.settingsCache;
+
+            await mkdir(dirname(SETTINGS_FILE_PATH), {
+                recursive: true,
+            });
+
             await writeFile(
-                SETTINGS_FILE,
-                JSON.stringify(newSettings, null, 2),
+                SETTINGS_FILE_PATH,
+                JSON.stringify(newSettings, null, 4),
                 { encoding: "utf-8" },
             );
+
             this.settingsCache = newSettings;
 
             if (oldSettings) {
@@ -181,7 +186,7 @@ class SettingsManager {
         if (this.isWriting) return;
 
         try {
-            const data = await readFile(SETTINGS_FILE, "utf-8");
+            const data = await readFile(SETTINGS_FILE_PATH, "utf-8");
             const parsed = JSON.parse(data);
             const result = this.normalizeSettings(parsed);
 
@@ -354,7 +359,7 @@ export async function initializeSettings(): Promise<Settings> {
                     break;
                 }
                 case 1:
-                    await shell.openPath(SETTINGS_FILE);
+                    await shell.openPath(SETTINGS_FILE_PATH);
                     process.exit(1);
                     break;
                 case 2:

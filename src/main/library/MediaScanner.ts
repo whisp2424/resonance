@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { db } from "@main/database";
 import { importer } from "@main/library/MediaImporter";
-import { windowManager } from "@main/window/windowManager";
+import { windowManager } from "@main/windows/windowManager";
 import { sourcesTable, tracksTable } from "@shared/database/schema";
 import { error, ok } from "@shared/types/result";
 import { getErrorMessage, log } from "@shared/utils/logger";

@@ -10,9 +10,12 @@ import { join } from "node:path";
 
 import { IpcEmitter } from "@electron-toolkit/typed-ipc/main";
 import { is } from "@electron-toolkit/utils";
-import { validateBounds } from "@main/window/validateBounds";
-import { DEFAULT_CONTROLS, WINDOW_POLICIES } from "@main/window/windowPolicies";
-import { windowStateManager } from "@main/windowState";
+import { windowStateManager } from "@main/state/windows";
+import { validateBounds } from "@main/windows/validateBounds";
+import {
+    DEFAULT_CONTROLS,
+    WINDOW_POLICIES,
+} from "@main/windows/windowPolicies";
 import { BrowserWindow, shell } from "electron";
 
 export type { WebContents } from "electron";

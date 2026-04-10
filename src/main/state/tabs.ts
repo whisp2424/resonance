@@ -9,7 +9,7 @@ import { type } from "arktype";
 import { app } from "electron";
 import writeFile from "write-file-atomic";
 
-const TABS_FILE = join(app.getPath("userData"), "tabs.json");
+const TABS_FILE_PATH = join(app.getPath("userData"), "state", "tabs.json");
 
 const tabsSchema = tabDescriptorSchema.array();
 
@@ -24,7 +24,7 @@ class TabsManager {
 
     async load(): Promise<TabsState | null> {
         try {
-            const rawData = await readFile(TABS_FILE, "utf-8");
+            const rawData = await readFile(TABS_FILE_PATH, "utf-8");
             const jsonData = JSON.parse(rawData);
 
             const tabsResult = tabsSchema(jsonData.tabs);
@@ -54,9 +54,13 @@ class TabsManager {
 
     async save(tabs: TabDescriptor[], activeId: string | null): Promise<void> {
         try {
-            await writeFile(TABS_FILE, JSON.stringify({ tabs, activeId }), {
-                encoding: "utf-8",
-            });
+            await writeFile(
+                TABS_FILE_PATH,
+                JSON.stringify({ tabs, activeId }),
+                {
+                    encoding: "utf-8",
+                },
+            );
             this.tabsCache = [...tabs];
             this.activeIdCache = activeId;
         } catch (err) {

@@ -12,14 +12,18 @@ import { type } from "arktype";
 import { app } from "electron";
 import writeFile from "write-file-atomic";
 
-const PLAYBACK_FILE = join(app.getPath("userData"), "playback.json");
+const PLAYBACK_FILE_PATH = join(
+    app.getPath("userData"),
+    "state",
+    "playback.json",
+);
 
 class PlaybackManager {
     private playbackCache: PlaybackState = DEFAULT_PLAYBACK_STATE;
 
     async load(): Promise<PlaybackState> {
         try {
-            const rawData = await readFile(PLAYBACK_FILE, "utf-8");
+            const rawData = await readFile(PLAYBACK_FILE_PATH, "utf-8");
             const jsonData = JSON.parse(rawData);
 
             const result = playbackStateSchema(jsonData);
@@ -41,7 +45,7 @@ class PlaybackManager {
 
     async save(playbackState: PlaybackState): Promise<void> {
         try {
-            await writeFile(PLAYBACK_FILE, JSON.stringify(playbackState), {
+            await writeFile(PLAYBACK_FILE_PATH, JSON.stringify(playbackState), {
                 encoding: "utf-8",
             });
             this.playbackCache = { ...playbackState };
