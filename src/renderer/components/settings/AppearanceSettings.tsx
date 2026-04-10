@@ -47,7 +47,7 @@ export function AppearanceSettings() {
 
             <SettingsRow
                 title="Auto-hide title bar"
-                description="Automatically hide the title bar when fullscreen, activating when hovering near the top edge of the screen">
+                description="Automatically hide the title bar when fullscreen, activate when hovering near the top edge of the screen">
                 <Switch
                     checked={autoHideTitleBar ?? true}
                     onCheckedChange={(checked) => {
