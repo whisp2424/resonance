@@ -68,6 +68,11 @@ export async function restorePlaybackState(): Promise<Result<PlaybackState>> {
     try {
         const persisted = await electron.invoke("playback:get");
 
+        if (persisted.queueTrackIds.length === 0) {
+            persisted.currentEntryIndex = -1;
+            persisted.positionMs = 0;
+        }
+
         usePlaybackStore.setState({
             isPlaying: false, // persisted state unused for now
             positionMs: persisted.positionMs,
