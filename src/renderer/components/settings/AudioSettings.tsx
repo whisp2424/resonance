@@ -77,6 +77,10 @@ function buildAudioDeviceItems(
 }
 
 export function AudioSettings() {
+    const [resumeOnStartup, setResumeOnStartup] = useSetting(
+        "audio.playback.resumeOnStartup",
+    );
+
     const [outputDeviceId, setOutputDeviceId] = useSetting(
         "audio.output.deviceId",
     );
@@ -130,6 +134,7 @@ export function AudioSettings() {
                     Open
                 </Button>
             </SettingsRow>
+
             <SettingsSection title="Device settings" className="mt-4">
                 <SettingsSelectField
                     title="Audio device"
@@ -221,6 +226,19 @@ export function AudioSettings() {
                         }
                         onCheckedChange={(checked) => {
                             setResumeOnReconnect(checked);
+                        }}
+                    />
+                </SettingsRow>
+            </SettingsSection>
+
+            <SettingsSection title="Playback" className="mt-4">
+                <SettingsRow
+                    title="Resume playback on startup"
+                    description="If enabled, playback will resume what was last playing when the app starts">
+                    <Switch
+                        checked={resumeOnStartup ?? false}
+                        onCheckedChange={(checked) => {
+                            setResumeOnStartup(checked);
                         }}
                     />
                 </SettingsRow>

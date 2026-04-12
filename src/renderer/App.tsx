@@ -7,7 +7,9 @@ import {
     restorePlaybackState,
     usePlaybackPersistence,
 } from "@renderer/hooks/usePlaybackPersistence";
+import { usePlaybackStore } from "@renderer/lib/audio/state/playbackStore";
 import { useQueueStore } from "@renderer/lib/audio/state/queueStore";
+import { useSettingsStore } from "@renderer/lib/settings/settingsStore";
 import {
     useThemeListeners,
     useThemeStore,
@@ -15,7 +17,7 @@ import {
 import { useTabsStore } from "@renderer/lib/tabs/tabsStore";
 import { ROUTES } from "@shared/constants/routes";
 import { log } from "@shared/utils/logger";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Route, Routes } from "react-router-dom";
 
 export default function App() {
@@ -24,27 +26,46 @@ export default function App() {
     const { initialize: initializeTheme } = useThemeStore();
     const restoreQueue = useQueueStore((state) => state.restore);
 
+    const resumePlaybackOnStartup = useSettingsStore(
+        (state) => state.settings?.audio.playback.resumeOnStartup,
+    );
+
+    const didRestorePlayback = useRef(false);
     usePlaybackPersistence();
 
     useEffect(() => {
         restoreTabs();
         initializeTheme();
+    }, [initializeTheme, restoreTabs]);
 
-        restorePlaybackState().then((result) => {
+    useEffect(() => {
+        if (resumePlaybackOnStartup === undefined || didRestorePlayback.current)
+            return;
+
+        async function restorePersistedPlayback(): Promise<void> {
+            const result = await restorePlaybackState();
+
             if (!result.success) {
                 log(result.message, "restorePlaybackState", "error");
                 return;
             }
 
             if (result.data.queueTrackIds.length > 0) {
-                restoreQueue({
+                await restoreQueue({
                     trackIds: result.data.queueTrackIds,
                     currentEntryIndex: result.data.currentEntryIndex,
                     positionMs: result.data.positionMs,
                 });
             }
-        });
-    }, [initializeTheme, restoreTabs, restoreQueue]);
+
+            if (resumePlaybackOnStartup && result.data.isPlaying)
+                await usePlaybackStore.getState().play();
+
+            didRestorePlayback.current = true;
+        }
+
+        restorePersistedPlayback();
+    }, [restoreQueue, resumePlaybackOnStartup]);
 
     useThemeListeners();
 

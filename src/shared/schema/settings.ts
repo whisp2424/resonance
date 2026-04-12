@@ -22,6 +22,9 @@ export const settingsSchema = type({
         trayIcon: "'auto' | 'light' | 'dark'",
     },
     audio: {
+        playback: {
+            resumeOnStartup: "boolean",
+        },
         output: {
             deviceId: "string",
             onDisconnectRouting: "'switch_to_default' | 'keep_preferred'",
@@ -46,6 +49,9 @@ export const DEFAULT_SETTINGS: Settings = {
         trayIcon: "auto",
     },
     audio: {
+        playback: {
+            resumeOnStartup: false,
+        },
         output: {
             deviceId: "default",
             notifyChanges: "none",
