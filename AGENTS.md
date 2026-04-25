@@ -159,8 +159,6 @@ Processes communicate **only** via typed IPC.
 ## IPC Communication (typed-ipc)
 
 - Uses `@electron-toolkit/typed-ipc` for end-to-end type safety.
-- **Preload constraint**:
-    - **NEVER** add wrapper or helper methods in `src/preload/index.ts`.
 - **Renderer**:
     - `electron.invoke(channel, ...args)`
     - `electron.send(channel, listener)`
